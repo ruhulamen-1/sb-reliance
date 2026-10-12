@@ -71,7 +71,10 @@ export default function Home() {
 
       {loadErr && <p className="err wrap block">{loadErr}</p>}
 
-      <section className="hero">
+      <section
+        className={S.hero_bg ? 'hero has-bg' : 'hero'}
+        style={S.hero_bg ? { backgroundImage: `linear-gradient(90deg, rgba(251,250,247,.94) 0%, rgba(251,250,247,.82) 45%, rgba(251,250,247,.35) 100%), url("${S.hero_bg}")` } : undefined}
+      >
         <div className="wrap hero-grid">
           <div>
             <h1>{S.hero_title}</h1>

@@ -47,3 +47,4 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .shot{margin:0}.shot img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;display:block}
 .shot figcaption{color:var(--muted);font-size:.9rem;padding-top:4px}
 .imgfield span{font-weight:600}
+.hero.has-bg{background-size:cover;background-position:center}
