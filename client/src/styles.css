@@ -108,3 +108,41 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .contact-blocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.contact-blocks .card{margin:0}
 .legal h2{font-size:1.3rem;margin-top:1.6rem}.legal p{max-width:70ch}
 .brandrow{display:inline-flex;align-items:center;gap:10px}.logo{height:36px;width:auto;display:block}.logo-lg{height:72px;margin-bottom:12px}
+
+/* ---------- motion ---------- */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(31,157,85,.55)}100%{box-shadow:0 0 0 16px rgba(31,157,85,0)}}
+@keyframes pop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+.page{animation:fade .4s ease both}
+/* one orchestrated moment: the hero */
+.hero h1{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.hero .lead{animation:rise .6s .12s cubic-bezier(.2,.7,.2,1) both}
+.hero .row.gap{animation:rise .6s .24s cubic-bezier(.2,.7,.2,1) both}
+.hero .heroslides,.hero .heroimg:only-child,.hero .swatches{animation:rise .7s .3s cubic-bezier(.2,.7,.2,1) both}
+.chip{transition:transform .25s}
+.chip:hover{transform:translateY(-4px) rotate(0deg)!important}
+/* scroll reveal (added by useReveal) */
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+/* hover feedback */
+.btn,.btn-outline,.fab{transition:transform .15s,box-shadow .15s,background-color .2s,color .2s}
+.btn:hover,.fab:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(16,52,58,.22)}
+.card,.member{transition:transform .2s,box-shadow .2s}
+.card:hover,.member:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(16,52,58,.12)}
+.tile img,.shot img,.proj img,.cardimg{transition:transform .4s}
+.tile:hover img,.shot:hover img,.proj:hover img{transform:scale(1.05)}
+.tile,.shot{overflow:hidden}
+.brand .logo{transition:transform .4s}.brand:hover .logo{transform:rotate(-6deg) scale(1.06)}
+.topbar nav a{transition:color .2s}
+/* small confirmations */
+.fab.wa{animation:ring 1.6s 2s ease-out 3}
+.ok,.err{animation:rise .3s both}
+.tabpanel:not([hidden]){animation:rise .3s both}
+.lightbox[open]{animation:pop .25s both}
+.lightbox[open]::backdrop{animation:fade .25s both}
+@media(prefers-reduced-motion:reduce){
+  .page,.hero h1,.hero .lead,.hero .row.gap,.hero .heroslides,.hero .heroimg,.hero .swatches,.fab.wa,.ok,.err,.tabpanel,.lightbox[open],.lightbox[open]::backdrop{animation:none!important}
+  .reveal{opacity:1;transform:none;transition:none}
+  .btn:hover,.fab:hover,.card:hover,.member:hover,.chip:hover,.tile:hover img,.shot:hover img,.proj:hover img{transform:none!important}
+}

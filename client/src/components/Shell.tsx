@@ -1,9 +1,11 @@
 import { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import useReveal from './useReveal';
 
 export type Settings = Record<string, string>;
 
 export default function Shell({ S, children }: { S: Settings; children: ReactNode }) {
+  useReveal();
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
   return (
     <>
@@ -24,7 +26,7 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
           <a className="btn" href={wa}>WhatsApp {S.phone}</a>
         </div>
       </header>
-      {children}
+      <div className="page">{children}</div>
       <div className="floaters">
         <a className="fab wa" href={wa} aria-label="Chat on WhatsApp">WhatsApp</a>
         {S.phone && <a className="fab call" href={`tel:${S.phone.replace(/[^\d+]/g, '')}`} aria-label={`Call ${S.phone}`}>Call</a>}
