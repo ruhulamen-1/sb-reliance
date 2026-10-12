@@ -9,7 +9,6 @@ interface GalleryItem { id: number; title: string; image_url: string }
 type Settings = Record<string, string>;
 interface HomeData { services: Service[]; testimonials: Testimonial[]; posts: Post[]; gallery: GalleryItem[]; settings: Settings }
 
-const CHIPS = ['#7FA6D6', '#9CC5B8', '#F2D16B', '#E8A598', '#C9C3E6', '#F4EFE6', '#A7D3C4', '#F0B88A'];
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 const EMPTY_FORM = { name: '', whatsapp: '', address: '', house_type: '', service_type: '', preferred_date: '', message: '' };
 
@@ -81,26 +80,29 @@ export default function Home() {
               <a className="btn ghost" href={wa}>Chat on WhatsApp</a>
             </div>
           </div>
-          {S.hero_image ? (
-            <img className="heroimg" src={S.hero_image} alt="" />
-          ) : (
-          <div className="swatches" aria-hidden="true">
-            {serviceNames.map((n, i) => (
-              <div key={n} className="chip" style={{ background: CHIPS[i % CHIPS.length], transform: `rotate(${((i % 4) - 1.5) * 2}deg)` }}>
-                <span>{n}</span>
+          <div className="plate">
+            {S.hero_image ? (
+              <img src={S.hero_image} alt="" />
+            ) : (
+              <div className="scope">
+                <h3>Scope of works</h3>
+                <ul>{serviceNames.map((n) => <li key={n}>{n}</li>)}</ul>
               </div>
-            ))}
+            )}
+            <div className="titleblock">
+              <div><strong>{S.company_name}</strong>{S.address}</div>
+              <div><strong>Call us</strong>{S.phone}</div>
+            </div>
           </div>
-          )}
         </div>
       </section>
 
       <section id="services" className="wrap block">
-        <h2>{S.services_title}</h2>
-        <div className="grid3">
+        <div className="sechead"><h2>{S.services_title}</h2></div>
+        <div className="schedule">
           {data.services.map((s) => (
-            <article key={s.id} className="card">
-              {s.image_url && <img className="cardimg" src={s.image_url} alt="" />}
+            <article key={s.id} className={s.image_url ? 'srow' : 'srow noimg'}>
+              {s.image_url && <img src={s.image_url} alt="" loading="lazy" />}
               <h3>{s.title}</h3>
               <p>{s.description}</p>
             </article>
@@ -127,7 +129,7 @@ export default function Home() {
 
       {data.gallery.length > 0 && (
         <section id="work" className="wrap block">
-          <h2>Our work</h2>
+          <div className="sechead"><h2>Our work</h2></div>
           <div className="gallery">
             {data.gallery.map((g) => (
               <figure key={g.id} className="shot">
@@ -141,7 +143,7 @@ export default function Home() {
 
       {data.testimonials.length > 0 && (
         <section className="wrap block">
-          <h2>What customers say</h2>
+          <div className="sechead"><h2>What customers say</h2></div>
           <div className="grid3">
             {data.testimonials.map((t) => (
               <figure key={t.id} className="card quote">
@@ -155,7 +157,7 @@ export default function Home() {
 
       {data.posts.length > 0 && (
         <section id="blog" className="wrap block">
-          <h2>From the blog</h2>
+          <div className="sechead"><h2>From the blog</h2></div>
           <div className="grid3">
             {data.posts.map((p) => (
               <article key={p.id} className="card">
@@ -169,7 +171,7 @@ export default function Home() {
         </section>
       )}
 
-      <section id="quote" className="band">
+      <section id="quote" className="band light">
         <div className="wrap narrow">
           <h2>{S.quote_title}</h2>
           <p>{S.quote_intro}</p>
