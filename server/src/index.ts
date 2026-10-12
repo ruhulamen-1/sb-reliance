@@ -11,6 +11,15 @@ import jwt from 'jsonwebtoken';
 
 const env = process.env;
 const JWT_SECRET = env.JWT_SECRET || 'change-this-secret';
+if (env.NODE_ENV === 'production') {
+  const weak: string[] = [];
+  if (JWT_SECRET === 'change-this-secret' || JWT_SECRET.length < 24) weak.push('JWT_SECRET (use a random value of 24+ characters)');
+  if (!env.ADMIN_PASSWORD || env.ADMIN_PASSWORD === 'Admin@12345') weak.push('ADMIN_PASSWORD (do not use the default)');
+  if (weak.length) {
+    console.error('Refusing to start in production. Set a strong value for: ' + weak.join('; '));
+    process.exit(1);
+  }
+}
 const pool = mysql.createPool({
   host: env.DB_HOST || 'localhost',
   user: env.DB_USER || 'root',
@@ -122,15 +131,23 @@ async function ensureColumn(table: string, column: string, ddl: string) {
 async function initDb() {
   const here = dirname(fileURLToPath(import.meta.url));
   const schema = readFileSync(join(here, '..', 'sql', 'schema.sql'), 'utf8');
-  const root = await mysql.createConnection({
+  const dbName = (env.DB_NAME || 'sbreliance').replace(/[^\w]/g, '');
+  const conn0 = {
     host: env.DB_HOST || 'localhost',
     user: env.DB_USER || 'root',
     password: env.DB_PASSWORD || '',
     multipleStatements: true,
-  });
-  const dbName = (env.DB_NAME || 'sbreliance').replace(/[^\w]/g, '');
-  await root.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4`);
-  await root.query(`USE \`${dbName}\``);
+  };
+  let root: Awaited<ReturnType<typeof mysql.createConnection>>;
+  try {
+    // Hosting providers usually create the database for you: connect to it directly.
+    root = await mysql.createConnection({ ...conn0, database: dbName });
+  } catch {
+    // Local development: create the database if it does not exist yet.
+    root = await mysql.createConnection(conn0);
+    await root.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4`);
+    await root.query(`USE \`${dbName}\``);
+  }
   await root.query(schema);
   await root.end();
 
@@ -163,7 +180,8 @@ async function initDb() {
   }
 }
 
-const uploadsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
+// UPLOAD_DIR lets you keep uploaded images outside the app folder so redeploys never delete them
+const uploadsDir = env.UPLOAD_DIR || join(dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
 mkdirSync(uploadsDir, { recursive: true });
 const IMAGE_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 
@@ -310,7 +328,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 const portFile = join(dirname(fileURLToPath(import.meta.url)), '..', '.api-port');
 function listen(port: number, tries = 0) {
   const srv = app.listen(port, () => {
-    writeFileSync(portFile, String(port));
+    try { writeFileSync(portFile, String(port)); } catch { /* read-only file system on some hosts */ }
     console.log(`API running on :${port}  ->  http://localhost:${port}`);
   });
   srv.on('error', (e: NodeJS.ErrnoException) => {
