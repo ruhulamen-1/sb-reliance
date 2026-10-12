@@ -55,6 +55,7 @@ export default function Home() {
 
   return (
     <>
+      {S.page_bg && <div className="pagebg" aria-hidden="true" style={{ backgroundImage: `url("${S.page_bg}")` }} />}
       <header className="topbar">
         <div className="wrap row between">
           <a className="brand" href="/">{S.brand}</a>
@@ -71,10 +72,7 @@ export default function Home() {
 
       {loadErr && <p className="err wrap block">{loadErr}</p>}
 
-      <section
-        className={S.hero_bg ? 'hero has-bg' : 'hero'}
-        style={S.hero_bg ? { backgroundImage: `linear-gradient(90deg, rgba(251,250,247,.94) 0%, rgba(251,250,247,.82) 45%, rgba(251,250,247,.35) 100%), url("${S.hero_bg}")` } : undefined}
-      >
+      <section className="hero">
         <div className="wrap hero-grid">
           <div>
             <h1>{S.hero_title}</h1>

@@ -197,7 +197,7 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'email', label: 'Email' },
   { key: 'address', label: 'Address' },
   { key: 'hero_image', label: 'Hero image (optional, replaces the service tiles)', image: true },
-  { key: 'hero_bg', label: 'Hero background image (optional, shown behind the headline)', image: true },
+  { key: 'page_bg', label: 'Page background image (optional, shown faded behind the whole page)', image: true },
   { key: 'hero_title', label: 'Hero headline' },
   { key: 'hero_lead', label: 'Hero paragraph', area: true },
   { key: 'services_title', label: 'Services section title' },

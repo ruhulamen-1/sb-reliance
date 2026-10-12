@@ -40,7 +40,7 @@ const DEFAULTS: Record<string, string> = {
   email: 'info@example.com',
   address: 'Singapore',
   hero_image: '',
-  hero_bg: '',
+  page_bg: '',
   hero_title: 'Air-con, electrical, CCTV and building works from one contractor.',
   hero_lead:
     'SB Reliance Pte Ltd specialises in ACMV and air-conditioning installation, electrical, CCTV, ceiling partition, painting, tiles and general building works for homes, offices and commercial spaces across Singapore.',
