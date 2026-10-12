@@ -98,3 +98,10 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .lightbox img{display:block;width:100%;max-height:75vh;object-fit:contain;background:#10343a}
 .lightbox figcaption{padding:12px 16px}
 .lightbox .lbbar{display:flex;gap:8px;justify-content:space-between;padding:0 16px 14px}
+.members{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px}
+.member{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;text-align:center}
+.member img,.avatar{width:120px;height:120px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 12px}
+.avatar{background:var(--ink);color:#fff;display:grid;place-items:center;font:800 2rem 'Bricolage Grotesque',sans-serif}
+.member h3{margin:0}.member .role{color:var(--muted);font-weight:600;margin:2px 0 10px}
+.member p{text-align:left;margin:0}
+.orgchart{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:8px;background:#fff}

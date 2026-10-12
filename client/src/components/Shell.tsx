@@ -18,6 +18,7 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
             <NavLink to="/blog">Blog</NavLink>
             <NavLink to="/contact">Contact</NavLink>
             <NavLink to="/about">About</NavLink>
+            <NavLink to="/team">Team</NavLink>
             <NavLink to="/admin">Admin</NavLink>
           </nav>
           <a className="btn" href={wa}>WhatsApp {S.phone}</a>

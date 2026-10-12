@@ -29,6 +29,7 @@ const CONTENT: Record<string, string[]> = {
   posts: ['title', 'slug', 'excerpt', 'content', 'image_url'],
   testimonials: ['name', 'location', 'text'],
   gallery: ['title', 'category', 'image_url'],
+  team: ['name', 'role', 'bio', 'image_url', 'sort_order'],
 };
 
 // Site settings (editable from Admin > Settings). Saved values override these defaults.
@@ -46,6 +47,7 @@ const DEFAULTS: Record<string, string> = {
   about_text:
     'SB Reliance Pte Ltd is a Singapore contractor for ACMV and air-conditioning, electrical, CCTV, ceiling partition, painting, tiles and general building works.',
   footer_bg: '',
+  org_chart: '',
   about_intro: [
     'SB Reliance Pte Ltd specialises in ACMV and air-conditioning installation, electrical, CCTV, ceiling partition, painting, tiles and general building works for homes, offices and commercial spaces across Singapore.',
     'We act as one contractor for M&E, fit-out and finishing works, so you deal with one team from site visit to handover.',
@@ -182,6 +184,11 @@ app.post('/api/auth/login', wrap(async (req, res) => {
 // ---------- Public ----------
 app.get('/api/public/gallery', wrap(async (_req, res) => {
   const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, category, image_url FROM gallery ORDER BY id DESC LIMIT 200');
+  res.json(rows);
+}));
+
+app.get('/api/public/team', wrap(async (_req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, name, role, bio, image_url FROM team ORDER BY sort_order, id');
   res.json(rows);
 }));
 

@@ -166,7 +166,7 @@ function Crud({ table, fields }: { table: string; fields: { key: string; label: 
         ) : (
           <label key={f.key} className={f.area ? 'full' : ''}>{f.label}
             {f.area
-              ? <textarea rows={4} required value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+              ? <textarea rows={4} required={!f.optional} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
               : <input required={!f.optional} type={f.num ? 'number' : 'text'} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: f.num ? Number(e.target.value) : e.target.value })} />}
           </label>
         ))}
@@ -213,6 +213,7 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'about_intro', label: 'About page intro', area: true, hint: 'One paragraph per line' },
   { key: 'about_image', label: 'About page image (optional)', image: true },
   { key: 'about_mission', label: 'About page mission', area: true },
+  { key: 'org_chart', label: 'Team page organisation chart (optional image)', image: true },
   { key: 'quote_title', label: 'Quote form title' },
   { key: 'quote_intro', label: 'Quote form intro text', area: true },
   { key: 'property_types', label: 'Property types in quote form', area: true, hint: 'One per line' },
@@ -250,7 +251,7 @@ function Settings() {
   );
 }
 
-const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Testimonials', 'Settings'] as const;
+const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Settings'] as const;
 
 export default function Admin() {
   const [authed, setAuthed] = useState(!!localStorage.getItem('token'));
@@ -271,6 +272,7 @@ export default function Admin() {
       {tab === 'Services' && <Crud table="services" fields={[{ key: 'title', label: 'Title' }, { key: 'description', label: 'Description', area: true }, { key: 'sort_order', label: 'Order', num: true }, { key: 'image_url', label: 'Image', image: true }]} />}
       {tab === 'Blog' && <Crud table="posts" fields={[{ key: 'title', label: 'Title' }, { key: 'slug', label: 'Slug' }, { key: 'excerpt', label: 'Excerpt', area: true }, { key: 'content', label: 'Content', area: true }, { key: 'image_url', label: 'Cover image', image: true }]} />}
       {tab === 'Gallery' && <Crud table="gallery" fields={[{ key: 'title', label: 'Project name' }, { key: 'category', label: 'Category (optional, e.g. Commercial, Residential)', optional: true }, { key: 'image_url', label: 'Photo', image: true, required: true }]} />}
+      {tab === 'Team' && <Crud table="team" fields={[{ key: 'name', label: 'Name' }, { key: 'role', label: 'Role / title' }, { key: 'bio', label: 'Short bio (optional)', area: true, optional: true }, { key: 'sort_order', label: 'Order (smaller shows first)', num: true }, { key: 'image_url', label: 'Photo (optional)', image: true }]} />}
       {tab === 'Settings' && <Settings />}
       {tab === 'Testimonials' && <Crud table="testimonials" fields={[{ key: 'name', label: 'Name' }, { key: 'location', label: 'Area' }, { key: 'text', label: 'Review', area: true }]} />}
     </div>

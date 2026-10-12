@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Admin from './pages/Admin';
 import About from './pages/About';
 import Portfolio from './pages/Portfolio';
+import Team from './pages/Team';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route key={path} path={path} element={<Home />} />
         ))}
         <Route path="/portfolio" element={<Portfolio />} />
+        <Route path="/team" element={<Team />} />
         <Route path="/about" element={<About />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
