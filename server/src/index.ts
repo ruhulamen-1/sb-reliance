@@ -46,6 +46,13 @@ const DEFAULTS: Record<string, string> = {
   about_text:
     'SB Reliance Pte Ltd is a Singapore contractor for ACMV and air-conditioning, electrical, CCTV, ceiling partition, painting, tiles and general building works.',
   footer_bg: '',
+  about_intro: [
+    'SB Reliance Pte Ltd specialises in ACMV and air-conditioning installation, electrical, CCTV, ceiling partition, painting, tiles and general building works for homes, offices and commercial spaces across Singapore.',
+    'We act as one contractor for M&E, fit-out and finishing works, so you deal with one team from site visit to handover.',
+  ].join('\n'),
+  about_image: '',
+  about_mission:
+    'To deliver air-conditioning, electrical, security and building works that are clearly scoped, fairly priced and properly finished.',
   page_bg: '',
   hero_title: 'Air-con, electrical, CCTV and building works from one contractor.',
   hero_lead:

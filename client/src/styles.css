@@ -72,3 +72,13 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px;margin-top:36px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18);font-size:.92rem;color:#c3d3d1}
 .foot-bottom nav{display:flex;flex-wrap:wrap;gap:6px 18px}
 @media(max-width:800px){.foot-cols{grid-template-columns:1fr}.foot-contact{text-align:left}}
+.tabpanel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:22px;max-width:760px}
+.tabpanel[hidden]{display:none}
+.tabs [role=tab][aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.about-intro{padding:64px 0}.about-intro .lead{max-width:60ch}
+.tile{position:relative;display:block;text-decoration:none;color:#fff;border-radius:8px;overflow:hidden;background:var(--ink)}
+.tile img,.tile-ph{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.tile-ph{background:var(--ink)}
+.tile-label{position:absolute;left:0;right:0;bottom:0;padding:28px 14px 12px;font-weight:700;background:linear-gradient(to top,rgba(16,30,34,.9),transparent)}
+.tile:hover img{opacity:.9}
+.cta h2,.cta p{color:inherit}
