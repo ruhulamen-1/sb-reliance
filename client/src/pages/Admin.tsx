@@ -197,6 +197,7 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'whatsapp', label: 'WhatsApp number (digits only, with country code)', hint: 'e.g. 6585334478' },
   { key: 'email', label: 'Email' },
   { key: 'address', label: 'Address' },
+  { key: 'open_hours', label: 'Opening hours (Singapore time, optional)', area: true, hint: 'One per line, e.g. Mon-Fri 09:00-18:00 and Sat 09:00-13:00. Shows a live "Open now" badge. Leave empty to hide it.' },
   { key: 'hero_image', label: 'Hero image 1 (optional, replaces the service tiles)', image: true },
   { key: 'hero_image_2', label: 'Hero image 2 (optional, makes the hero a slider)', image: true },
   { key: 'hero_image_3', label: 'Hero image 3 (optional)', image: true },

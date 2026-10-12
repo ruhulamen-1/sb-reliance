@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Shell from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
+import OpenStatus from '../components/OpenStatus';
 import { api } from '../api';
 
 interface Service { id: number; title: string; description: string; image_url?: string | null }
@@ -61,6 +62,15 @@ export default function Home() {
       {loadErr && <p className="err wrap block">{loadErr}</p>}
 
       <section className="hero">
+        <svg className="airflow" aria-hidden="true" viewBox="0 0 2400 400" preserveAspectRatio="none">
+          {[0, 1200].map((x) => (
+            <g key={x} transform={`translate(${x} 0)`} fill="none" strokeLinecap="round">
+              <path d="M0 110 C300 30 300 190 600 110 C900 30 900 190 1200 110" strokeWidth="3" />
+              <path d="M0 200 C300 120 300 280 600 200 C900 120 900 280 1200 200" strokeWidth="2" />
+              <path d="M0 290 C300 210 300 370 600 290 C900 210 900 370 1200 290" strokeWidth="3" />
+            </g>
+          ))}
+        </svg>
         <div className="wrap hero-grid">
           <div>
             <h1>{headlines[cur] || S.hero_title}</h1>
@@ -69,6 +79,7 @@ export default function Home() {
               <Link className="btn" to="/contact">Request a quote</Link>
               <a className="btn ghost" href={wa}>Chat on WhatsApp</a>
             </div>
+            <OpenStatus hours={S.open_hours} />
           </div>
           {slides.length > 0 ? (
             <div className="heroslides" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
@@ -94,6 +105,14 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {serviceNames.length > 0 && (
+        <div className="ticker" aria-hidden="true">
+          <div className="ticker-track">
+            {[0, 1].map((k) => serviceNames.map((n) => <span key={`${k}-${n}`} className={k ? 'dup' : ''}>{n}</span>))}
+          </div>
+        </div>
+      )}
 
       <section id="services" className="wrap block">
         <h2>{S.services_title}</h2>

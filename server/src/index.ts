@@ -58,6 +58,7 @@ const DEFAULTS: Record<string, string> = {
   footer_bg: '',
   org_chart: '',
   logo: '',
+  open_hours: '',
   privacy_text: '# What we collect\nWhen you send a quote request we collect the details you enter: your name, WhatsApp number, address, property type, the services you need, your preferred date and your message.\n# How we use it\nWe use these details only to reply to your request, visit your site, prepare a quotation and carry out the work you agree to. We may contact you on WhatsApp, by phone or by email about your request.\n# Sharing\nWe do not sell your details. We share them only with people who need them to do the work for you, such as our own team and subcontractors, or when the law requires it.\n# Keeping your details\nWe keep your details for as long as we need them for your request, our records and legal requirements, and then delete them.\n# Your choices\nYou can ask us to show you the details we hold, correct them, or stop contacting you, and you can withdraw your consent at any time. Contact us using the details on our Contact page and we will respond as soon as we can.\n# Changes\nWe may update this policy from time to time. The latest version is always on this page.',
   about_intro: [
     'SB Reliance Pte Ltd specialises in ACMV and air-conditioning installation, electrical, CCTV, ceiling partition, painting, tiles and general building works for homes, offices and commercial spaces across Singapore.',

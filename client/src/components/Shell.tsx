@@ -1,15 +1,31 @@
 import { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import useReveal from './useReveal';
+import { useEffect } from 'react';
 
 export type Settings = Record<string, string>;
 
 export default function Shell({ S, children }: { S: Settings; children: ReactNode }) {
   useReveal();
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      document.documentElement.style.setProperty('--p', String(max > 0 ? Math.min(window.scrollY / max, 1) : 0));
+      document.body.classList.toggle('scrolled', window.scrollY > 8);
+      raf = 0;
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); document.body.classList.remove('scrolled'); };
+  }, []);
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
   return (
     <>
       {S.page_bg && <div className="pagebg" aria-hidden="true" style={{ backgroundImage: `url("${S.page_bg}")` }} />}
+      <div className="progress" aria-hidden="true" />
       <header className="topbar">
         <div className="wrap row between">
           <Link className="brand brandrow" to="/"><img className="logo" src={S.logo || '/logo.svg'} alt="" />{S.brand}</Link>

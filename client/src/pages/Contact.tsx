@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
+import OpenStatus from '../components/OpenStatus';
 
 export default function Contact() {
   const [S, setS] = useState<Settings>({});
@@ -26,6 +27,7 @@ export default function Contact() {
       <section className="wrap block">
         <h1 className="h1s">Contact us</h1>
         <p className="lead">Call, message or send us the form. We reply on WhatsApp.</p>
+        <OpenStatus hours={S.open_hours} />
         {err && <p className="err">{err}</p>}
         <div className="contact-blocks">
           {S.phone && (
