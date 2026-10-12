@@ -56,6 +56,7 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
                 <NavLink to="/why-us">Why us</NavLink>
                 <NavLink to="/blog">Blog</NavLink>
                 <NavLink to="/contact">Contact</NavLink>
+                <NavLink to="/privacy-policy">Privacy policy</NavLink>
               </nav>
             </div>
           </div>

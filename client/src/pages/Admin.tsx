@@ -214,6 +214,7 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'about_image', label: 'About page image (optional)', image: true },
   { key: 'about_mission', label: 'About page mission', area: true },
   { key: 'org_chart', label: 'Team page organisation chart (optional image)', image: true },
+  { key: 'privacy_text', label: 'Privacy policy text', area: true, hint: 'One paragraph per line. A line starting with "# " becomes a heading.' },
   { key: 'quote_title', label: 'Quote form title' },
   { key: 'quote_intro', label: 'Quote form intro text', area: true },
   { key: 'property_types', label: 'Property types in quote form', area: true, hint: 'One per line' },
