@@ -27,6 +27,17 @@ export default function Home() {
   }, []);
 
   const S = data.settings;
+  const slides = [S.hero_image, S.hero_image_2, S.hero_image_3].filter(Boolean) as string[];
+  const headlines = (S.hero_headlines || '').split('\n').map((x) => x.trim());
+  const slideCount = Math.max(slides.length, headlines.filter(Boolean).length, 1);
+  const [slide, setSlide] = useState(0);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (slideCount < 2 || paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t = setInterval(() => setSlide((i) => (i + 1) % slideCount), 6000);
+    return () => clearInterval(t);
+  }, [slideCount, paused]);
+  const cur = slide % slideCount;
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
   const serviceNames = data.services.map((s) => s.title);
   const steps = lines(S.steps).map((l) => {
@@ -75,15 +86,26 @@ export default function Home() {
       <section className="hero">
         <div className="wrap hero-grid">
           <div>
-            <h1>{S.hero_title}</h1>
+            <h1>{headlines[cur] || S.hero_title}</h1>
             <p className="lead">{S.hero_lead}</p>
             <div className="row gap">
               <a className="btn" href="#quote">Request a quote</a>
               <a className="btn ghost" href={wa}>Chat on WhatsApp</a>
             </div>
           </div>
-          {S.hero_image ? (
-            <img className="heroimg" src={S.hero_image} alt="" />
+          {slides.length > 0 ? (
+            <div className="heroslides" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
+              {slides.map((src, i) => (
+                <img key={src} className={i === cur % slides.length ? 'heroimg on' : 'heroimg'} src={src} alt="" />
+              ))}
+              {slideCount > 1 && (
+                <div className="dots">
+                  {Array.from({ length: slideCount }, (_, i) => (
+                    <button key={i} type="button" className={i === cur ? 'on' : ''} aria-label={`Show slide ${i + 1}`} aria-current={i === cur} onClick={() => setSlide(i)} />
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
           <div className="swatches" aria-hidden="true">
             {serviceNames.map((n, i) => (
@@ -197,6 +219,11 @@ export default function Home() {
           </form>
         </div>
       </section>
+
+      <div className="floaters">
+        <a className="fab wa" href={wa} aria-label="Chat on WhatsApp">WhatsApp</a>
+        {S.phone && <a className="fab call" href={`tel:${S.phone.replace(/[^\d+]/g, '')}`} aria-label={`Call ${S.phone}`}>Call</a>}
+      </div>
 
       <footer className="foot">
         <div className="wrap row between">

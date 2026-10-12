@@ -40,6 +40,9 @@ const DEFAULTS: Record<string, string> = {
   email: 'info@example.com',
   address: 'Singapore',
   hero_image: '',
+  hero_image_2: '',
+  hero_image_3: '',
+  hero_headlines: '',
   page_bg: '',
   hero_title: 'Air-con, electrical, CCTV and building works from one contractor.',
   hero_lead:
