@@ -1,0 +1,5 @@
+.api-port
+node_modules
+dist
+.env
+uploads

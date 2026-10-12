@@ -1,0 +1,11 @@
+{
+  "name": "sb-reliance",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "build:client": "npm --prefix client run build",
+    "build": "npm run build:client && npm --prefix server run build",
+    "dev": "npm run build:client && npm --prefix server run dev",
+    "start": "npm --prefix server start"
+  }
+}
