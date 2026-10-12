@@ -1,5 +1,5 @@
 -- SB Reliance – MOCK IMAGES (placeholder SVGs in server/uploads). Safe to re-run.
--- Import:  mysql -u root -p sbreliance < mock-images.sql
+-- Import:  mysql -u root -p sbreliance < sql/samples/mock-images.sql
 USE sbreliance;
 
 UPDATE services SET image_url='/uploads/mock-svc-1.svg' WHERE title='ACMV System Installation';

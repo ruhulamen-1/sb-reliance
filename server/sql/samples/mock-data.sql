@@ -1,5 +1,5 @@
 -- SB Reliance Pte Ltd – MOCK DATA (all names, reviews and amounts are fictional)
--- Import:  mysql -u root -p sbreliance < mock-data.sql
+-- Import:  mysql -u root -p sbreliance < sql/samples/mock-data.sql
 -- Or paste into phpMyAdmin / MySQL Workbench. Run once (quotes and testimonials are not de-duplicated).
 USE sbreliance;
 

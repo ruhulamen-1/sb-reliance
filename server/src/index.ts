@@ -121,7 +121,7 @@ async function ensureColumn(table: string, column: string, ddl: string) {
 
 async function initDb() {
   const here = dirname(fileURLToPath(import.meta.url));
-  const schema = readFileSync(join(here, '..', 'schema.sql'), 'utf8');
+  const schema = readFileSync(join(here, '..', 'sql', 'schema.sql'), 'utf8');
   const root = await mysql.createConnection({
     host: env.DB_HOST || 'localhost',
     user: env.DB_USER || 'root',

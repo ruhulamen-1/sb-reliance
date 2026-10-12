@@ -1,5 +1,5 @@
 -- SB Reliance – REAL ACMV PHOTOS (server/uploads/acmv-*.jpg). Safe to re-run.
--- Import:  mysql -u root -p sbreliance < real-images.sql
+-- Import:  mysql -u root -p sbreliance < sql/samples/real-images.sql
 USE sbreliance;
 
 UPDATE services SET image_url='/uploads/acmv-3.jpg' WHERE title='ACMV System Installation';
