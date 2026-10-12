@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import Shell from '../components/Shell';
 import { api } from '../api';
 
@@ -27,6 +28,14 @@ export default function Home() {
   }, []);
 
   const S = data.settings;
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const id = ({ '/services': 'services', '/why-us': 'included', '/blog': 'blog', '/contact': 'quote' } as Record<string, string>)[pathname];
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const el = id ? document.getElementById(id) : null;
+    if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+    else if (!id) window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+  }, [pathname, data]);
   const slides = [S.hero_image, S.hero_image_2, S.hero_image_3].filter(Boolean) as string[];
   const headlines = (S.hero_headlines || '').split('\n').map((x) => x.trim());
   const slideCount = Math.max(slides.length, headlines.filter(Boolean).length, 1);
@@ -75,7 +84,7 @@ export default function Home() {
             <h1>{headlines[cur] || S.hero_title}</h1>
             <p className="lead">{S.hero_lead}</p>
             <div className="row gap">
-              <a className="btn" href="#quote">Request a quote</a>
+              <Link className="btn" to="/contact">Request a quote</Link>
               <a className="btn ghost" href={wa}>Chat on WhatsApp</a>
             </div>
           </div>

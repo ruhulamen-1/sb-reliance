@@ -69,10 +69,10 @@ export default function About() {
           <div className="sechead"><h2>{S.services_title || 'What we do'}</h2></div>
           <div className="gallery">
             {services.map((s) => (
-              <a key={s.id} href="/#quote" className="tile">
+              <Link key={s.id} to="/contact" className="tile">
                 {s.image_url ? <img src={s.image_url} alt="" loading="lazy" /> : <span className="tile-ph" aria-hidden="true" />}
                 <span className="tile-label">{s.title}</span>
-              </a>
+              </Link>
             ))}
           </div>
         </section>
@@ -83,7 +83,7 @@ export default function About() {
           <h2>Ready to start?</h2>
           <p>Tell us about your property and the work you need. We reply on WhatsApp.</p>
           <div className="row gap">
-            <a className="btn" href="/#quote">Request a quote</a>
+            <Link className="btn" to="/contact">Request a quote</Link>
             <a className="btn ghost" href={wa}>Chat on WhatsApp</a>
             <Link className="btn ghost" to="/">Back to home</Link>
           </div>

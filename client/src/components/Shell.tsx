@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 
 export type Settings = Record<string, string>;
 
@@ -12,12 +12,12 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
         <div className="wrap row between">
           <a className="brand" href="/">{S.brand}</a>
           <nav className="row gap">
-            <a href="/#services">Services</a>
-            <a href="/#included">Why us</a>
-            <a href="/#blog">Blog</a>
-            <a href="/#quote">Contact</a>
-            <Link to="/about">About</Link>
-            <Link to="/admin">Admin</Link>
+            <NavLink to="/services">Services</NavLink>
+            <NavLink to="/why-us">Why us</NavLink>
+            <NavLink to="/blog">Blog</NavLink>
+            <NavLink to="/contact">Contact</NavLink>
+            <NavLink to="/about">About</NavLink>
+            <NavLink to="/admin">Admin</NavLink>
           </nav>
           <a className="btn" href={wa}>WhatsApp {S.phone}</a>
         </div>
@@ -35,7 +35,7 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
               <div className="foot-about">
                 <h2>About us</h2>
                 <p>{S.about_text}</p>
-                <a className="btn-outline" href="/#quote">Request a quote</a>
+                <Link className="btn-outline" to="/contact">Request a quote</Link>
               </div>
               <div className="foot-contact">
                 <h2>Get in touch</h2>
@@ -50,10 +50,10 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
             <div className="foot-bottom">
               <span>Copyright {S.company_name} {new Date().getFullYear()}. All rights reserved.</span>
               <nav aria-label="Footer">
-                <a href="/#services">Services</a>
-                <a href="/#included">Why us</a>
-                <a href="/#blog">Blog</a>
-                <a href="/#quote">Contact</a>
+                <NavLink to="/services">Services</NavLink>
+                <NavLink to="/why-us">Why us</NavLink>
+                <NavLink to="/blog">Blog</NavLink>
+                <NavLink to="/contact">Contact</NavLink>
               </nav>
             </div>
           </div>

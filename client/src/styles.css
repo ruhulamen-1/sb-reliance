@@ -82,3 +82,7 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .tile-label{position:absolute;left:0;right:0;bottom:0;padding:28px 14px 12px;font-weight:700;background:linear-gradient(to top,rgba(16,30,34,.9),transparent)}
 .tile:hover img{opacity:.9}
 .cta h2,.cta p{color:inherit}
+[id]{scroll-margin-top:70px}
+.topbar nav a{text-decoration:none;font-weight:600}
+.topbar nav a:hover{text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--sun);text-decoration-thickness:3px}
+.topbar nav a[aria-current=page]{text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--sun);text-decoration-thickness:3px}
