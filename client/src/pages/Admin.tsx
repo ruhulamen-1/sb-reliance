@@ -191,6 +191,7 @@ function Crud({ table, fields }: { table: string; fields: { key: string; label: 
 
 const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: string; image?: boolean }[] = [
   { key: 'brand', label: 'Brand name (header)' },
+  { key: 'logo', label: 'Logo (optional, replaces the default logo; square or transparent PNG works best)', image: true },
   { key: 'company_name', label: 'Company name (footer, page title)' },
   { key: 'phone', label: 'Phone (shown on site)' },
   { key: 'whatsapp', label: 'WhatsApp number (digits only, with country code)', hint: 'e.g. 6585334478' },

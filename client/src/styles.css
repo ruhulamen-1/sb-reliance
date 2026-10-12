@@ -107,3 +107,4 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .orgchart{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:8px;background:#fff}
 .contact-blocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.contact-blocks .card{margin:0}
 .legal h2{font-size:1.3rem;margin-top:1.6rem}.legal p{max-width:70ch}
+.brandrow{display:inline-flex;align-items:center;gap:10px}.logo{height:36px;width:auto;display:block}.logo-lg{height:72px;margin-bottom:12px}

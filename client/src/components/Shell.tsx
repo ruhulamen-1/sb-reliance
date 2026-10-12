@@ -10,7 +10,7 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
       {S.page_bg && <div className="pagebg" aria-hidden="true" style={{ backgroundImage: `url("${S.page_bg}")` }} />}
       <header className="topbar">
         <div className="wrap row between">
-          <a className="brand" href="/">{S.brand}</a>
+          <Link className="brand brandrow" to="/"><img className="logo" src={S.logo || '/logo.svg'} alt="" />{S.brand}</Link>
           <nav className="row gap">
             <NavLink to="/services">Services</NavLink>
             <NavLink to="/portfolio">Portfolio</NavLink>
@@ -35,6 +35,7 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
           <div className="wrap">
             <div className="foot-cols">
               <div className="foot-about">
+                <img className="logo logo-lg" src={S.logo || '/logo.svg'} alt="" />
                 <h2>About us</h2>
                 <p>{S.about_text}</p>
                 <Link className="btn-outline" to="/contact">Request a quote</Link>
