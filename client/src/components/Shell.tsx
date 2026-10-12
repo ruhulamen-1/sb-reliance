@@ -13,6 +13,7 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
           <a className="brand" href="/">{S.brand}</a>
           <nav className="row gap">
             <NavLink to="/services">Services</NavLink>
+            <NavLink to="/portfolio">Portfolio</NavLink>
             <NavLink to="/why-us">Why us</NavLink>
             <NavLink to="/blog">Blog</NavLink>
             <NavLink to="/contact">Contact</NavLink>

@@ -154,6 +154,7 @@ export default function Home() {
               </figure>
             ))}
           </div>
+          <p><Link className="btn ghost" to="/portfolio">View all projects</Link></p>
         </section>
       )}
 

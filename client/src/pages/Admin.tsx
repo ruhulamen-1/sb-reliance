@@ -137,7 +137,7 @@ function Quotes() {
   );
 }
 
-function Crud({ table, fields }: { table: string; fields: { key: string; label: string; area?: boolean; num?: boolean; image?: boolean; required?: boolean }[] }) {
+function Crud({ table, fields }: { table: string; fields: { key: string; label: string; area?: boolean; num?: boolean; image?: boolean; required?: boolean; optional?: boolean }[] }) {
   const blank = Object.fromEntries(fields.map((f) => [f.key, f.num ? 0 : '']));
   const textKey = fields.find((f, i) => i > 0 && !f.image)?.key;
   const [rows, setRows] = useState<Row[]>([]);
@@ -167,7 +167,7 @@ function Crud({ table, fields }: { table: string; fields: { key: string; label: 
           <label key={f.key} className={f.area ? 'full' : ''}>{f.label}
             {f.area
               ? <textarea rows={4} required value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
-              : <input required type={f.num ? 'number' : 'text'} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: f.num ? Number(e.target.value) : e.target.value })} />}
+              : <input required={!f.optional} type={f.num ? 'number' : 'text'} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: f.num ? Number(e.target.value) : e.target.value })} />}
           </label>
         ))}
         {err && <p className="err full">{err}</p>}
@@ -270,7 +270,7 @@ export default function Admin() {
       {tab === 'Quotes' && <Quotes />}
       {tab === 'Services' && <Crud table="services" fields={[{ key: 'title', label: 'Title' }, { key: 'description', label: 'Description', area: true }, { key: 'sort_order', label: 'Order', num: true }, { key: 'image_url', label: 'Image', image: true }]} />}
       {tab === 'Blog' && <Crud table="posts" fields={[{ key: 'title', label: 'Title' }, { key: 'slug', label: 'Slug' }, { key: 'excerpt', label: 'Excerpt', area: true }, { key: 'content', label: 'Content', area: true }, { key: 'image_url', label: 'Cover image', image: true }]} />}
-      {tab === 'Gallery' && <Crud table="gallery" fields={[{ key: 'title', label: 'Caption' }, { key: 'image_url', label: 'Photo', image: true, required: true }]} />}
+      {tab === 'Gallery' && <Crud table="gallery" fields={[{ key: 'title', label: 'Project name' }, { key: 'category', label: 'Category (optional, e.g. Commercial, Residential)', optional: true }, { key: 'image_url', label: 'Photo', image: true, required: true }]} />}
       {tab === 'Settings' && <Settings />}
       {tab === 'Testimonials' && <Crud table="testimonials" fields={[{ key: 'name', label: 'Name' }, { key: 'location', label: 'Area' }, { key: 'text', label: 'Review', area: true }]} />}
     </div>

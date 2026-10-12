@@ -86,3 +86,15 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .topbar nav a{text-decoration:none;font-weight:600}
 .topbar nav a:hover{text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--sun);text-decoration-thickness:3px}
 .topbar nav a[aria-current=page]{text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--sun);text-decoration-thickness:3px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.chips button{padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:999px;font:inherit;cursor:pointer}
+.chips button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.proj{padding:0;border:0;background:none;text-align:left;cursor:pointer;font:inherit;color:inherit;display:block;width:100%}
+.proj img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;border-radius:6px}
+.proj strong{display:block;padding-top:6px}.proj small{display:block}
+.lightbox{border:0;padding:0;background:transparent;max-width:min(94vw,1000px);width:100%}
+.lightbox::backdrop{background:rgba(10,20,22,.85)}
+.lightbox figure{margin:0;background:#fff;border-radius:8px;overflow:hidden}
+.lightbox img{display:block;width:100%;max-height:75vh;object-fit:contain;background:#10343a}
+.lightbox figcaption{padding:12px 16px}
+.lightbox .lbbar{display:flex;gap:8px;justify-content:space-between;padding:0 16px 14px}

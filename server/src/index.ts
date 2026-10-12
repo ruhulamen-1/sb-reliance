@@ -28,7 +28,7 @@ const CONTENT: Record<string, string[]> = {
   services: ['title', 'description', 'sort_order', 'image_url'],
   posts: ['title', 'slug', 'excerpt', 'content', 'image_url'],
   testimonials: ['name', 'location', 'text'],
-  gallery: ['title', 'image_url'],
+  gallery: ['title', 'category', 'image_url'],
 };
 
 // Site settings (editable from Admin > Settings). Saved values override these defaults.
@@ -132,6 +132,7 @@ async function initDb() {
 
   await ensureColumn('services', 'image_url', 'image_url VARCHAR(255) NULL');
   await ensureColumn('posts', 'image_url', 'image_url VARCHAR(255) NULL');
+  await ensureColumn('gallery', 'category', "category VARCHAR(80) NOT NULL DEFAULT ''");
 
   const [u] = await pool.query<RowDataPacket[]>('SELECT id FROM users LIMIT 1');
   if (!u.length) {
@@ -179,6 +180,11 @@ app.post('/api/auth/login', wrap(async (req, res) => {
 }));
 
 // ---------- Public ----------
+app.get('/api/public/gallery', wrap(async (_req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, category, image_url FROM gallery ORDER BY id DESC LIMIT 200');
+  res.json(rows);
+}));
+
 app.get('/api/public/home', wrap(async (_req, res) => {
   const [services] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
   const [testimonials] = await pool.query<RowDataPacket[]>('SELECT * FROM testimonials ORDER BY id DESC LIMIT 6');
