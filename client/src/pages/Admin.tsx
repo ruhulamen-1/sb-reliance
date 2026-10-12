@@ -208,6 +208,8 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'why_list', label: 'Why-us points', area: true, hint: 'One point per line' },
   { key: 'process_title', label: 'Process section title' },
   { key: 'steps', label: 'Process steps', area: true, hint: 'One per line: Title | Description' },
+  { key: 'about_text', label: 'Footer "About us" text', area: true },
+  { key: 'footer_bg', label: 'Footer background image (optional, shown faded)', image: true },
   { key: 'quote_title', label: 'Quote form title' },
   { key: 'quote_intro', label: 'Quote form intro text', area: true },
   { key: 'property_types', label: 'Property types in quote form', area: true, hint: 'One per line' },

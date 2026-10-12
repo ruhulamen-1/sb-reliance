@@ -32,7 +32,6 @@ input,select,textarea{font:inherit;padding:9px 10px;border:1px solid #b9c8c6;bor
 fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:wrap;gap:6px 18px}
 .check{flex-direction:row;align-items:center;font-weight:400;gap:6px}.check input{width:auto}
 .ok{color:#17692f;font-weight:600}.err{color:#b3261e;font-weight:600}
-.foot{padding:26px 0;border-top:1px solid var(--line);color:var(--muted);font-size:.95rem}.foot .wrap{gap:10px;flex-wrap:wrap}
 .login{margin-top:80px;display:grid;gap:14px}
 .tabs{display:flex;gap:6px;margin:16px 0;flex-wrap:wrap}.tabs button{padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:6px;font:inherit;cursor:pointer}.tabs .on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .stats strong{display:block;font-size:2rem;font-family:'Bricolage Grotesque',sans-serif}
@@ -61,3 +60,15 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .fab{display:block;text-align:center;text-decoration:none;font:700 .95rem 'Source Sans 3',sans-serif;padding:12px 18px;border-radius:999px;box-shadow:0 2px 8px rgba(16,52,58,.3)}
 .fab.wa{background:#1f9d55;color:#fff}.fab.call{background:var(--ink);color:#fff}
 @media(prefers-reduced-motion:reduce){.heroslides .heroimg{transition:none}}
+.foot{background:#16282c center/cover no-repeat;color:#e6eeed;border-top:0;padding:0;font-size:1rem}
+.foot-shade{background:linear-gradient(to bottom,rgba(16,30,34,.93),rgba(16,30,34,.8));padding:48px 0 22px}
+.foot h2{font-size:1.5rem;color:#fff;text-transform:uppercase;letter-spacing:.02em}
+.foot a{color:inherit}
+.foot-cols{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.foot-about p{max-width:52ch;margin-bottom:1.2rem}
+.foot-contact{text-align:right}
+.btn-outline{display:inline-block;border:2px solid var(--sun);color:#fff!important;font-weight:600;padding:9px 18px;border-radius:6px;text-decoration:none}
+.btn-outline:hover{background:var(--sun);color:var(--ink)!important}
+.foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px;margin-top:36px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18);font-size:.92rem;color:#c3d3d1}
+.foot-bottom nav{display:flex;flex-wrap:wrap;gap:6px 18px}
+@media(max-width:800px){.foot-cols{grid-template-columns:1fr}.foot-contact{text-align:left}}

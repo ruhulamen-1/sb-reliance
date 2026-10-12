@@ -43,6 +43,9 @@ const DEFAULTS: Record<string, string> = {
   hero_image_2: '',
   hero_image_3: '',
   hero_headlines: '',
+  about_text:
+    'SB Reliance Pte Ltd is a Singapore contractor for ACMV and air-conditioning, electrical, CCTV, ceiling partition, painting, tiles and general building works.',
+  footer_bg: '',
   page_bg: '',
   hero_title: 'Air-con, electrical, CCTV and building works from one contractor.',
   hero_lead:
