@@ -105,3 +105,4 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .member h3{margin:0}.member .role{color:var(--muted);font-weight:600;margin:2px 0 10px}
 .member p{text-align:left;margin:0}
 .orgchart{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:8px;background:#fff}
+.contact-blocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.contact-blocks .card{margin:0}

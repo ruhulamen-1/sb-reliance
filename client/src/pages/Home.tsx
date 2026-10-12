@@ -1,6 +1,7 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Shell from '../components/Shell';
+import QuoteForm from '../components/QuoteForm';
 import { api } from '../api';
 
 interface Service { id: number; title: string; description: string; image_url?: string | null }
@@ -12,14 +13,10 @@ interface HomeData { services: Service[]; testimonials: Testimonial[]; posts: Po
 
 const CHIPS = ['#7FA6D6', '#9CC5B8', '#F2D16B', '#E8A598', '#C9C3E6', '#F4EFE6', '#A7D3C4', '#F0B88A'];
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
-const EMPTY_FORM = { name: '', whatsapp: '', address: '', house_type: '', service_type: '', preferred_date: '', message: '' };
 
 export default function Home() {
   const [data, setData] = useState<HomeData>({ services: [], testimonials: [], posts: [], gallery: [], settings: {} });
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [addons, setAddons] = useState<string[]>([]);
   const [loadErr, setLoadErr] = useState('');
-  const [state, setState] = useState<{ kind: 'idle' | 'sending' | 'ok' | 'err'; msg?: string }>({ kind: 'idle' });
 
   useEffect(() => {
     api<Partial<HomeData>>('/public/home')
@@ -30,7 +27,7 @@ export default function Home() {
   const S = data.settings;
   const { pathname } = useLocation();
   useEffect(() => {
-    const id = ({ '/services': 'services', '/why-us': 'included', '/blog': 'blog', '/contact': 'quote' } as Record<string, string>)[pathname];
+    const id = ({ '/services': 'services', '/why-us': 'included', '/blog': 'blog' } as Record<string, string>)[pathname];
     const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const el = id ? document.getElementById(id) : null;
     if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
@@ -57,21 +54,6 @@ export default function Home() {
   useEffect(() => {
     if (S.company_name) document.title = S.company_name;
   }, [S.company_name]);
-
-  const set = (k: keyof typeof EMPTY_FORM) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setState({ kind: 'sending' });
-    try {
-      await api('/quotes', { method: 'POST', body: { ...form, addons } });
-      setState({ kind: 'ok' });
-      setForm(EMPTY_FORM);
-      setAddons([]);
-    } catch (err) {
-      setState({ kind: 'err', msg: (err as Error).message });
-    }
-  }
 
   return (
     <Shell S={S}>
@@ -192,27 +174,7 @@ export default function Home() {
         <div className="wrap narrow">
           <h2>{S.quote_title}</h2>
           <p>{S.quote_intro}</p>
-          <form onSubmit={submit} className="form">
-            <label>Full name<input required value={form.name} onChange={set('name')} /></label>
-            <label>WhatsApp number<input required value={form.whatsapp} onChange={set('whatsapp')} /></label>
-            <label className="full">Address<input required value={form.address} onChange={set('address')} /></label>
-            <label>Property type<select required value={form.house_type} onChange={set('house_type')}><option value="">Select</option>{lines(S.property_types).map((h) => <option key={h}>{h}</option>)}</select></label>
-            <label>Main service needed<select required value={form.service_type} onChange={set('service_type')}><option value="">Select</option>{serviceNames.map((h) => <option key={h}>{h}</option>)}</select></label>
-            <fieldset className="full">
-              <legend>Other services needed</legend>
-              {serviceNames.map((a) => (
-                <label key={a} className="check">
-                  <input type="checkbox" checked={addons.includes(a)} onChange={(e) => setAddons(e.target.checked ? [...addons, a] : addons.filter((x) => x !== a))} />
-                  {a}
-                </label>
-              ))}
-            </fieldset>
-            <label>Preferred date<input type="date" value={form.preferred_date} onChange={set('preferred_date')} /></label>
-            <label className="full">Message<textarea rows={3} value={form.message} onChange={set('message')} /></label>
-            <button className="btn full" disabled={state.kind === 'sending'}>{state.kind === 'sending' ? 'Sending…' : 'Send request'}</button>
-            {state.kind === 'ok' && <p className="ok full">Request sent. We will contact you shortly.</p>}
-            {state.kind === 'err' && <p className="err full">{state.msg}</p>}
-          </form>
+          <QuoteForm S={S} serviceNames={serviceNames} />
         </div>
       </section>
 
