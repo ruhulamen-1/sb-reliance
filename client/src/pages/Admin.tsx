@@ -1,4 +1,4 @@
-import { FormEvent, Fragment, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 
 type Row = Record<string, any>;
@@ -141,26 +141,37 @@ function Crud({ table, fields }: { table: string; fields: { key: string; label: 
   const blank = Object.fromEntries(fields.map((f) => [f.key, f.num ? 0 : '']));
   const textKey = fields.find((f, i) => i > 0 && !f.image)?.key;
   const [rows, setRows] = useState<Row[]>([]);
-  const [form, setForm] = useState<Row>(blank);
+  const [addForm, setAddForm] = useState<Row>(blank);
+  const [editForm, setEditForm] = useState<Row>(blank);
   const [editId, setEditId] = useState<number | null>(null);
-  const [err, setErr] = useState('');
+  const [addErr, setAddErr] = useState('');
+  const [editErr, setEditErr] = useState('');
+  const dlg = useRef<HTMLDialogElement>(null);
   const load = useCallback(() => api<Row[]>(`/admin/${table}`, { auth: true }).then(setRows), [table]);
   useEffect(() => { load().catch(() => undefined); }, [load]);
 
-  async function submit(e: FormEvent) {
+  async function save(e: FormEvent, isEdit: boolean) {
     e.preventDefault();
+    const form = isEdit ? editForm : addForm;
+    const setErr = isEdit ? setEditErr : setAddErr;
     setErr('');
     const missing = fields.find((f) => f.image && f.required && !form[f.key]);
     if (missing) return setErr(`Please upload: ${missing.label}`);
     try {
-      await api(editId ? `/admin/${table}/${editId}` : `/admin/${table}`, { method: editId ? 'PUT' : 'POST', auth: true, body: form });
-      setForm(blank); setEditId(null); load();
+      await api(isEdit ? `/admin/${table}/${editId}` : `/admin/${table}`, { method: isEdit ? 'PUT' : 'POST', auth: true, body: form });
+      if (isEdit) dlg.current?.close(); else setAddForm(blank);
+      load();
     } catch (x) { setErr((x as Error).message); }
   }
 
-  // The same form is used for "Add" (at the top) and for "Edit" (shown in place of the row being edited, so the page never jumps)
-  const formEl = (
-      <form className="form card" onSubmit={submit}>
+  // "Add" form stays at the top; "Edit" opens the same fields in a popup, so the page never scrolls or jumps
+  const renderForm = (isEdit: boolean) => {
+    const form = isEdit ? editForm : addForm;
+    const setForm = isEdit ? setEditForm : setAddForm;
+    const err = isEdit ? editErr : addErr;
+    return (
+      <form className="form card" onSubmit={(e) => save(e, isEdit)}>
+        {isEdit && <h3 className="full">Edit</h3>}
         {fields.map((f) => f.image ? (
           <ImageField key={f.key} label={f.label} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
         ) : (
@@ -172,20 +183,25 @@ function Crud({ table, fields }: { table: string; fields: { key: string; label: 
         ))}
         {err && <p className="err full">{err}</p>}
         <div className="row gap full">
-          <button className="btn">{editId ? 'Save changes' : 'Add'}</button>
-          {editId && <button type="button" className="btn ghost" onClick={() => { setEditId(null); setForm(blank); }}>Cancel</button>}
+          <button className="btn">{isEdit ? 'Save changes' : 'Add'}</button>
+          {isEdit && <button type="button" className="btn ghost" onClick={() => dlg.current?.close()}>Cancel</button>}
         </div>
       </form>
-  );
+    );
+  };
 
   return (
     <>
-      {editId === null && formEl}
-      {rows.map((r) => editId === r.id ? <Fragment key={r.id}>{formEl}</Fragment> : (
+      {renderForm(false)}
+      <dialog ref={dlg} className="modal" aria-label="Edit" onClose={() => { setEditId(null); setEditForm(blank); setEditErr(''); }}
+        onClick={(e) => { if (e.target === dlg.current) dlg.current?.close(); }}>
+        {editId !== null && renderForm(true)}
+      </dialog>
+      {rows.map((r) => (
         <div key={r.id} className="card row between">
           <div className="row gap crud-main">{r.image_url && <img src={r.image_url} alt="" className="thumb" />}<div><strong>{r[fields[0].key]}</strong>{textKey && <p>{String(r[textKey] ?? '').slice(0, 120)}</p>}</div></div>
           <div className="row gap crud-actions">
-            <button className="btn ghost" onClick={() => { setEditId(r.id); setForm(Object.fromEntries(fields.map((f) => [f.key, r[f.key]]))); }}>Edit</button>
+            <button className="btn ghost" onClick={() => { setEditId(r.id); setEditForm(Object.fromEntries(fields.map((f) => [f.key, r[f.key]]))); dlg.current?.showModal(); }}>Edit</button>
             <button className="btn ghost" onClick={async () => { if (confirm('Delete?')) { await api(`/admin/${table}/${r.id}`, { method: 'DELETE', auth: true }); load(); } }}>Delete</button>
           </div>
         </div>
