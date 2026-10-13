@@ -5,10 +5,11 @@ import QuoteForm from '../components/QuoteForm';
 import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
 import { api } from '../api';
+import { serviceHeading } from '../components/content';
 
-interface Service { id: number; title: string; description: string; image_url?: string | null }
+interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
 interface Testimonial { id: number; name: string; location: string; text: string }
-interface Post { id: number; title: string; excerpt: string; image_url?: string | null; created_at: string }
+interface Post { id: number; title: string; slug: string; excerpt: string; image_url?: string | null; created_at: string }
 interface GalleryItem { id: number; title: string; image_url: string }
 type Settings = Record<string, string>;
 interface HomeData { services: Service[]; testimonials: Testimonial[]; posts: Post[]; gallery: GalleryItem[]; settings: Settings }
@@ -61,7 +62,7 @@ export default function Home() {
   });
 
   return (
-    <Shell S={S}>
+    <Shell S={S} services={data.services}>
 
       {loadErr && <p className="err wrap block">{loadErr}</p>}
 
@@ -123,9 +124,10 @@ export default function Home() {
         <div className="grid3">
           {data.services.map((s) => (
             <article key={s.id} className="card">
-              {s.image_url && <img className="cardimg" src={s.image_url} alt={s.title} loading="lazy" />}
-              <h3>{s.title}</h3>
+              {s.image_url && <img className="cardimg" src={s.image_url} alt={serviceHeading(s)} loading="lazy" />}
+              <h3>{s.slug ? <Link to={`/services/${s.slug}`}>{s.title}</Link> : s.title}</h3>
               <p>{s.description}</p>
+              {s.slug && <Link className="more" to={`/services/${s.slug}`}>More about {s.title.toLowerCase()} <span aria-hidden="true">→</span></Link>}
             </article>
           ))}
         </div>
@@ -184,7 +186,7 @@ export default function Home() {
             {data.posts.map((p) => (
               <article key={p.id} className="card">
                 {p.image_url && <img className="cardimg" src={p.image_url} alt={p.title} loading="lazy" />}
-                <h3>{p.title}</h3>
+                <h3><Link to={`/blog/${p.slug}`}>{p.title}</Link></h3>
                 <p>{p.excerpt}</p>
                 <small>{new Date(p.created_at).toLocaleDateString('en-SG', { dateStyle: 'medium' })}</small>
               </article>

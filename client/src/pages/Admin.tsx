@@ -137,7 +137,7 @@ function Quotes() {
   );
 }
 
-function Crud({ table, fields }: { table: string; fields: { key: string; label: string; area?: boolean; num?: boolean; image?: boolean; required?: boolean; optional?: boolean }[] }) {
+function Crud({ table, fields }: { table: string; fields: { key: string; label: string; area?: boolean; num?: boolean; image?: boolean; required?: boolean; optional?: boolean; hint?: string }[] }) {
   const blank = Object.fromEntries(fields.map((f) => [f.key, f.num ? 0 : '']));
   const textKey = fields.find((f, i) => i > 0 && !f.image)?.key;
   const [rows, setRows] = useState<Row[]>([]);
@@ -176,9 +176,10 @@ function Crud({ table, fields }: { table: string; fields: { key: string; label: 
           <ImageField key={f.key} label={f.label} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
         ) : (
           <label key={f.key} className={f.area ? 'full' : ''}>{f.label}
+            {f.hint && <small>{f.hint}</small>}
             {f.area
-              ? <textarea rows={4} required={!f.optional} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
-              : <input required={!f.optional} type={f.num ? 'number' : 'text'} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: f.num ? Number(e.target.value) : e.target.value })} />}
+              ? <textarea rows={4} required={!f.optional} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+              : <input required={!f.optional} type={f.num ? 'number' : 'text'} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: f.num ? Number(e.target.value) : e.target.value })} />}
           </label>
         ))}
         {err && <p className="err full">{err}</p>}
@@ -300,8 +301,18 @@ export default function Admin() {
       <nav className="tabs">{TABS.map((t) => <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>{t}</button>)}</nav>
       {tab === 'Overview' && <Overview />}
       {tab === 'Quotes' && <Quotes />}
-      {tab === 'Services' && <Crud table="services" fields={[{ key: 'title', label: 'Title' }, { key: 'description', label: 'Description', area: true }, { key: 'sort_order', label: 'Order', num: true }, { key: 'image_url', label: 'Image', image: true }]} />}
-      {tab === 'Blog' && <Crud table="posts" fields={[{ key: 'title', label: 'Title' }, { key: 'slug', label: 'Slug' }, { key: 'excerpt', label: 'Excerpt', area: true }, { key: 'content', label: 'Content', area: true }, { key: 'image_url', label: 'Cover image', image: true }]} />}
+      {tab === 'Services' && <Crud table="services" fields={[
+        { key: 'title', label: 'Title' },
+        { key: 'description', label: 'Short description (card and top of the service page)', area: true },
+        { key: 'slug', label: 'Page address (optional)', optional: true, hint: 'e.g. aircon-installation-singapore → /services/aircon-installation-singapore. Empty = made from the title. Avoid changing it once Google has the page.' },
+        { key: 'sort_order', label: 'Order', num: true },
+        { key: 'content', label: 'Service page text (optional)', area: true, optional: true, hint: 'One paragraph per line. A line starting with "# " becomes a heading. Write what you do, for which properties and areas in Singapore.' },
+        { key: 'faq', label: 'Questions and answers (optional)', area: true, optional: true, hint: 'One per line: Question | Answer. Shown on the page and to Google.' },
+        { key: 'seo_title', label: 'Google title (optional)', optional: true, hint: 'About 50–60 characters, e.g. Aircon Installation Singapore – HDB & Condo | SB Reliance' },
+        { key: 'seo_description', label: 'Google description (optional)', area: true, optional: true, hint: 'About 140–160 characters. Shown under the title in Google results.' },
+        { key: 'image_url', label: 'Image', image: true },
+      ]} />}
+      {tab === 'Blog' && <Crud table="posts" fields={[{ key: 'title', label: 'Title' }, { key: 'slug', label: 'Page address (optional)', optional: true, hint: 'e.g. aircon-servicing-tips → /blog/aircon-servicing-tips. Empty = made from the title.' }, { key: 'excerpt', label: 'Excerpt', area: true }, { key: 'content', label: 'Content', area: true, hint: 'One paragraph per line. A line starting with "# " becomes a heading.' }, { key: 'image_url', label: 'Cover image', image: true }]} />}
       {tab === 'Gallery' && <Crud table="gallery" fields={[{ key: 'title', label: 'Project name' }, { key: 'category', label: 'Category (optional, e.g. Commercial, Residential)', optional: true }, { key: 'image_url', label: 'Photo', image: true, required: true }]} />}
       {tab === 'Team' && <Crud table="team" fields={[{ key: 'name', label: 'Name' }, { key: 'role', label: 'Role / title' }, { key: 'bio', label: 'Short bio (optional)', area: true, optional: true }, { key: 'sort_order', label: 'Order (smaller shows first)', num: true }, { key: 'image_url', label: 'Photo (optional)', image: true }]} />}
       {tab === 'Settings' && <Settings />}

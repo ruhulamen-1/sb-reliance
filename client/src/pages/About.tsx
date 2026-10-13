@@ -4,7 +4,7 @@ import { api } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 
-interface Service { id: number; title: string; description: string; image_url?: string | null }
+interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
 
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
@@ -30,7 +30,7 @@ export default function About() {
   ];
 
   return (
-    <Shell S={S}>
+    <Shell S={S} services={services}>
       {err && <p className="err wrap block">{err}</p>}
 
       <section className="band light about-intro">
@@ -77,7 +77,7 @@ export default function About() {
           <div className="sechead"><h2>{S.services_title || 'What we do'}</h2></div>
           <div className="gallery">
             {services.map((s) => (
-              <Link key={s.id} to="/contact" className="tile">
+              <Link key={s.id} to={s.slug ? `/services/${s.slug}` : '/contact'} className="tile">
                 {s.image_url ? <img src={s.image_url} alt={s.title} loading="lazy" /> : <span className="tile-ph" aria-hidden="true" />}
                 <span className="tile-label">{s.title}</span>
               </Link>

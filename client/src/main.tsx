@@ -9,6 +9,8 @@ import Team from './pages/Team';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import NotFound from './pages/NotFound';
+import ServicePage from './pages/ServicePage';
+import PostPage from './pages/PostPage';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -18,6 +20,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         {["/", "/services", "/why-us", "/blog"].map((path) => (
           <Route key={path} path={path} element={<Home />} />
         ))}
+        <Route path="/services/:slug" element={<ServicePage />} />
+        <Route path="/blog/:slug" element={<PostPage />} />
         <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/team" element={<Team />} />
         <Route path="/contact" element={<Contact />} />

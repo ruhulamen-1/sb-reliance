@@ -2,8 +2,11 @@ import { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import useReveal from './useReveal';
 import { useEffect } from 'react';
+import { serviceHeading } from './content';
 
 export type Settings = Record<string, string>;
+// the default settings ship with a placeholder email; never show it
+export const realEmail = (e?: string) => (e && !/@example\.com$/i.test(e.trim()) ? e.trim() : '');
 
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 const linkLabel = (u: string) => {
@@ -16,7 +19,7 @@ const linkLabel = (u: string) => {
   }
 };
 
-export default function Shell({ S, children }: { S: Settings; children: ReactNode }) {
+export default function Shell({ S, services = [], children }: { S: Settings; services?: { id: number; title: string; slug?: string | null }[]; children: ReactNode }) {
   useReveal();
   useEffect(() => {
     let raf = 0;
@@ -33,6 +36,8 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
     return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); document.body.classList.remove('scrolled'); };
   }, []);
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
+  const email = realEmail(S.email);
+  const svcLinks = services.filter((s) => s.slug);
   return (
     <>
       {S.page_bg && <div className="pagebg" aria-hidden="true" style={{ backgroundImage: `url("${S.page_bg}")` }} />}
@@ -72,8 +77,8 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
                 <h2>Get in touch</h2>
                 <p>
                   {S.phone && <a href={`tel:${S.phone.replace(/[^\d+]/g, '')}`}>{S.phone}</a>}
-                  {S.phone && S.email && ' | '}
-                  {S.email && <a href={`mailto:${S.email}`}>{S.email}</a>}
+                  {S.phone && email && ' | '}
+                  {email && <a href={`mailto:${email}`}>{email}</a>}
                 </p>
                 <p>{S.address}</p>
                 {(S.uen || lines(S.licenses).length > 0 || lines(S.social_links).length > 0) && (
@@ -87,6 +92,12 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
                 )}
               </div>
             </div>
+            {svcLinks.length > 0 && (
+              <nav className="foot-services" aria-label="Services">
+                <h2>Our services</h2>
+                <ul>{svcLinks.map((s) => <li key={s.id}><Link to={`/services/${s.slug}`}>{serviceHeading(s)}</Link></li>)}</ul>
+              </nav>
+            )}
             <div className="foot-bottom">
               <span>Copyright {S.company_name} {new Date().getFullYear()}. All rights reserved.</span>
               <nav aria-label="Footer">

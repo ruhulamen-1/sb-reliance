@@ -5,8 +5,8 @@ import type { Settings } from './Shell';
 const EMPTY_FORM = { name: '', whatsapp: '', address: '', house_type: '', service_type: '', preferred_date: '', message: '' };
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
-export default function QuoteForm({ S, serviceNames }: { S: Settings; serviceNames: string[] }) {
-  const [form, setForm] = useState(EMPTY_FORM);
+export default function QuoteForm({ S, serviceNames, defaultService = '' }: { S: Settings; serviceNames: string[]; defaultService?: string }) {
+  const [form, setForm] = useState({ ...EMPTY_FORM, service_type: defaultService });
   const [addons, setAddons] = useState<string[]>([]);
   const [state, setState] = useState<{ kind: 'idle' | 'sending' | 'ok' | 'err'; msg?: string }>({ kind: 'idle' });
   const set = (k: keyof typeof EMPTY_FORM) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
@@ -17,7 +17,7 @@ export default function QuoteForm({ S, serviceNames }: { S: Settings; serviceNam
     try {
       await api('/quotes', { method: 'POST', body: { ...form, addons } });
       setState({ kind: 'ok' });
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, service_type: defaultService });
       setAddons([]);
     } catch (err) {
       setState({ kind: 'err', msg: (err as Error).message });

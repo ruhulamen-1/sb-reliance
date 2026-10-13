@@ -8,7 +8,8 @@ import cors from 'cors';
 import mysql, { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { renderHtml, robotsTxt, sitemapXml } from './seo.js';
+import { renderHtml, robotsTxt, sitemapXml, SeoPost, SeoService } from './seo.js';
+import { SERVICE_DEFAULTS, slugify } from './serviceDefaults.js';
 
 const env = process.env;
 const JWT_SECRET = env.JWT_SECRET || 'change-this-secret';
@@ -35,7 +36,7 @@ const STATUSES = ['new', 'contacted', 'scheduled', 'completed', 'cancelled'] as 
 
 // Editable content tables -> whitelisted columns
 const CONTENT: Record<string, string[]> = {
-  services: ['title', 'description', 'sort_order', 'image_url'],
+  services: ['title', 'slug', 'description', 'content', 'faq', 'seo_title', 'seo_description', 'sort_order', 'image_url'],
   posts: ['title', 'slug', 'excerpt', 'content', 'image_url'],
   testimonials: ['name', 'location', 'text'],
   gallery: ['title', 'category', 'image_url'],
@@ -164,6 +165,12 @@ async function initDb() {
   await ensureColumn('services', 'image_url', 'image_url VARCHAR(255) NULL');
   await ensureColumn('posts', 'image_url', 'image_url VARCHAR(255) NULL');
   await ensureColumn('gallery', 'category', "category VARCHAR(80) NOT NULL DEFAULT ''");
+  // service pages (/services/:slug)
+  await ensureColumn('services', 'slug', 'slug VARCHAR(190) NULL');
+  await ensureColumn('services', 'content', 'content MEDIUMTEXT NULL');
+  await ensureColumn('services', 'faq', 'faq TEXT NULL');
+  await ensureColumn('services', 'seo_title', 'seo_title VARCHAR(190) NULL');
+  await ensureColumn('services', 'seo_description', 'seo_description VARCHAR(320) NULL');
 
   const [u] = await pool.query<RowDataPacket[]>('SELECT id FROM users LIMIT 1');
   if (!u.length) {
@@ -187,6 +194,34 @@ async function initDb() {
     ];
     for (let i = 0; i < seed.length; i++)
       await pool.query('INSERT INTO services (title, description, sort_order) VALUES (?, ?, ?)', [seed[i][0], seed[i][1], i + 1]);
+  }
+  await fillServicePages();
+}
+
+// Services without a slug get one (and, for the built-in services, starting page text, FAQ and Google
+// title/description). Runs on every start but only touches rows whose slug is still empty.
+async function fillServicePages() {
+  const [rows] = await pool.query<RowDataPacket[]>("SELECT id, title, content, faq, seo_title, seo_description FROM services WHERE slug IS NULL OR slug = '' ORDER BY sort_order, id");
+  for (const r of rows) {
+    const d = SERVICE_DEFAULTS[String(r.title).trim()];
+    await pool.query('UPDATE services SET slug = ?, content = ?, faq = ?, seo_title = ?, seo_description = ? WHERE id = ?', [
+      await uniqueSlug('services', d?.slug || String(r.title), r.id),
+      r.content || d?.content || null,
+      r.faq || d?.faq || null,
+      r.seo_title || d?.seo_title || null,
+      r.seo_description || d?.seo_description || null,
+      r.id,
+    ]);
+  }
+}
+
+// A URL-safe slug that no other row of the table uses (adds -2, -3... when taken)
+async function uniqueSlug(table: 'services' | 'posts', wanted: string, id?: number | string) {
+  const base = slugify(wanted) || table.slice(0, -1);
+  for (let n = 1; ; n++) {
+    const slug = n === 1 ? base : `${base}-${n}`;
+    const [taken] = await pool.query<RowDataPacket[]>('SELECT id FROM ?? WHERE slug = ? AND id <> ? LIMIT 1', [table, slug, id ?? 0]);
+    if (!taken.length) return slug;
   }
 }
 
@@ -248,6 +283,21 @@ app.get('/api/public/home', wrap(async (_req, res) => {
   const [posts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 3');
   const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, image_url FROM gallery ORDER BY id DESC LIMIT 12');
   res.json({ services, testimonials, posts, gallery, settings: await getSettings() });
+}));
+
+app.get('/api/public/services/:slug', wrap(async (req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
+  const service = rows.find((r) => r.slug === req.params.slug);
+  if (!service) return res.status(404).json({ error: 'Service not found' });
+  const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, image_url FROM gallery ORDER BY id DESC LIMIT 8');
+  res.json({ service, services: rows, gallery, settings: await getSettings() });
+}));
+
+app.get('/api/public/posts/:slug', wrap(async (req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM posts WHERE slug = ? LIMIT 1', [req.params.slug]);
+  if (!rows[0]) return res.status(404).json({ error: 'Post not found' });
+  const [services] = await pool.query<RowDataPacket[]>('SELECT id, title, slug FROM services ORDER BY sort_order, id');
+  res.json({ post: rows[0], services, settings: await getSettings() });
 }));
 
 app.post('/api/quotes', wrap(async (req, res) => {
@@ -321,18 +371,24 @@ app.delete('/api/admin/quotes/:id', auth, wrap(async (req, res) => {
 for (const [table, cols] of Object.entries(CONTENT)) {
   const base = `/api/admin/${table}`;
   const values = (b: Record<string, unknown>) => cols.map((c) => b[c] ?? null);
+  // services and posts get a clean, unique slug (from the title when left empty)
+  const withSlug = async (b: Record<string, unknown>, id?: string) => {
+    if (table !== 'services' && table !== 'posts') return b;
+    return { ...b, slug: await uniqueSlug(table, String(b.slug || '').trim() || String(b.title || ''), id) };
+  };
   app.get(base, auth, wrap(async (_req, res) => {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM ?? ORDER BY id DESC', [table]);
     res.json(rows);
   }));
   app.post(base, auth, wrap(async (req, res) => {
     const sql = `INSERT INTO ?? (${cols.map(() => '??').join(',')}) VALUES (${cols.map(() => '?').join(',')})`;
-    const [r] = await pool.query<ResultSetHeader>(sql, [table, ...cols, ...values(req.body)]);
+    const [r] = await pool.query<ResultSetHeader>(sql, [table, ...cols, ...values(await withSlug(req.body))]);
     res.status(201).json({ id: r.insertId });
   }));
   app.put(`${base}/:id`, auth, wrap(async (req, res) => {
     const sql = `UPDATE ?? SET ${cols.map(() => '?? = ?').join(',')} WHERE id = ?`;
-    const params = [table, ...cols.flatMap((c, i) => [c, values(req.body)[i]]), req.params.id];
+    const v = values(await withSlug(req.body, req.params.id));
+    const params = [table, ...cols.flatMap((c, i) => [c, v[i]]), req.params.id];
     await pool.query(sql, params);
     res.json({ ok: true });
   }));
@@ -352,7 +408,9 @@ app.get('/robots.txt', wrap(async (req, res) => {
   res.type('text/plain').send(robotsTxt(baseUrl(req, await getSettings())));
 }));
 app.get('/sitemap.xml', wrap(async (req, res) => {
-  res.type('application/xml').send(sitemapXml(baseUrl(req, await getSettings())));
+  const [services] = await pool.query<RowDataPacket[]>('SELECT title, description, slug FROM services ORDER BY sort_order, id');
+  const [posts] = await pool.query<RowDataPacket[]>('SELECT title, slug, excerpt, created_at FROM posts ORDER BY id DESC');
+  res.type('application/xml').send(sitemapXml(baseUrl(req, await getSettings()), services as SeoService[], posts as SeoPost[]));
 }));
 
 const clientDist = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'client', 'dist');
@@ -363,8 +421,16 @@ if (existsSync(clientDist)) {
   app.get(/^\/(?!api).*/, async (req, res) => {
     try {
       const S = await getSettings();
-      const [services] = await pool.query<RowDataPacket[]>('SELECT title, description FROM services ORDER BY sort_order, id');
-      const { html, status } = renderHtml(template, req.path, S, services as { title: string; description: string }[], baseUrl(req, S));
+      const [services] = await pool.query<RowDataPacket[]>('SELECT title, description, slug, content, faq, seo_title, seo_description, image_url FROM services ORDER BY sort_order, id');
+      const postSlug = /^\/blog\/([^/]+)\/?$/.exec(req.path)?.[1];
+      let post: SeoPost | null = null;
+      if (postSlug) {
+        let slug = postSlug;
+        try { slug = decodeURIComponent(postSlug); } catch { /* keep as is */ }
+        const [p] = await pool.query<RowDataPacket[]>('SELECT title, slug, excerpt, content, image_url, created_at FROM posts WHERE slug = ? LIMIT 1', [slug]);
+        post = (p[0] as SeoPost) || null;
+      }
+      const { html, status } = renderHtml(template, req.path, S, { services: services as SeoService[], post }, baseUrl(req, S));
       res.status(status).type('html').send(html);
     } catch (e) {
       console.error('SEO render failed, sending plain index.html:', (e as Error).message);

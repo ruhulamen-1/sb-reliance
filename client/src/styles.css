@@ -174,3 +174,31 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 }
 .crud-main{flex:1 1 0;min-width:0;flex-wrap:nowrap}.crud-main>div{min-width:0;overflow-wrap:anywhere}.crud-actions{flex:none}
 .modal{border:0;padding:0;background:transparent;width:min(94vw,720px);max-height:90vh;overflow:auto;color:inherit}.modal::backdrop{background:rgba(16,52,58,.55)}.modal .card{margin:0}
+
+/* ---------- service and blog pages ---------- */
+.h1m{font-size:clamp(2rem,4vw,3rem)}
+.crumbs{font-size:.92rem;color:var(--muted);margin-bottom:12px}.crumbs a{color:inherit}
+.svc-hero{padding:56px 0}
+.svc-body{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:40px;align-items:start}
+.prose{max-width:68ch}.prose h2{font-size:1.5rem;margin-top:1.6rem}.prose p{margin:.5rem 0}
+.faq h2{font-size:1.5rem}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:8px;margin:0 0 10px}
+.faq summary{cursor:pointer;font-weight:600;padding:14px 16px;list-style-position:inside}
+.faq details p{padding:0 16px 14px;color:var(--muted)}
+.svc-links{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 24px}
+.svc-links a{font-weight:600}
+.card h3 a{text-decoration:none}.card h3 a:hover{text-decoration:underline}
+.more{display:inline-block;margin-top:8px;font-weight:600;text-decoration-color:var(--sun);text-decoration-thickness:2px;text-underline-offset:4px}
+.foot-services{margin-top:32px}.foot-services h2{font-size:1.1rem}
+.foot-services ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px 24px}
+.post .postimg{margin:16px 0}
+.prerender{max-width:900px;margin:0 auto;padding:24px}
+@media(max-width:800px){.svc-body{grid-template-columns:1fr}}
+/* phones: keep the sticky header to two short rows (the floating WhatsApp/Call buttons stay) */
+@media(max-width:700px){
+  .topbar .wrap{padding-top:8px;padding-bottom:6px;row-gap:4px}
+  .topbar .wrap>.btn{display:none}
+  .topbar nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;gap:18px;padding-bottom:4px;scrollbar-width:none}
+  .topbar nav::-webkit-scrollbar{display:none}
+  .topbar nav a{white-space:nowrap}
+}
