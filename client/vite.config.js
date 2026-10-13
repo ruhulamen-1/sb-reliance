@@ -8,7 +8,7 @@ function apiTarget() {
     const p = readFileSync(new URL('../server/.api-port', import.meta.url), 'utf8').trim();
     return `http://localhost:${Number(p) || 3000}`;
   } catch {
-    return 'http://localhost:3000';
+    return 'http://localhost:3001';
   }
 }
 

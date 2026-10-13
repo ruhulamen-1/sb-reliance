@@ -197,6 +197,13 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'whatsapp', label: 'WhatsApp number (digits only, with country code)', hint: 'e.g. 6585334478' },
   { key: 'email', label: 'Email' },
   { key: 'address', label: 'Address' },
+  { key: 'site_url', label: 'Website address (optional, e.g. https://sbreliance.com.sg)', hint: 'Used for Google/WhatsApp link previews and the sitemap. Leave empty to detect automatically. The SITE_URL environment variable overrides this.' },
+  { key: 'seo_title', label: 'Google title for the home page', hint: 'About 50–60 characters: company name plus what you do.' },
+  { key: 'seo_description', label: 'Google description for the home page', area: true, hint: 'About 140–160 characters. Shown under the title in Google results.' },
+  { key: 'uen', label: 'UEN (company registration number, shown on site)' },
+  { key: 'licenses', label: 'Licences, registrations and certifications (shown on site)', area: true, hint: 'One per line, only real ones, e.g. BCA registration, GST Reg No, bizSAFE level, brand authorisations.' },
+  { key: 'service_area', label: 'Areas served (optional)', area: true, hint: 'One per line, e.g. Singapore, Jurong, Tampines. Empty means Singapore.' },
+  { key: 'social_links', label: 'Social / Google reviews links (optional)', area: true, hint: 'One full link per line (https://...). Facebook, Instagram, LinkedIn, Google Business Profile.' },
   { key: 'open_hours', label: 'Opening hours (Singapore time, optional)', area: true, hint: 'One per line, e.g. Mon-Fri 09:00-18:00 and Sat 09:00-13:00. Shows a live "Open now" badge. Leave empty to hide it.' },
   { key: 'hero_image', label: 'Hero image 1 (optional, replaces the service tiles)', image: true },
   { key: 'hero_image_2', label: 'Hero image 2 (optional, makes the hero a slider)', image: true },
@@ -244,7 +251,7 @@ function Settings() {
         <label key={f.key} className={f.area ? 'full' : ''}>{f.label}
           {f.hint && <small>{f.hint}</small>}
           {f.area
-            ? <textarea rows={f.key === 'hero_lead' || f.key === 'quote_intro' ? 3 : 6} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+            ? <textarea rows={['hero_lead', 'quote_intro', 'seo_description'].includes(f.key) ? 3 : 6} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
             : <input value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
         </label>
       ))}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import Shell, { Settings } from '../components/Shell';
+import useSeo from '../components/useSeo';
 
 interface Member { id: number; name: string; role: string; bio?: string | null; image_url?: string | null }
 
@@ -16,9 +17,7 @@ export default function Team() {
     api<{ settings?: Settings }>('/public/home').then((d) => setS(d.settings ?? {})).catch(() => undefined);
     api<Member[]>('/public/team').then(setMembers).catch((e: Error) => setErr(e.message)).finally(() => setLoaded(true));
   }, []);
-  useEffect(() => {
-    document.title = S.company_name ? `Team – ${S.company_name}` : 'Team';
-  }, [S.company_name]);
+  useSeo({ title: S.company_name ? `Team – ${S.company_name}` : '', description: S.company_name ? `Meet the people at ${S.company_name} who plan, install and finish your project.` : '', canonical: '/team' });
 
   return (
     <Shell S={S}>
@@ -30,7 +29,7 @@ export default function Team() {
         <div className="members">
           {members.map((m) => (
             <article key={m.id} className="member">
-              {m.image_url ? <img src={m.image_url} alt="" loading="lazy" /> : <span className="avatar" aria-hidden="true">{initials(m.name)}</span>}
+              {m.image_url ? <img src={m.image_url} alt={m.name} loading="lazy" /> : <span className="avatar" aria-hidden="true">{initials(m.name)}</span>}
               <h3>{m.name}</h3>
               <p className="role">{m.role}</p>
               {m.bio && <p>{m.bio}</p>}

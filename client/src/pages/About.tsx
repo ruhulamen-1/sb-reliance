@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import Shell, { Settings } from '../components/Shell';
+import useSeo from '../components/useSeo';
 
 interface Service { id: number; title: string; description: string; image_url?: string | null }
 
@@ -18,9 +19,7 @@ export default function About() {
       .then((d) => { setS(d.settings ?? {}); setServices(d.services ?? []); })
       .catch((e: Error) => setErr(e.message));
   }, []);
-  useEffect(() => {
-    document.title = S.company_name ? `About us – ${S.company_name}` : 'About us';
-  }, [S.company_name]);
+  useSeo({ title: S.company_name ? `About us – ${S.company_name}` : '', description: lines(S.about_intro)[0] || S.about_text, canonical: '/about' });
 
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
   const steps = lines(S.steps).map((l) => { const [t, ...d] = l.split('|'); return [t.trim(), d.join('|').trim()]; });
@@ -40,7 +39,7 @@ export default function About() {
             <h1 className="h1s">About {S.brand || 'us'}</h1>
             {lines(S.about_intro).map((p) => <p key={p} className="lead">{p}</p>)}
           </div>
-          {S.about_image && <img className="heroimg" src={S.about_image} alt="" />}
+          {S.about_image && <img className="heroimg" src={S.about_image} alt={S.company_name || ''} />}
         </div>
       </section>
 
@@ -64,13 +63,22 @@ export default function About() {
         ))}
       </section>
 
+      {(S.uen || lines(S.licenses).length > 0 || S.service_area) && (
+        <section className="wrap block" aria-labelledby="company-details">
+          <div className="sechead"><h2 id="company-details">Company details</h2></div>
+          {S.uen && <p><strong>UEN:</strong> {S.uen}</p>}
+          {S.service_area && <p><strong>Areas served:</strong> {lines(S.service_area).join(', ')}</p>}
+          {lines(S.licenses).length > 0 && <ul className="ticks">{lines(S.licenses).map((l) => <li key={l}>{l}</li>)}</ul>}
+        </section>
+      )}
+
       {services.length > 0 && (
         <section className="wrap block">
           <div className="sechead"><h2>{S.services_title || 'What we do'}</h2></div>
           <div className="gallery">
             {services.map((s) => (
               <Link key={s.id} to="/contact" className="tile">
-                {s.image_url ? <img src={s.image_url} alt="" loading="lazy" /> : <span className="tile-ph" aria-hidden="true" />}
+                {s.image_url ? <img src={s.image_url} alt={s.title} loading="lazy" /> : <span className="tile-ph" aria-hidden="true" />}
                 <span className="tile-label">{s.title}</span>
               </Link>
             ))}

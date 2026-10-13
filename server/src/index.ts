@@ -8,6 +8,7 @@ import cors from 'cors';
 import mysql, { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { renderHtml, robotsTxt, sitemapXml } from './seo.js';
 
 const env = process.env;
 const JWT_SECRET = env.JWT_SECRET || 'change-this-secret';
@@ -59,6 +60,14 @@ const DEFAULTS: Record<string, string> = {
   org_chart: '',
   logo: '',
   open_hours: '',
+  site_url: '',
+  seo_title: 'SB Reliance Pte Ltd – ACMV, Electrical, CCTV & Building Contractor in Singapore',
+  seo_description:
+    'Singapore contractor for ACMV and air-conditioning installation, electrical, CCTV, ceiling partition, painting, tiles and general building works. Request a site visit and written quotation.',
+  uen: '',
+  licenses: '',
+  service_area: '',
+  social_links: '',
   privacy_text: '# What we collect\nWhen you send a quote request we collect the details you enter: your name, WhatsApp number, address, property type, the services you need, your preferred date and your message.\n# How we use it\nWe use these details only to reply to your request, visit your site, prepare a quotation and carry out the work you agree to. We may contact you on WhatsApp, by phone or by email about your request.\n# Sharing\nWe do not sell your details. We share them only with people who need them to do the work for you, such as our own team and subcontractors, or when the law requires it.\n# Keeping your details\nWe keep your details for as long as we need them for your request, our records and legal requirements, and then delete them.\n# Your choices\nYou can ask us to show you the details we hold, correct them, or stop contacting you, and you can withdraw your consent at any time. Contact us using the details on our Contact page and we will respond as soon as we can.\n# Changes\nWe may update this policy from time to time. The latest version is always on this page.',
   about_intro: [
     'SB Reliance Pte Ltd specialises in ACMV and air-conditioning installation, electrical, CCTV, ceiling partition, painting, tiles and general building works for homes, offices and commercial spaces across Singapore.',
@@ -187,6 +196,7 @@ mkdirSync(uploadsDir, { recursive: true });
 const IMAGE_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 
 const app = express();
+app.set('trust proxy', 1); // hosting proxies terminate HTTPS; needed for the correct https:// in canonical URLs
 app.use(cors());
 app.use('/uploads', express.static(uploadsDir));
 // the upload route has its own, larger JSON limit
@@ -313,11 +323,35 @@ for (const [table, cols] of Object.entries(CONTENT)) {
   }));
 }
 
-// ---------- Serve built client (client/dist) ----------
+// ---------- SEO files + built client (client/dist) ----------
+// Public base URL: SITE_URL env, else Admin > Settings "Website address", else the request's own host.
+function baseUrl(req: Request, S: Record<string, string>) {
+  const fixed = (env.SITE_URL || S.site_url || '').trim().replace(/\/+$/, '');
+  return /^https?:\/\//i.test(fixed) ? fixed : `${req.protocol}://${req.get('host')}`;
+}
+app.get('/robots.txt', wrap(async (req, res) => {
+  res.type('text/plain').send(robotsTxt(baseUrl(req, await getSettings())));
+}));
+app.get('/sitemap.xml', wrap(async (req, res) => {
+  res.type('application/xml').send(sitemapXml(baseUrl(req, await getSettings())));
+}));
+
 const clientDist = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'client', 'dist');
 if (existsSync(clientDist)) {
-  app.use(express.static(clientDist));
-  app.get(/^\/(?!api).*/, (_req, res) => res.sendFile(join(clientDist, 'index.html')));
+  const indexFile = join(clientDist, 'index.html');
+  const template = readFileSync(indexFile, 'utf8');
+  app.use(express.static(clientDist, { index: false }));
+  app.get(/^\/(?!api).*/, async (req, res) => {
+    try {
+      const S = await getSettings();
+      const [services] = await pool.query<RowDataPacket[]>('SELECT title, description FROM services ORDER BY sort_order, id');
+      const { html, status } = renderHtml(template, req.path, S, services as { title: string; description: string }[], baseUrl(req, S));
+      res.status(status).type('html').send(html);
+    } catch (e) {
+      console.error('SEO render failed, sending plain index.html:', (e as Error).message);
+      res.sendFile(indexFile);
+    }
+  });
 }
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

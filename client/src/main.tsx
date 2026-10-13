@@ -8,6 +8,7 @@ import Portfolio from './pages/Portfolio';
 import Team from './pages/Team';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
+import NotFound from './pages/NotFound';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -23,6 +24,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Route path="/privacy-policy" element={<Privacy />} />
         <Route path="/about" element={<About />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

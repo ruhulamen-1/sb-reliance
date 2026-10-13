@@ -3,6 +3,7 @@ import { api } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
 import OpenStatus from '../components/OpenStatus';
+import useSeo from '../components/useSeo';
 
 export default function Contact() {
   const [S, setS] = useState<Settings>({});
@@ -14,9 +15,7 @@ export default function Contact() {
       .then((d) => { setS(d.settings ?? {}); setServiceNames((d.services ?? []).map((s) => s.title)); })
       .catch((e: Error) => setErr(e.message));
   }, []);
-  useEffect(() => {
-    document.title = S.company_name ? `Contact – ${S.company_name}` : 'Contact';
-  }, [S.company_name]);
+  useSeo({ title: S.company_name ? `Contact – ${S.company_name}` : '', description: S.company_name ? `Contact ${S.company_name}: call, WhatsApp or send a quote request. ${S.address || ''}`.trim() : '', canonical: '/contact' });
 
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
   const tel = (S.phone || '').replace(/[^\d+]/g, '');

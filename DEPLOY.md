@@ -35,6 +35,7 @@ Web App এর **Environment Variables** এ এগুলো দিন:
 | `JWT_SECRET` | লম্বা এলোমেলো লেখা (২৪+ অক্ষর) |
 | `ADMIN_EMAIL` | আপনার admin email |
 | `ADMIN_PASSWORD` | শক্ত নতুন password |
+| `SITE_URL` | (প্রস্তাবিত) আপনার আসল domain, যেমন `https://your-domain.com` (শেষে `/` ছাড়া)। canonical link, sitemap আর link preview এ লাগে |
 | `UPLOAD_DIR` | (ঐচ্ছিক) app folder এর বাইরের একটা পথ, যাতে নতুন deploy এ ছবি মুছে না যায় |
 
 `NODE_ENV=production` দিলে `JWT_SECRET` আর `ADMIN_PASSWORD` ডিফল্ট থাকলে server চালুই হবে না, এটা ইচ্ছাকৃত নিরাপত্তা।
@@ -55,3 +56,11 @@ Web App এর **Environment Variables** এ এগুলো দিন:
 - Deploy log এ `Refusing to start in production` দেখালে `JWT_SECRET`/`ADMIN_PASSWORD` ঠিক করুন।
 - `DB init failed` দেখালে `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` আবার মিলিয়ে দেখুন।
 - সাইট খোলে কিন্তু ছবি আসে না: `UPLOAD_DIR` এর folder এ লেখার অনুমতি আছে কিনা দেখুন।
+
+## SEO ও বিশ্বাসযোগ্যতা (live হওয়ার পর)
+- `https://আপনার-domain/robots.txt` আর `/sitemap.xml` খুলে দেখুন (server নিজে বানায়)।
+- Admin → Settings এ **UEN, Licences, Areas served, Social links, Google title/description** দিন। শুধু আসল তথ্য দিন, খালি রাখলে সাইটে দেখাবে না।
+- Admin → Settings এ **Email** আসল company email দিন (`info@example.com` রাখলে সাইটে/Google এ যাবে না, কিন্তু footer/Contact এ দেখাবে)।
+- Google Search Console এ domain যুক্ত করে `sitemap.xml` submit করুন।
+- Google Business Profile বানিয়ে website link দিন, তারপর সেই link Admin → Social links এ বসান।
+- Portfolio/Gallery তে আসল প্রজেক্টের ছবি আর বর্ণনামূলক title দিন (title ই image এর alt text)।

@@ -67,6 +67,7 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .foot-cols{display:grid;grid-template-columns:1fr 1fr;gap:40px}
 .foot-about p{max-width:52ch;margin-bottom:1.2rem}
 .foot-contact{text-align:right}
+.foot-trust{margin-top:14px;font-size:.92rem;color:#c3d3d1}.foot-trust ul{list-style:none;padding:0;margin:6px 0}.foot-trust p a+a{margin-left:14px}
 .btn-outline{display:inline-block;border:2px solid var(--sun);color:#fff!important;font-weight:600;padding:9px 18px;border-radius:6px;text-decoration:none}
 .btn-outline:hover{background:var(--sun);color:var(--ink)!important}
 .foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px;margin-top:36px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18);font-size:.92rem;color:#c3d3d1}

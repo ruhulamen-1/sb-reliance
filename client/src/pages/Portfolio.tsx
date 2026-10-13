@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import Shell, { Settings } from '../components/Shell';
+import useSeo from '../components/useSeo';
 
 interface Project { id: number; title: string; category: string; image_url: string }
 
@@ -17,9 +18,7 @@ export default function Portfolio() {
     api<{ settings?: Settings }>('/public/home').then((d) => setS(d.settings ?? {})).catch(() => undefined);
     api<Project[]>('/public/gallery').then(setItems).catch((e: Error) => setErr(e.message)).finally(() => setLoaded(true));
   }, []);
-  useEffect(() => {
-    document.title = S.company_name ? `Portfolio – ${S.company_name}` : 'Portfolio';
-  }, [S.company_name]);
+  useSeo({ title: S.company_name ? `Portfolio – ${S.company_name}` : '', description: S.company_name ? `Completed projects by ${S.company_name}: air-conditioning, electrical, CCTV, ceiling, painting, tiles and building works.` : '', canonical: '/portfolio' });
 
   const cats = Array.from(new Set(items.map((i) => i.category).filter(Boolean)));
   const shown = cat ? items.filter((i) => i.category === cat) : items;
@@ -53,7 +52,7 @@ export default function Portfolio() {
         <div className="gallery">
           {shown.map((p, i) => (
             <button key={p.id} type="button" className="proj" onClick={() => show(i)} aria-label={`View ${p.title}`}>
-              <img src={p.image_url} alt="" loading="lazy" />
+              <img src={p.image_url} alt={p.title} loading="lazy" />
               <strong>{p.title}</strong>
               {p.category && <small>{p.category}</small>}
             </button>

@@ -5,6 +5,17 @@ import { useEffect } from 'react';
 
 export type Settings = Record<string, string>;
 
+const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
+const linkLabel = (u: string) => {
+  try {
+    const h = new URL(u).hostname.replace(/^www\./, '');
+    const known: Record<string, string> = { 'facebook.com': 'Facebook', 'instagram.com': 'Instagram', 'linkedin.com': 'LinkedIn', 'tiktok.com': 'TikTok', 'youtube.com': 'YouTube', 'g.page': 'Google reviews', 'google.com': 'Google reviews', 'maps.app.goo.gl': 'Google reviews' };
+    return known[h] || h;
+  } catch {
+    return u;
+  }
+};
+
 export default function Shell({ S, children }: { S: Settings; children: ReactNode }) {
   useReveal();
   useEffect(() => {
@@ -37,12 +48,11 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
             <NavLink to="/contact">Contact</NavLink>
             <NavLink to="/about">About</NavLink>
             <NavLink to="/team">Team</NavLink>
-            <NavLink to="/admin">Admin</NavLink>
           </nav>
           <a className="btn" href={wa}>WhatsApp {S.phone}</a>
         </div>
       </header>
-      <div className="page">{children}</div>
+      <main className="page">{children}</main>
       <div className="floaters">
         <a className="fab wa" href={wa} aria-label="Chat on WhatsApp">WhatsApp</a>
         {S.phone && <a className="fab call" href={`tel:${S.phone.replace(/[^\d+]/g, '')}`} aria-label={`Call ${S.phone}`}>Call</a>}
@@ -66,6 +76,15 @@ export default function Shell({ S, children }: { S: Settings; children: ReactNod
                   {S.email && <a href={`mailto:${S.email}`}>{S.email}</a>}
                 </p>
                 <p>{S.address}</p>
+                {(S.uen || lines(S.licenses).length > 0 || lines(S.social_links).length > 0) && (
+                  <div className="foot-trust">
+                    {S.uen && <p>UEN: {S.uen}</p>}
+                    {lines(S.licenses).length > 0 && <ul>{lines(S.licenses).map((l) => <li key={l}>{l}</li>)}</ul>}
+                    {lines(S.social_links).length > 0 && (
+                      <p>{lines(S.social_links).filter((u) => /^https?:\/\//i.test(u)).map((u) => <a key={u} href={u} target="_blank" rel="noopener noreferrer">{linkLabel(u)}</a>)}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div className="foot-bottom">

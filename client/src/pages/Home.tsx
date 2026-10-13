@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import Shell from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
 import OpenStatus from '../components/OpenStatus';
+import useSeo from '../components/useSeo';
 import { api } from '../api';
 
 interface Service { id: number; title: string; description: string; image_url?: string | null }
@@ -52,9 +53,12 @@ export default function Home() {
     return [t.trim(), d.join('|').trim()];
   });
 
-  useEffect(() => {
-    if (S.company_name) document.title = S.company_name;
-  }, [S.company_name]);
+  const alias = ({ '/services': 'Services', '/why-us': 'Why choose us', '/blog': 'Blog' } as Record<string, string>)[pathname];
+  useSeo({
+    title: !S.company_name ? '' : alias ? `${alias} – ${S.company_name}` : S.seo_title || S.company_name,
+    description: S.seo_description,
+    canonical: '/',
+  });
 
   return (
     <Shell S={S}>
@@ -84,7 +88,7 @@ export default function Home() {
           {slides.length > 0 ? (
             <div className="heroslides" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
               {slides.map((src, i) => (
-                <img key={src} className={i === cur % slides.length ? 'heroimg on' : 'heroimg'} src={src} alt="" />
+                <img key={src} className={i === cur % slides.length ? 'heroimg on' : 'heroimg'} src={src} alt={S.company_name || ''} />
               ))}
               {slideCount > 1 && (
                 <div className="dots">
@@ -119,7 +123,7 @@ export default function Home() {
         <div className="grid3">
           {data.services.map((s) => (
             <article key={s.id} className="card">
-              {s.image_url && <img className="cardimg" src={s.image_url} alt="" />}
+              {s.image_url && <img className="cardimg" src={s.image_url} alt={s.title} loading="lazy" />}
               <h3>{s.title}</h3>
               <p>{s.description}</p>
             </article>
@@ -179,7 +183,7 @@ export default function Home() {
           <div className="grid3">
             {data.posts.map((p) => (
               <article key={p.id} className="card">
-                {p.image_url && <img className="cardimg" src={p.image_url} alt="" />}
+                {p.image_url && <img className="cardimg" src={p.image_url} alt={p.title} loading="lazy" />}
                 <h3>{p.title}</h3>
                 <p>{p.excerpt}</p>
                 <small>{new Date(p.created_at).toLocaleDateString('en-SG', { dateStyle: 'medium' })}</small>
