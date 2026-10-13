@@ -1,7 +1,6 @@
-import { ReactNode } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { ReactNode, useEffect, useRef, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import useReveal from './useReveal';
-import { useEffect } from 'react';
 import { serviceHeading } from './content';
 
 export type Settings = Record<string, string>;
@@ -35,17 +34,35 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
     window.addEventListener('resize', onScroll);
     return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); document.body.classList.remove('scrolled'); };
   }, []);
+  // phone menu (the three-line button): closes on navigation, Escape or a tap outside the header
+  const [menu, setMenu] = useState(false);
+  const header = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+  useEffect(() => setMenu(false), [pathname]);
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(false); };
+    const onDown = (e: PointerEvent) => { if (!header.current?.contains(e.target as Node)) setMenu(false); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onDown); };
+  }, [menu]);
+
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
+  const tel = (S.phone || '').replace(/[^\d+]/g, '');
   const email = realEmail(S.email);
   const svcLinks = services.filter((s) => s.slug);
   return (
     <>
       {S.page_bg && <div className="pagebg" aria-hidden="true" style={{ backgroundImage: `url("${S.page_bg}")` }} />}
       <div className="progress" aria-hidden="true" />
-      <header className="topbar">
+      <header className={menu ? 'topbar menu-open' : 'topbar'} ref={header}>
         <div className="wrap row between">
           <Link className="brand brandrow" to="/"><img className="logo" src={S.logo || '/logo.svg'} alt="" />{S.brand}</Link>
-          <nav className="row gap">
+          <button type="button" className="menu-btn" aria-expanded={menu} aria-controls="site-nav" aria-label={menu ? 'Close menu' : 'Open menu'} onClick={() => setMenu(!menu)}>
+            <span aria-hidden="true" />
+          </button>
+          <nav id="site-nav" className="row gap" aria-label="Main">
             <NavLink to="/services">Services</NavLink>
             <NavLink to="/portfolio">Portfolio</NavLink>
             <NavLink to="/why-us">Why us</NavLink>
@@ -53,14 +70,18 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
             <NavLink to="/contact">Contact</NavLink>
             <NavLink to="/about">About</NavLink>
             <NavLink to="/team">Team</NavLink>
+            <div className="menu-actions">
+              <a className="btn" href={wa}>WhatsApp</a>
+              {tel && <a className="btn ghost" href={`tel:${tel}`}>Call</a>}
+            </div>
           </nav>
-          <a className="btn" href={wa}>WhatsApp {S.phone}</a>
+          <a className="btn head-wa" href={wa}>WhatsApp {S.phone}</a>
         </div>
       </header>
       <main className="page">{children}</main>
       <div className="floaters">
         <a className="fab wa" href={wa} aria-label="Chat on WhatsApp">WhatsApp</a>
-        {S.phone && <a className="fab call" href={`tel:${S.phone.replace(/[^\d+]/g, '')}`} aria-label={`Call ${S.phone}`}>Call</a>}
+        {tel && <a className="fab call" href={`tel:${tel}`} aria-label={`Call ${S.phone}`}>Call</a>}
       </div>
 
       <footer className="foot" style={S.footer_bg ? { backgroundImage: `url("${S.footer_bg}")` } : undefined}>
@@ -75,11 +96,8 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
               </div>
               <div className="foot-contact">
                 <h2>Get in touch</h2>
-                <p>
-                  {S.phone && <a href={`tel:${S.phone.replace(/[^\d+]/g, '')}`}>{S.phone}</a>}
-                  {S.phone && email && ' | '}
-                  {email && <a href={`mailto:${email}`}>{email}</a>}
-                </p>
+                {tel && <p><a href={`tel:${tel}`}>{S.phone}</a></p>}
+                {email && <p><a href={`mailto:${email}`}>{email}</a></p>}
                 <p>{S.address}</p>
                 {(S.uen || lines(S.licenses).length > 0 || lines(S.social_links).length > 0) && (
                   <div className="foot-trust">

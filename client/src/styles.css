@@ -194,11 +194,48 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .post .postimg{margin:16px 0}
 .prerender{max-width:900px;margin:0 auto;padding:24px}
 @media(max-width:800px){.svc-body{grid-template-columns:1fr}}
-/* phones: keep the sticky header to two short rows (the floating WhatsApp/Call buttons stay) */
+
+/* ---------- header menu: full nav on wide screens, three-line button on phones/tablets ---------- */
+.menu-btn{display:none;width:44px;height:44px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;position:relative;flex:none}
+.menu-btn span,.menu-btn span:before,.menu-btn span:after{position:absolute;left:11px;width:20px;height:2px;background:var(--ink);border-radius:2px;transition:transform .2s,opacity .2s}
+.menu-btn span{top:21px}.menu-btn span:before,.menu-btn span:after{content:'';left:0}
+.menu-btn span:before{top:-7px}.menu-btn span:after{top:7px}
+.menu-open .menu-btn span{background:transparent}
+.menu-open .menu-btn span:before{transform:translateY(7px) rotate(45deg)}
+.menu-open .menu-btn span:after{transform:translateY(-7px) rotate(-45deg)}
+.menu-actions{display:none}
+.topbar .wrap{flex-wrap:nowrap}.head-wa{white-space:nowrap;flex:none}
+@media(max-width:1100px){
+  .topbar .wrap{flex-wrap:nowrap;padding-top:10px;padding-bottom:10px}
+  .menu-btn{display:block}
+  .head-wa{display:none!important}
+  .brand{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #site-nav{display:none;position:absolute;left:0;right:0;top:100%;background:var(--card);border-bottom:1px solid var(--line);box-shadow:0 12px 24px rgba(16,52,58,.14);flex-direction:column;align-items:stretch;gap:0;padding:6px clamp(20px,4vw,64px) 18px;max-height:calc(100vh - 64px);overflow-y:auto}
+  .menu-open #site-nav{display:flex;animation:rise .2s both}
+  #site-nav a{padding:13px 4px;border-bottom:1px solid var(--line);font-size:1.05rem}
+  .topbar nav a[aria-current=page]{text-decoration:none;color:var(--ink);box-shadow:inset 4px 0 0 var(--sun);padding-left:14px}
+  .menu-actions{display:flex;flex-wrap:wrap;gap:10px;padding-top:14px}
+  #site-nav .menu-actions a{border-bottom:2px solid var(--sun);padding:10px 18px;text-align:center;flex:1 1 140px}
+  #site-nav .menu-actions a.ghost{border-color:var(--ink)}
+}
+
+/* ---------- nothing may push the page sideways on small screens ---------- */
+img,svg,video{max-width:100%}
+.airflow{max-width:none}
+.foot-cols>*,.contact-blocks>*,.two>*,.hero-grid>*,.svc-body>*,.grid3>*{min-width:0}
+.foot a,.contact-blocks a,.foot-trust,.card p{overflow-wrap:anywhere}
+html,body{overflow-x:clip}
+@media(max-width:480px){
+  .wrap{padding-left:16px;padding-right:16px}
+  .hero{padding:40px 0}.block{padding-top:36px;padding-bottom:36px}.band{padding:40px 0}
+  h2{font-size:1.6rem}
+  .lead{font-size:1.08rem}
+}
+/* phones: WhatsApp / Call become a slim bar at the bottom instead of buttons floating over the text */
 @media(max-width:700px){
-  .topbar .wrap{padding-top:8px;padding-bottom:6px;row-gap:4px}
-  .topbar .wrap>.btn{display:none}
-  .topbar nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;gap:18px;padding-bottom:4px;scrollbar-width:none}
-  .topbar nav::-webkit-scrollbar{display:none}
-  .topbar nav a{white-space:nowrap}
+  .floaters{left:0;right:0;bottom:0;flex-direction:row;gap:0;box-shadow:0 -4px 14px rgba(16,52,58,.18)}
+  .fab{flex:1;border-radius:0;padding:14px 10px;box-shadow:none}
+  .fab:hover{transform:none}
+  .fab.wa{animation:none}
+  body{padding-bottom:50px}
 }
