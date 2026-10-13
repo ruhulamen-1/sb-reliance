@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { accessSync, constants as fsConstants, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -191,8 +191,27 @@ async function initDb() {
 }
 
 // UPLOAD_DIR lets you keep uploaded images outside the app folder so redeploys never delete them
-const uploadsDir = env.UPLOAD_DIR || join(dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
-mkdirSync(uploadsDir, { recursive: true });
+const defaultUploads = join(dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
+function pickUploadsDir() {
+  const wanted = (env.UPLOAD_DIR || '').trim();
+  if (wanted) {
+    try {
+      mkdirSync(wanted, { recursive: true });
+      accessSync(wanted, fsConstants.W_OK);
+      return wanted;
+    } catch (e) {
+      // A wrong UPLOAD_DIR must not take the whole site down (503): fall back and say so in the log
+      console.error(`WARNING: UPLOAD_DIR "${wanted}" is not usable (${(e as Error).message}). Using the app folder instead; uploads will be lost on redeploy.`);
+    }
+  } else if (env.NODE_ENV === 'production') {
+    console.warn('WARNING: UPLOAD_DIR is not set. Uploaded images are stored inside the app folder and are deleted on every redeploy. Set UPLOAD_DIR to a folder outside the app.');
+  }
+  mkdirSync(defaultUploads, { recursive: true });
+  return defaultUploads;
+}
+// UPLOAD_DIR lets you keep uploaded images outside the app folder so redeploys never delete them
+const uploadsDir = pickUploadsDir();
+console.log('Uploads folder:', uploadsDir);
 const IMAGE_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 
 const app = express();
