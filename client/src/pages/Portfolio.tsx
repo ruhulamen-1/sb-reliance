@@ -3,7 +3,7 @@ import { api } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 
-interface Project { id: number; title: string; category: string; image_url: string }
+interface Project { id: number; title: string; category: string; image_url: string; before_image_url?: string | null; location?: string | null; duration?: string | null; description?: string | null }
 
 export default function Portfolio() {
   const [S, setS] = useState<Settings>({});
@@ -52,9 +52,12 @@ export default function Portfolio() {
         <div className="gallery">
           {shown.map((p, i) => (
             <button key={p.id} type="button" className="proj" onClick={() => show(i)} aria-label={`View ${p.title}`}>
-              <img src={p.image_url} alt={p.title} loading="lazy" />
+              <span className="projimg">
+                <img src={p.image_url} alt={p.title} loading="lazy" />
+                {p.before_image_url && <span className="badge">Before / after</span>}
+              </span>
               <strong>{p.title}</strong>
-              {p.category && <small>{p.category}</small>}
+              {(p.category || p.location) && <small>{[p.category, p.location].filter(Boolean).join(' · ')}</small>}
             </button>
           ))}
         </div>
@@ -65,8 +68,24 @@ export default function Portfolio() {
         onKeyDown={(e) => { if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); }}>
         {cur && (
           <figure>
-            <img src={cur.image_url} alt={cur.title} />
-            <figcaption><strong>{cur.title}</strong>{cur.category && <small> · {cur.category}</small>}</figcaption>
+            {cur.before_image_url ? (
+              <div className="beforeafter">
+                <div><img src={cur.before_image_url} alt={`${cur.title}, before`} /><span>Before</span></div>
+                <div><img src={cur.image_url} alt={`${cur.title}, after`} /><span>After</span></div>
+              </div>
+            ) : (
+              <img src={cur.image_url} alt={cur.title} />
+            )}
+            <figcaption>
+              <strong>{cur.title}</strong>{cur.category && <small> · {cur.category}</small>}
+              {(cur.location || cur.duration) && (
+                <dl className="projfacts">
+                  {cur.location && <div><dt>Location</dt><dd>{cur.location}</dd></div>}
+                  {cur.duration && <div><dt>Time taken</dt><dd>{cur.duration}</dd></div>}
+                </dl>
+              )}
+              {cur.description && <p className="projdesc">{cur.description}</p>}
+            </figcaption>
             <div className="lbbar">
               <div className="row gap">
                 <button type="button" className="btn ghost" onClick={() => step(-1)} disabled={shown.length < 2}>Previous</button>

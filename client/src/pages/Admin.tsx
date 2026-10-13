@@ -227,6 +227,14 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'service_area', label: 'Areas served (optional)', area: true, hint: 'One per line, e.g. Singapore, Jurong, Tampines. Empty means Singapore.' },
   { key: 'social_links', label: 'Social / Google reviews links (optional)', area: true, hint: 'One full link per line (https://...). Facebook, Instagram, LinkedIn, Google Business Profile.' },
   { key: 'open_hours', label: 'Opening hours (Singapore time, optional)', area: true, hint: 'One per line, e.g. Mon-Fri 09:00-18:00 and Sat 09:00-13:00. Shows a live "Open now" badge. Leave empty to hide it.' },
+  { key: 'google_rating', label: 'Google rating (optional)', hint: 'Your real rating from Google Business Profile, e.g. 4.9. Shown under the hero and next to reviews. Empty hides it.' },
+  { key: 'google_review_count', label: 'Number of Google reviews (optional)', hint: 'e.g. 37' },
+  { key: 'google_reviews_url', label: 'Google reviews link (optional)', hint: 'The link to your Google Business Profile reviews (https://...). Adds a "Read all reviews on Google" button.' },
+  { key: 'stats', label: 'Numbers to show (optional)', area: true, hint: 'One per line: Number | Label, e.g. 120+ | Projects completed. Only real figures. Empty hides the section.' },
+  { key: 'warranty_title', label: 'Guarantee section title (optional)', hint: 'e.g. Our guarantee' },
+  { key: 'warranty_text', label: 'Guarantee / warranty points (optional)', area: true, hint: 'One per line, only what you really offer, e.g. 12 months workmanship warranty. Empty hides the section.' },
+  { key: 'quote_reply_time', label: 'Message after a quote is sent (optional)', hint: 'e.g. We reply on WhatsApp within 2 hours during opening hours.' },
+  { key: 'notify_email', label: 'Email new quote requests to (optional)', hint: 'Needs the SMTP settings on the server (see DEPLOY.md). Requests are always saved in Admin > Quotes.' },
   { key: 'hero_image', label: 'Hero image 1 (optional, replaces the service tiles)', image: true },
   { key: 'hero_image_2', label: 'Hero image 2 (optional, makes the hero a slider)', image: true },
   { key: 'hero_image_3', label: 'Hero image 3 (optional)', image: true },
@@ -313,7 +321,15 @@ export default function Admin() {
         { key: 'image_url', label: 'Image', image: true },
       ]} />}
       {tab === 'Blog' && <Crud table="posts" fields={[{ key: 'title', label: 'Title' }, { key: 'slug', label: 'Page address (optional)', optional: true, hint: 'e.g. aircon-servicing-tips → /blog/aircon-servicing-tips. Empty = made from the title.' }, { key: 'excerpt', label: 'Excerpt', area: true }, { key: 'content', label: 'Content', area: true, hint: 'One paragraph per line. A line starting with "# " becomes a heading.' }, { key: 'image_url', label: 'Cover image', image: true }]} />}
-      {tab === 'Gallery' && <Crud table="gallery" fields={[{ key: 'title', label: 'Project name' }, { key: 'category', label: 'Category (optional, e.g. Commercial, Residential)', optional: true }, { key: 'image_url', label: 'Photo', image: true, required: true }]} />}
+      {tab === 'Gallery' && <Crud table="gallery" fields={[
+        { key: 'title', label: 'Project name' },
+        { key: 'category', label: 'Category (optional, e.g. Aircon, Commercial, Residential)', optional: true },
+        { key: 'location', label: 'Location (optional)', optional: true, hint: 'e.g. Tampines HDB 4-room, Ubi office' },
+        { key: 'duration', label: 'Time taken (optional)', optional: true, hint: 'e.g. 1 day, 3 weeks' },
+        { key: 'description', label: 'What we did (optional)', area: true, optional: true, hint: 'A few lines about the job. Shown when the project is opened in Portfolio.' },
+        { key: 'image_url', label: 'Photo (after / finished work)', image: true, required: true },
+        { key: 'before_image_url', label: 'Before photo (optional, shows a before / after view)', image: true },
+      ]} />}
       {tab === 'Team' && <Crud table="team" fields={[{ key: 'name', label: 'Name' }, { key: 'role', label: 'Role / title' }, { key: 'bio', label: 'Short bio (optional)', area: true, optional: true }, { key: 'sort_order', label: 'Order (smaller shows first)', num: true }, { key: 'image_url', label: 'Photo (optional)', image: true }]} />}
       {tab === 'Settings' && <Settings />}
       {tab === 'Testimonials' && <Crud table="testimonials" fields={[{ key: 'name', label: 'Name' }, { key: 'location', label: 'Area' }, { key: 'text', label: 'Review', area: true }]} />}

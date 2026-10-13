@@ -5,6 +5,7 @@ import Shell, { Settings } from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
+import { Guarantee, TrustBar } from '../components/Trust';
 import { faqPairs, serviceHeading, TextBlocks, Service } from '../components/content';
 
 interface GalleryItem { id: number; title: string; image_url: string }
@@ -59,6 +60,8 @@ export default function ServicePage() {
             </div>
           </section>
 
+          <TrustBar S={S} />
+
           <section className="wrap block svc-body">
             <div className="prose"><TextBlocks text={service.content} /></div>
             {faq.length > 0 && (
@@ -73,6 +76,8 @@ export default function ServicePage() {
               </div>
             )}
           </section>
+
+          <Guarantee S={S} />
 
           {gallery.length > 0 && (
             <section className="wrap block">

@@ -40,6 +40,13 @@ Web App এর **Environment Variables** এ এগুলো দিন:
 
 `NODE_ENV=production` দিলে `JWT_SECRET` আর `ADMIN_PASSWORD` ডিফল্ট থাকলে server চালুই হবে না, এটা ইচ্ছাকৃত নিরাপত্তা।
 
+ঐচ্ছিক (দরকার হলে):
+
+| নাম | কী করে |
+|---|---|
+| `FORCE_HTTPS` | `true` দিলে http:// থেকে https:// এ পাঠায়। hPanel এ নিজস্ব "Force HTTPS" থাকলে সেটাই যথেষ্ট। |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | নতুন quote এলে email পাঠায় (Hostinger email: `smtp.hostinger.com`, port `465`)। প্রাপক = Admin → Settings → "Email new quote requests to"। |
+
 ## ৫. Deploy ও domain
 1. **Deploy** চাপুন। প্রথমবার চালু হলে টেবিল আর admin user নিজে তৈরি হয়।
 2. Domain যুক্ত করুন এবং **SSL (https)** চালু করুন (hPanel → Security → SSL)।
@@ -48,6 +55,8 @@ Web App এর **Environment Variables** এ এগুলো দিন:
 ## ৬. Live হওয়ার পর করণীয়
 - Admin → Settings এ ফোন, WhatsApp (শুধু অঙ্ক, দেশের কোডসহ), email, ঠিকানা, logo ও ছবি দিন।
 - Admin → Team, Gallery, Blog, Testimonials এ আসল তথ্য দিন।
+- Admin → Settings এ trust এর তথ্য দিন (শুধু আসল তথ্য; খালি থাকলে site এ লুকানো থাকে): UEN, licences, Google rating ও reviews link, numbers (যেমন `120+ | Projects completed`), guarantee, quote পাঠানোর পরের message।
+- Admin → Gallery তে project এর location, সময়, কী কাজ এবং before photo দিলে Portfolio তে before / after দেখায়।
 - Privacy policy লেখাটা আপনার আসল নিয়মের সঙ্গে মিলিয়ে নিন।
 - Database এর নিয়মিত backup নিন (hPanel → Backups বা phpMyAdmin → Export)।
 - Admin password আর `.env` কখনো GitHub এ রাখবেন না (`.env` আগে থেকেই `.gitignore` এ আছে)।

@@ -8,6 +8,7 @@ import cors from 'cors';
 import mysql, { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import { renderHtml, robotsTxt, sitemapXml, SeoPost, SeoService } from './seo.js';
 import { SERVICE_DEFAULTS, slugify } from './serviceDefaults.js';
 
@@ -39,7 +40,7 @@ const CONTENT: Record<string, string[]> = {
   services: ['title', 'slug', 'description', 'content', 'faq', 'seo_title', 'seo_description', 'sort_order', 'image_url'],
   posts: ['title', 'slug', 'excerpt', 'content', 'image_url'],
   testimonials: ['name', 'location', 'text'],
-  gallery: ['title', 'category', 'image_url'],
+  gallery: ['title', 'category', 'image_url', 'before_image_url', 'location', 'duration', 'description'],
   team: ['name', 'role', 'bio', 'image_url', 'sort_order'],
 };
 
@@ -100,6 +101,15 @@ const DEFAULTS: Record<string, string> = {
   ].join('\n'),
   quote_title: 'Get a quote',
   quote_intro: 'Tell us what you need and we will get back to you with a site visit and quotation.',
+  // trust signals (each block is hidden on the site while its field is empty)
+  google_rating: '',
+  google_review_count: '',
+  google_reviews_url: '',
+  stats: '',
+  warranty_title: '',
+  warranty_text: '',
+  quote_reply_time: '',
+  notify_email: '',
   property_types: ['HDB', 'Condo', 'Landed', 'Retail Shop', 'Office', 'Factory / Warehouse', 'Others'].join('\n'),
 };
 
@@ -165,6 +175,11 @@ async function initDb() {
   await ensureColumn('services', 'image_url', 'image_url VARCHAR(255) NULL');
   await ensureColumn('posts', 'image_url', 'image_url VARCHAR(255) NULL');
   await ensureColumn('gallery', 'category', "category VARCHAR(80) NOT NULL DEFAULT ''");
+  // project case studies (Portfolio)
+  await ensureColumn('gallery', 'before_image_url', 'before_image_url VARCHAR(255) NULL');
+  await ensureColumn('gallery', 'location', 'location VARCHAR(120) NULL');
+  await ensureColumn('gallery', 'duration', 'duration VARCHAR(80) NULL');
+  await ensureColumn('gallery', 'description', 'description TEXT NULL');
   // service pages (/services/:slug)
   await ensureColumn('services', 'slug', 'slug VARCHAR(190) NULL');
   await ensureColumn('services', 'content', 'content MEDIUMTEXT NULL');
@@ -249,8 +264,54 @@ const uploadsDir = pickUploadsDir();
 console.log('Uploads folder:', uploadsDir);
 const IMAGE_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 
+// New quote requests are emailed to Admin > Settings "Notify email" (or NOTIFY_EMAIL) when SMTP_* is set.
+// Without SMTP settings this does nothing; the request is always saved and shown in Admin > Quotes.
+const mailer = env.SMTP_HOST
+  ? nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: Number(env.SMTP_PORT || 465),
+      secure: Number(env.SMTP_PORT || 465) === 465,
+      auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD || '' } : undefined,
+    })
+  : null;
+async function notifyQuote(q: Record<string, unknown>) {
+  if (!mailer) return;
+  const S = await getSettings();
+  const to = (S.notify_email || env.NOTIFY_EMAIL || '').trim();
+  if (!to) return;
+  const addons = Array.isArray(q.addons) && q.addons.length ? (q.addons as string[]).join(', ') : '-';
+  const text = [
+    `Name: ${q.name}`,
+    `WhatsApp: ${q.whatsapp}  (https://wa.me/${String(q.whatsapp).replace(/\D/g, '')})`,
+    `Address: ${q.address}`,
+    `Property: ${q.house_type}`,
+    `Service: ${q.service_type}`,
+    `Other services: ${addons}`,
+    `Preferred date: ${q.preferred_date || '-'}`,
+    `Message: ${q.message || '-'}`,
+    '',
+    'Open Admin > Quotes on the website to update the status.',
+  ].join('\n');
+  await mailer.sendMail({ from: env.SMTP_FROM || env.SMTP_USER, to, subject: `New quote request: ${q.service_type} – ${q.name}`, text });
+}
+
 const app = express();
 app.set('trust proxy', 1); // hosting proxies terminate HTTPS; needed for the correct https:// in canonical URLs
+app.disable('x-powered-by');
+// FORCE_HTTPS=true sends http:// visitors to https://. Opt-in, because a host that does not pass
+// X-Forwarded-Proto would otherwise redirect forever (most panels also have their own "Force HTTPS" switch).
+const forceHttps = /^(1|true|yes)$/i.test(env.FORCE_HTTPS || '');
+app.use((req, res, next) => {
+  if (forceHttps && !req.secure && req.method === 'GET' && !/^(localhost|127\.)/.test(req.hostname)) {
+    return res.redirect(301, `https://${req.get('host')}${req.originalUrl}`);
+  }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=15552000');
+  next();
+});
 app.use(cors());
 app.use('/uploads', express.static(uploadsDir));
 // the upload route has its own, larger JSON limit
@@ -268,7 +329,7 @@ app.post('/api/auth/login', wrap(async (req, res) => {
 
 // ---------- Public ----------
 app.get('/api/public/gallery', wrap(async (_req, res) => {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, category, image_url FROM gallery ORDER BY id DESC LIMIT 200');
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, category, image_url, before_image_url, location, duration, description FROM gallery ORDER BY id DESC LIMIT 200');
   res.json(rows);
 }));
 
@@ -309,6 +370,7 @@ app.post('/api/quotes', wrap(async (req, res) => {
     [b.name, b.whatsapp, b.address, b.house_type, b.service_type, JSON.stringify(b.addons || []), b.preferred_date || null, b.message || null],
   );
   res.status(201).json({ id: r.insertId });
+  notifyQuote(b).catch((e) => console.error('Quote email failed:', (e as Error).message));
 }));
 
 // ---------- Admin ----------

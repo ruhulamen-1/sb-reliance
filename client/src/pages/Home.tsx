@@ -6,6 +6,7 @@ import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
 import { api } from '../api';
 import { serviceHeading } from '../components/content';
+import { Guarantee, ReviewsButton, Stats, TrustBar } from '../components/Trust';
 
 interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
 interface Testimonial { id: number; name: string; location: string; text: string }
@@ -111,6 +112,8 @@ export default function Home() {
         </div>
       </section>
 
+      <TrustBar S={S} />
+
       {serviceNames.length > 0 && (
         <div className="ticker" aria-hidden="true">
           <div className="ticker-track">
@@ -133,6 +136,8 @@ export default function Home() {
         </div>
       </section>
 
+      <Stats S={S} />
+
       <section id="included" className="band">
         <div className="wrap two">
           <div>
@@ -150,6 +155,8 @@ export default function Home() {
         </div>
       </section>
 
+      <Guarantee S={S} />
+
       {data.gallery.length > 0 && (
         <section id="work" className="wrap block">
           <h2>Our work</h2>
@@ -165,7 +172,7 @@ export default function Home() {
         </section>
       )}
 
-      {data.testimonials.length > 0 && (
+      {(data.testimonials.length > 0 || S.google_reviews_url) && (
         <section className="wrap block">
           <h2>What customers say</h2>
           <div className="grid3">
@@ -176,6 +183,7 @@ export default function Home() {
               </figure>
             ))}
           </div>
+          <ReviewsButton S={S} />
         </section>
       )}
 

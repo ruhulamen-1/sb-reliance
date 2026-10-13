@@ -9,6 +9,7 @@ export default function QuoteForm({ S, serviceNames, defaultService = '' }: { S:
   const [form, setForm] = useState({ ...EMPTY_FORM, service_type: defaultService });
   const [addons, setAddons] = useState<string[]>([]);
   const [state, setState] = useState<{ kind: 'idle' | 'sending' | 'ok' | 'err'; msg?: string }>({ kind: 'idle' });
+  const [sent, setSent] = useState<typeof EMPTY_FORM | null>(null);
   const set = (k: keyof typeof EMPTY_FORM) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
   async function submit(e: FormEvent) {
@@ -17,6 +18,7 @@ export default function QuoteForm({ S, serviceNames, defaultService = '' }: { S:
     try {
       await api('/quotes', { method: 'POST', body: { ...form, addons } });
       setState({ kind: 'ok' });
+      setSent(form);
       setForm({ ...EMPTY_FORM, service_type: defaultService });
       setAddons([]);
     } catch (err) {
@@ -43,7 +45,20 @@ export default function QuoteForm({ S, serviceNames, defaultService = '' }: { S:
       <label>Preferred date<input type="date" value={form.preferred_date} onChange={set('preferred_date')} /></label>
       <label className="full">Message<textarea rows={3} value={form.message} onChange={set('message')} /></label>
       <button className="btn full" disabled={state.kind === 'sending'}>{state.kind === 'sending' ? 'Sending…' : 'Send request'}</button>
-      {state.kind === 'ok' && <p className="ok full">Request sent. We will contact you shortly.</p>}
+      {state.kind === 'ok' && (
+        <div className="sent full" role="status">
+          <p className="ok">Request sent. {S.quote_reply_time || 'We will contact you shortly.'}</p>
+          {S.whatsapp && sent && (
+            <p>
+              Want a faster reply?{' '}
+              <a className="btn ghost" target="_blank" rel="noopener noreferrer"
+                href={`https://wa.me/${S.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi, I just sent a quote request on your website.\nName: ${sent.name}\nService: ${sent.service_type}\nAddress: ${sent.address}`)}`}>
+                Send it on WhatsApp too
+              </a>
+            </p>
+          )}
+        </div>
+      )}
       {state.kind === 'err' && <p className="err full">{state.msg}</p>}
     </form>
   );

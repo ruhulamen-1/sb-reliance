@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import Shell, { Settings, realEmail } from '../components/Shell';
 import { Service } from '../components/content';
+import { AddressMap, GoogleRating } from '../components/Trust';
 import QuoteForm from '../components/QuoteForm';
 import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
@@ -44,7 +45,11 @@ export default function Contact() {
           {S.address && (
             <div className="card"><h3>Address</h3><p>{S.address}</p><p><a href={map} target="_blank" rel="noreferrer">Open in Google Maps</a></p></div>
           )}
+          {S.google_rating && (
+            <div className="card"><h3>Google reviews</h3><p><GoogleRating S={S} /></p></div>
+          )}
         </div>
+        <AddressMap S={S} />
       </section>
 
       <section id="quote" className="band">
