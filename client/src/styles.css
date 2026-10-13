@@ -299,3 +299,25 @@ html,body{overflow-x:clip}
   .foot-col:not(.foot-contact) ul{grid-template-columns:1fr 1fr;column-gap:16px}
   .foot-bottom{flex-direction:column;align-items:flex-start}
 }
+
+/* ---------- header texture: faint blueprint grid with drawing marks, hazard-tape edge ---------- */
+.topbar{
+  border-bottom:0;
+  background-color:#fff;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88'%3E%3Cpath d='M44 38v12M38 44h12' stroke='%2310343a' stroke-opacity='.16' stroke-width='1'/%3E%3C/svg%3E"),
+    linear-gradient(rgba(16,52,58,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(16,52,58,.05) 1px,transparent 1px),
+    linear-gradient(rgba(16,52,58,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(16,52,58,.025) 1px,transparent 1px);
+  background-size:88px 88px,88px 88px,88px 88px,22px 22px,22px 22px;
+  background-position:-44px -44px,0 0,0 0,0 0,0 0;
+}
+.topbar:after{content:'';position:absolute;left:0;right:0;bottom:-4px;height:4px;pointer-events:none;
+  background:repeating-linear-gradient(-45deg,var(--sun) 0 10px,#16282c 10px 20px);opacity:.9}
+@media(max-width:1100px){
+  #site-nav{background:inherit;background-color:#fff;top:calc(100% + 4px);flex-wrap:nowrap;max-height:calc(100vh - 72px);max-height:calc(100dvh - 72px)}
+  #site-nav a{flex:none}
+}
+@media(prefers-reduced-motion:no-preference){.topbar .brand .logo{transition:transform .4s}}
+.topbar.menu-open{z-index:8}
