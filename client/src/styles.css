@@ -272,3 +272,5 @@ html,body{overflow-x:clip}
   .map{height:260px}
   .trustbar ul{font-size:.88rem;gap:4px 18px}
 }
+/* wider screens: leave room under the footer so the floating WhatsApp / Call buttons never cover its last row */
+@media(min-width:701px){.foot-shade{padding-bottom:128px}}
