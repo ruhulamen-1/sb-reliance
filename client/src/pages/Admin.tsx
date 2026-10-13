@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, Fragment, useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 
 type Row = Record<string, any>;
@@ -158,8 +158,8 @@ function Crud({ table, fields }: { table: string; fields: { key: string; label: 
     } catch (x) { setErr((x as Error).message); }
   }
 
-  return (
-    <>
+  // The same form is used for "Add" (at the top) and for "Edit" (shown in place of the row being edited, so the page never jumps)
+  const formEl = (
       <form className="form card" onSubmit={submit}>
         {fields.map((f) => f.image ? (
           <ImageField key={f.key} label={f.label} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
@@ -176,10 +176,15 @@ function Crud({ table, fields }: { table: string; fields: { key: string; label: 
           {editId && <button type="button" className="btn ghost" onClick={() => { setEditId(null); setForm(blank); }}>Cancel</button>}
         </div>
       </form>
-      {rows.map((r) => (
+  );
+
+  return (
+    <>
+      {editId === null && formEl}
+      {rows.map((r) => editId === r.id ? <Fragment key={r.id}>{formEl}</Fragment> : (
         <div key={r.id} className="card row between">
-          <div className="row gap">{r.image_url && <img src={r.image_url} alt="" className="thumb" />}<div><strong>{r[fields[0].key]}</strong>{textKey && <p>{String(r[textKey] ?? '').slice(0, 120)}</p>}</div></div>
-          <div className="row gap">
+          <div className="row gap crud-main">{r.image_url && <img src={r.image_url} alt="" className="thumb" />}<div><strong>{r[fields[0].key]}</strong>{textKey && <p>{String(r[textKey] ?? '').slice(0, 120)}</p>}</div></div>
+          <div className="row gap crud-actions">
             <button className="btn ghost" onClick={() => { setEditId(r.id); setForm(Object.fromEntries(fields.map((f) => [f.key, r[f.key]]))); }}>Edit</button>
             <button className="btn ghost" onClick={async () => { if (confirm('Delete?')) { await api(`/admin/${table}/${r.id}`, { method: 'DELETE', auth: true }); load(); } }}>Delete</button>
           </div>

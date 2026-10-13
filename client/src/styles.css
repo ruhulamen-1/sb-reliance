@@ -172,3 +172,4 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
   .ticker-track{width:auto;flex-wrap:wrap;justify-content:center}.ticker .dup{display:none}
   .progress{display:none}
 }
+.crud-main{flex:1 1 0;min-width:0;flex-wrap:nowrap}.crud-main>div{min-width:0;overflow-wrap:anywhere}.crud-actions{flex:none}
