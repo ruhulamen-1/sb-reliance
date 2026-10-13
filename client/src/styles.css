@@ -65,15 +65,11 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .foot-shade{background:linear-gradient(to bottom,rgba(16,30,34,.93),rgba(16,30,34,.8));padding:48px 0 22px}
 .foot h2{font-size:1.5rem;color:#fff;text-transform:uppercase;letter-spacing:.02em}
 .foot a{color:inherit}
-.foot-cols{display:grid;grid-template-columns:1fr 1fr;gap:40px}
-.foot-about p{max-width:52ch;margin-bottom:1.2rem}
-.foot-contact{text-align:right}
 .foot-trust{margin-top:14px;font-size:.92rem;color:#c3d3d1}.foot-trust ul{list-style:none;padding:0;margin:6px 0}.foot-trust p a+a{margin-left:14px}
 .btn-outline{display:inline-block;border:2px solid var(--sun);color:#fff!important;font-weight:600;padding:9px 18px;border-radius:6px;text-decoration:none}
 .btn-outline:hover{background:var(--sun);color:var(--ink)!important}
 .foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px;margin-top:36px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18);font-size:.92rem;color:#c3d3d1}
 .foot-bottom nav{display:flex;flex-wrap:wrap;gap:6px 18px}
-@media(max-width:800px){.foot-cols{grid-template-columns:1fr}.foot-contact{text-align:left}}
 .tabpanel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:22px;max-width:760px}
 .tabpanel[hidden]{display:none}
 .tabs [role=tab][aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -189,8 +185,6 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .svc-links a{font-weight:600}
 .card h3 a{text-decoration:none}.card h3 a:hover{text-decoration:underline}
 .more{display:inline-block;margin-top:8px;font-weight:600;text-decoration-color:var(--sun);text-decoration-thickness:2px;text-underline-offset:4px}
-.foot-services{margin-top:32px}.foot-services h2{font-size:1.1rem}
-.foot-services ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px 24px}
 .post .postimg{margin:16px 0}
 .prerender{max-width:900px;margin:0 auto;padding:24px}
 @media(max-width:800px){.svc-body{grid-template-columns:1fr}}
@@ -222,7 +216,7 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 /* ---------- nothing may push the page sideways on small screens ---------- */
 img,svg,video{max-width:100%}
 .airflow{max-width:none}
-.foot-cols>*,.contact-blocks>*,.two>*,.hero-grid>*,.svc-body>*,.grid3>*{min-width:0}
+.contact-blocks>*,.two>*,.hero-grid>*,.svc-body>*,.grid3>*{min-width:0}
 .foot a,.contact-blocks a,.foot-trust,.card p{overflow-wrap:anywhere}
 html,body{overflow-x:clip}
 @media(max-width:480px){
@@ -237,7 +231,7 @@ html,body{overflow-x:clip}
   .fab{flex:1;border-radius:0;padding:14px 10px;box-shadow:none}
   .fab:hover{transform:none}
   .fab.wa{animation:none}
-  body{padding-bottom:50px}
+  .foot-shade{padding-bottom:72px}
 }
 
 /* ---------- trust signals ---------- */
@@ -274,3 +268,34 @@ html,body{overflow-x:clip}
 }
 /* wider screens: leave room under the footer so the floating WhatsApp / Call buttons never cover its last row */
 @media(min-width:701px){.foot-shade{padding-bottom:128px}}
+
+/* ---------- footer ---------- */
+.foot-grid{display:grid;grid-template-columns:1.4fr .8fr 1fr 1.2fr;gap:40px 48px}
+.foot-grid>*{min-width:0}
+.foot .foot-col h2,.foot-col h2{font-size:.95rem;letter-spacing:.08em;margin:0 0 16px;padding-bottom:10px;position:relative}
+.foot-col h2:after{content:'';position:absolute;left:0;bottom:0;width:32px;height:3px;border-radius:2px;background:var(--sun)}
+.foot-col ul{list-style:none;padding:0;margin:0;display:grid;gap:9px}
+.foot-col a{text-decoration:none;color:#d5e1df}
+.foot-col a:hover,.foot-col a:focus-visible{color:#fff;text-decoration:underline;text-decoration-color:var(--sun);text-underline-offset:4px}
+.foot-logo{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:#fff!important;font:800 1.45rem 'Bricolage Grotesque',sans-serif;margin-bottom:14px}
+.foot-logo .logo{height:52px}
+.foot-brand p{color:#c3d3d1;max-width:44ch;margin:0 0 18px}
+.foot-social{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px!important}
+.foot-social a{border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 14px;font-size:.88rem;text-decoration:none}
+.foot-social a:hover{border-color:var(--sun);color:#fff}
+.foot-icons li{display:flex;gap:10px;align-items:flex-start;color:#d5e1df}
+.foot-icons .ico{width:18px;height:18px;flex:none;margin-top:3px;color:var(--sun)}
+.foot-icons .hours-line{display:block}
+.foot-contact{text-align:left}
+.foot .foot-trust{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
+.foot-bottom{align-items:center;margin-top:40px;padding-top:18px}
+.foot-bottom nav{align-items:center;gap:6px 22px}
+.foot-bottom a{text-decoration:none}.foot-bottom a:hover{color:#fff;text-decoration:underline}
+.totop{background:none;border:1px solid rgba(255,255,255,.3);color:#e6eeed;border-radius:999px;padding:6px 14px;font:inherit;cursor:pointer}
+.totop:hover{border-color:var(--sun);color:#fff}
+@media(max-width:1100px){.foot-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){
+  .foot-grid{grid-template-columns:1fr;gap:30px}
+  .foot-col:not(.foot-contact) ul{grid-template-columns:1fr 1fr;column-gap:16px}
+  .foot-bottom{flex-direction:column;align-items:flex-start}
+}

@@ -18,6 +18,18 @@ const linkLabel = (u: string) => {
   }
 };
 
+// small line icons for the footer contact list (24x24, drawn with the current text colour)
+const ICONS = {
+  phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
+  chat: 'M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.6A8 8 0 1 1 21 12z',
+  mail: 'M3 6h18v12H3zM3 7l9 6 9-6',
+  pin: 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+};
+const Icon = ({ d }: { d: string }) => (
+  <svg className="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>
+);
+
 export default function Shell({ S, services = [], children }: { S: Settings; services?: { id: number; title: string; slug?: string | null }[]; children: ReactNode }) {
   useReveal();
   useEffect(() => {
@@ -52,6 +64,7 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
   const tel = (S.phone || '').replace(/[^\d+]/g, '');
   const email = realEmail(S.email);
   const svcLinks = services.filter((s) => s.slug);
+  const socials = lines(S.social_links).filter((u) => /^https?:\/\//i.test(u));
   return (
     <>
       {S.page_bg && <div className="pagebg" aria-hidden="true" style={{ backgroundImage: `url("${S.page_bg}")` }} />}
@@ -87,43 +100,63 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
       <footer className="foot" style={S.footer_bg ? { backgroundImage: `url("${S.footer_bg}")` } : undefined}>
         <div className="foot-shade">
           <div className="wrap">
-            <div className="foot-cols">
-              <div className="foot-about">
-                <img className="logo logo-lg" src={S.logo || '/logo.svg'} alt="" />
-                <h2>About us</h2>
+            <div className="foot-grid">
+              <div className="foot-brand">
+                <Link className="foot-logo" to="/"><img className="logo" src={S.logo || '/logo.svg'} alt="" /><span>{S.brand}</span></Link>
                 <p>{S.about_text}</p>
                 <Link className="btn-outline" to="/contact">Request a quote</Link>
+                {socials.length > 0 && (
+                  <p className="foot-social">{socials.map((u) => <a key={u} href={u} target="_blank" rel="noopener noreferrer">{linkLabel(u)}</a>)}</p>
+                )}
               </div>
-              <div className="foot-contact">
+
+              <nav className="foot-col" aria-label="Quick links">
+                <h2>Quick links</h2>
+                <ul>
+                  <li><Link to="/">Home</Link></li>
+                  <li><Link to="/services">Services</Link></li>
+                  <li><Link to="/portfolio">Portfolio</Link></li>
+                  <li><Link to="/why-us">Why us</Link></li>
+                  <li><Link to="/about">About us</Link></li>
+                  <li><Link to="/team">Our team</Link></li>
+                  <li><Link to="/blog">Blog</Link></li>
+                  <li><Link to="/contact">Contact</Link></li>
+                </ul>
+              </nav>
+
+              {svcLinks.length > 0 && (
+                <nav className="foot-col" aria-label="Services">
+                  <h2>Our services</h2>
+                  <ul>{svcLinks.map((s) => <li key={s.id}><Link to={`/services/${s.slug}`} title={serviceHeading(s)}>{s.title}</Link></li>)}</ul>
+                </nav>
+              )}
+
+              <div className="foot-col foot-contact">
                 <h2>Get in touch</h2>
-                {tel && <p><a href={`tel:${tel}`}>{S.phone}</a></p>}
-                {email && <p><a href={`mailto:${email}`}>{email}</a></p>}
-                <p>{S.address}</p>
-                {(S.uen || lines(S.licenses).length > 0 || lines(S.social_links).length > 0) && (
+                <ul className="foot-icons">
+                  {tel && <li><Icon d={ICONS.phone} /><a href={`tel:${tel}`}>{S.phone}</a></li>}
+                  {S.whatsapp && <li><Icon d={ICONS.chat} /><a href={wa}>WhatsApp us</a></li>}
+                  {email && <li><Icon d={ICONS.mail} /><a href={`mailto:${email}`}>{email}</a></li>}
+                  {S.address && <li><Icon d={ICONS.pin} /><span>{S.address}</span></li>}
+                  {lines(S.open_hours).length > 0 && <li><Icon d={ICONS.clock} /><span>{lines(S.open_hours).map((h) => <span key={h} className="hours-line">{h}</span>)}</span></li>}
+                </ul>
+                {(S.uen || lines(S.licenses).length > 0) && (
                   <div className="foot-trust">
                     {S.uen && <p>UEN: {S.uen}</p>}
                     {lines(S.licenses).length > 0 && <ul>{lines(S.licenses).map((l) => <li key={l}>{l}</li>)}</ul>}
-                    {lines(S.social_links).length > 0 && (
-                      <p>{lines(S.social_links).filter((u) => /^https?:\/\//i.test(u)).map((u) => <a key={u} href={u} target="_blank" rel="noopener noreferrer">{linkLabel(u)}</a>)}</p>
-                    )}
                   </div>
                 )}
               </div>
             </div>
-            {svcLinks.length > 0 && (
-              <nav className="foot-services" aria-label="Services">
-                <h2>Our services</h2>
-                <ul>{svcLinks.map((s) => <li key={s.id}><Link to={`/services/${s.slug}`}>{serviceHeading(s)}</Link></li>)}</ul>
-              </nav>
-            )}
+
             <div className="foot-bottom">
-              <span>Copyright {S.company_name} {new Date().getFullYear()}. All rights reserved.</span>
-              <nav aria-label="Footer">
-                <NavLink to="/services">Services</NavLink>
-                <NavLink to="/why-us">Why us</NavLink>
-                <NavLink to="/blog">Blog</NavLink>
-                <NavLink to="/contact">Contact</NavLink>
-                <NavLink to="/privacy-policy">Privacy policy</NavLink>
+              <span>© {new Date().getFullYear()} {S.company_name}. All rights reserved.</span>
+              <nav aria-label="Legal">
+                <Link to="/privacy-policy">Privacy policy</Link>
+                <Link to="/contact">Contact</Link>
+                <button type="button" className="totop" onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })}>
+                  Back to top <span aria-hidden="true">↑</span>
+                </button>
               </nav>
             </div>
           </div>
