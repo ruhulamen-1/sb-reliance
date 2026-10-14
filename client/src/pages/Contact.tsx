@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../api';
+import { homeData } from '../api';
 import Shell, { Settings, realEmail } from '../components/Shell';
 import { Service } from '../components/content';
 import { AddressMap, GoogleRating } from '../components/Trust';
@@ -14,7 +14,7 @@ export default function Contact() {
   const [err, setErr] = useState('');
 
   useEffect(() => {
-    api<{ settings?: Settings; services?: Service[] }>('/public/home')
+    homeData<{ settings?: Settings; services?: Service[] }>()
       .then((d) => { setS(d.settings ?? {}); setServices(d.services ?? []); })
       .catch((e: Error) => setErr(e.message));
   }, []);

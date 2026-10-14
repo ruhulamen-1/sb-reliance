@@ -9,6 +9,7 @@ import mysql, { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
+import compression from 'compression';
 import { renderHtml, robotsTxt, sitemapXml, SeoPost, SeoService } from './seo.js';
 import { SERVICE_DEFAULTS, slugify } from './serviceDefaults.js';
 
@@ -299,6 +300,7 @@ async function notifyQuote(q: Record<string, unknown>) {
 const app = express();
 app.set('trust proxy', 1); // hosting proxies terminate HTTPS; needed for the correct https:// in canonical URLs
 app.disable('x-powered-by');
+app.use(compression());
 // FORCE_HTTPS=true sends http:// visitors to https://. Opt-in, because a host that does not pass
 // X-Forwarded-Proto would otherwise redirect forever (most panels also have their own "Force HTTPS" switch).
 const forceHttps = /^(1|true|yes)$/i.test(env.FORCE_HTTPS || '');
@@ -314,7 +316,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(cors());
-app.use('/uploads', express.static(uploadsDir));
+// upload names are unique (time + random), so a file never changes: browsers may keep it for 30 days
+app.use('/uploads', express.static(uploadsDir, { maxAge: '30d', immutable: true }));
 // the upload route has its own, larger JSON limit
 app.use((req, res, next) => (req.path === '/api/admin/upload' ? next() : express.json({ limit: '1mb' })(req, res, next)));
 
@@ -339,12 +342,18 @@ app.get('/api/public/team', wrap(async (_req, res) => {
   res.json(rows);
 }));
 
-app.get('/api/public/home', wrap(async (_req, res) => {
+// Everything the public pages share (settings, services, latest posts, reviews and photos).
+// Also put into the first HTML response, so pages render without waiting for a second request.
+async function homeData() {
   const [services] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
   const [testimonials] = await pool.query<RowDataPacket[]>('SELECT * FROM testimonials ORDER BY id DESC LIMIT 6');
   const [posts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 3');
   const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, image_url FROM gallery ORDER BY id DESC LIMIT 12');
-  res.json({ services, testimonials, posts, gallery, settings: await getSettings() });
+  return { services, testimonials, posts, gallery, settings: await getSettings() };
+}
+
+app.get('/api/public/home', wrap(async (_req, res) => {
+  res.json(await homeData());
 }));
 
 app.get('/api/public/services/:slug', wrap(async (req, res) => {
@@ -480,11 +489,16 @@ const clientDist = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'cl
 if (existsSync(clientDist)) {
   const indexFile = join(clientDist, 'index.html');
   const template = readFileSync(indexFile, 'utf8');
-  app.use(express.static(clientDist, { index: false }));
+  app.use(express.static(clientDist, {
+    index: false,
+    // build files in /assets have a content hash in their name: cache them for a year
+    setHeaders: (res, file) => { if (/[\\/]assets[\\/]/.test(file)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); },
+  }));
   app.get(/^\/(?!api).*/, async (req, res) => {
     try {
-      const S = await getSettings();
-      const [services] = await pool.query<RowDataPacket[]>('SELECT title, description, slug, content, faq, seo_title, seo_description, image_url FROM services ORDER BY sort_order, id');
+      const home = await homeData();
+      const S = home.settings;
+      const services = home.services;
       const postSlug = /^\/blog\/([^/]+)\/?$/.exec(req.path)?.[1];
       let post: SeoPost | null = null;
       if (postSlug) {
@@ -493,8 +507,8 @@ if (existsSync(clientDist)) {
         const [p] = await pool.query<RowDataPacket[]>('SELECT title, slug, excerpt, content, image_url, created_at FROM posts WHERE slug = ? LIMIT 1', [slug]);
         post = (p[0] as SeoPost) || null;
       }
-      const { html, status } = renderHtml(template, req.path, S, { services: services as SeoService[], post }, baseUrl(req, S));
-      res.status(status).type('html').send(html);
+      const { html, status } = renderHtml(template, req.path, S, { services: services as SeoService[], post }, baseUrl(req, S), home);
+      res.status(status).type('html').setHeader('Cache-Control', 'no-cache').send(html);
     } catch (e) {
       console.error('SEO render failed, sending plain index.html:', (e as Error).message);
       res.sendFile(indexFile);

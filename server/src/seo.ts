@@ -337,10 +337,26 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
   return `<div class="prerender">${nav}<main>${main}</main></div>`;
 }
 
+/** The first, largest image a visitor sees on this page (hero or service photo), if any. */
+export function lcpImage(path: string, S: Settings, data: SeoData): string {
+  if (path === '/' || path in HOME_ALIASES) return S.hero_image || '';
+  const svcSlug = servicePath(path);
+  if (svcSlug) return findService(data.services, safeDecode(svcSlug))?.image_url || '';
+  if (path === '/about') return S.about_image || '';
+  return '';
+}
+
 /** Inserts the page's tags and text into the built index.html (replacing its default <title>/description). */
-export function renderHtml(template: string, rawPath: string, S: Settings, data: SeoData, base: string): { html: string; status: number } {
+export function renderHtml(template: string, rawPath: string, S: Settings, data: SeoData, base: string, initial?: unknown): { html: string; status: number } {
   const path = rawPath.length > 1 ? rawPath.replace(/\/+$/, '') : rawPath;
-  const { tags, status } = headTags(path, S, data, base);
+  const head = headTags(path, S, data, base);
+  const status = head.status;
+  let tags = head.tags;
+  // start the biggest picture early (it is what PageSpeed measures as "Largest Contentful Paint")
+  const lcp = lcpImage(path, S, data);
+  if (lcp) tags = `<link rel="preload" as="image" href="${esc(lcp)}" fetchpriority="high" />\n    ` + tags;
+  // the shared page data, so the app renders at once instead of fetching it again
+  if (initial && path !== '/admin') tags += `\n    <script>window.__HOME__=${JSON.stringify(initial).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')}</script>`;
   const body = bodyHtml(path, S, data);
   // function replacements, so "$" in page text is never read as a replacement pattern
   let html = template

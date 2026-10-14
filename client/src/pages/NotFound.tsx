@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../api';
+import { homeData } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 
 export default function NotFound() {
   const [S, setS] = useState<Settings>({});
   useEffect(() => {
-    api<{ settings?: Settings }>('/public/home').then((d) => setS(d.settings ?? {})).catch(() => undefined);
+    homeData<{ settings?: Settings }>().then((d) => setS(d.settings ?? {})).catch(() => undefined);
   }, []);
   useSeo({ title: S.company_name ? `Page not found – ${S.company_name}` : '' });
 

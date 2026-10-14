@@ -4,7 +4,7 @@ import Shell from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
 import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
-import { api } from '../api';
+import { api, initialHome } from '../api';
 import { serviceHeading } from '../components/content';
 import { Guarantee, ReviewsButton, Stats, TrustBar } from '../components/Trust';
 
@@ -19,12 +19,15 @@ const CHIPS = ['#7FA6D6', '#9CC5B8', '#F2D16B', '#E8A598', '#C9C3E6', '#F4EFE6',
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
 export default function Home() {
-  const [data, setData] = useState<HomeData>({ services: [], testimonials: [], posts: [], gallery: [], settings: {} });
+  const full = (d: Partial<HomeData>): HomeData => ({ services: d.services ?? [], testimonials: d.testimonials ?? [], posts: d.posts ?? [], gallery: d.gallery ?? [], settings: d.settings ?? {} });
+  // first render uses the data already in the page, so the hero and its photo show at once
+  const [data, setData] = useState<HomeData>(() => full(initialHome() ?? {}));
   const [loadErr, setLoadErr] = useState('');
 
   useEffect(() => {
+    if (initialHome()) return;
     api<Partial<HomeData>>('/public/home')
-      .then((d) => setData({ services: d.services ?? [], testimonials: d.testimonials ?? [], posts: d.posts ?? [], gallery: d.gallery ?? [], settings: d.settings ?? {} }))
+      .then((d) => setData(full(d)))
       .catch((e: Error) => setLoadErr(e.message));
   }, []);
 
@@ -90,7 +93,8 @@ export default function Home() {
           {slides.length > 0 ? (
             <div className="heroslides" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
               {slides.map((src, i) => (
-                <img key={src} className={i === cur % slides.length ? 'heroimg on' : 'heroimg'} src={src} alt={S.company_name || ''} />
+                <img key={src} className={i === cur % slides.length ? 'heroimg on' : 'heroimg'} src={src} alt={S.company_name || ''}
+                  {...(i === 0 ? { fetchpriority: 'high' } : { loading: 'lazy' as const })} />
               ))}
               {slideCount > 1 && (
                 <div className="dots">

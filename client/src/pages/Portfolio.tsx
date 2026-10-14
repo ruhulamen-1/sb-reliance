@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../api';
+import { api, homeData } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 
@@ -15,7 +15,7 @@ export default function Portfolio() {
   const dlg = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    api<{ settings?: Settings }>('/public/home').then((d) => setS(d.settings ?? {})).catch(() => undefined);
+    homeData<{ settings?: Settings }>().then((d) => setS(d.settings ?? {})).catch(() => undefined);
     api<Project[]>('/public/gallery').then(setItems).catch((e: Error) => setErr(e.message)).finally(() => setLoaded(true));
   }, []);
   useSeo({ title: S.company_name ? `Portfolio – ${S.company_name}` : '', description: S.company_name ? `Completed projects by ${S.company_name}: air-conditioning, electrical, CCTV, ceiling, painting, tiles and building works.` : '', canonical: '/portfolio' });

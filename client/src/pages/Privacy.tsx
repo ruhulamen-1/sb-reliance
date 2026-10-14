@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../api';
+import { homeData } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 
@@ -7,7 +7,7 @@ export default function Privacy() {
   const [S, setS] = useState<Settings>({});
   const [err, setErr] = useState('');
   useEffect(() => {
-    api<{ settings?: Settings }>('/public/home').then((d) => setS(d.settings ?? {})).catch((e: Error) => setErr(e.message));
+    homeData<{ settings?: Settings }>().then((d) => setS(d.settings ?? {})).catch((e: Error) => setErr(e.message));
   }, []);
   useSeo({ title: S.company_name ? `Privacy policy – ${S.company_name}` : '', description: S.company_name ? `How ${S.company_name} collects and uses the details you send us.` : '', canonical: '/privacy-policy' });
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../api';
+import { homeData } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 
@@ -15,7 +15,7 @@ export default function About() {
   const [tab, setTab] = useState(0);
 
   useEffect(() => {
-    api<{ settings?: Settings; services?: Service[] }>('/public/home')
+    homeData<{ settings?: Settings; services?: Service[] }>()
       .then((d) => { setS(d.settings ?? {}); setServices(d.services ?? []); })
       .catch((e: Error) => setErr(e.message));
   }, []);

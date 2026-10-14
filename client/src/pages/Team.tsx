@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../api';
+import { api, homeData } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 
@@ -14,7 +14,7 @@ export default function Team() {
   const [err, setErr] = useState('');
 
   useEffect(() => {
-    api<{ settings?: Settings }>('/public/home').then((d) => setS(d.settings ?? {})).catch(() => undefined);
+    homeData<{ settings?: Settings }>().then((d) => setS(d.settings ?? {})).catch(() => undefined);
     api<Member[]>('/public/team').then(setMembers).catch((e: Error) => setErr(e.message)).finally(() => setLoaded(true));
   }, []);
   useSeo({ title: S.company_name ? `Team – ${S.company_name}` : '', description: S.company_name ? `Meet the people at ${S.company_name} who plan, install and finish your project.` : '', canonical: '/team' });

@@ -11,15 +11,17 @@ async function toDataUrl(file: File): Promise<string> {
     r.onerror = () => rej(new Error('Could not read the file'));
     r.readAsDataURL(file);
   });
-  if (file.type === 'image/gif' || file.size < 1_500_000) return raw;
-  // shrink large photos to max 1600px so uploads stay small
+  if (file.type === 'image/gif' || file.size < 300_000) return raw;
+  // shrink photos to max 1600px WebP so pages load fast on phones
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
   const c = document.createElement('canvas');
   c.width = Math.round(bmp.width * scale);
   c.height = Math.round(bmp.height * scale);
   c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
-  return c.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+  const webp = c.toDataURL('image/webp', 0.82);
+  // very old browsers cannot write WebP and return PNG instead; fall back to JPEG / PNG then
+  return webp.startsWith('data:image/webp') ? webp : c.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
 }
 
 function ImageField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
