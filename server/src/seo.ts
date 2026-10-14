@@ -160,7 +160,7 @@ export function businessJsonLd(S: Settings, services: SeoService[], base: string
   if (S.phone) data.telephone = S.phone;
   if (realEmail(S.email)) data.email = realEmail(S.email);
   if (img) data.image = abs(base, img);
-  if (S.logo) data.logo = abs(base, S.logo);
+  data.logo = abs(base, S.logo || '/icon-512.png');
   if (S.uen) data.identifier = { '@type': 'PropertyValue', propertyID: 'UEN', value: S.uen };
   const same = lines(S.social_links).filter(isHttpUrl);
   if (same.length) data.sameAs = same;
@@ -240,7 +240,7 @@ export function pageJsonLd(path: string, S: Settings, data: SeoData, base: strin
         ...(isoDate(p.created_at) ? { datePublished: isoDate(p.created_at) } : {}),
         ...(p.image_url ? { image: abs(base, p.image_url) } : {}),
         author: { '@type': 'Organization', name: co, url: `${base}/` },
-        publisher: { '@type': 'Organization', name: co, url: `${base}/`, ...(S.logo ? { logo: { '@type': 'ImageObject', url: abs(base, S.logo) } } : {}) },
+        publisher: { '@type': 'Organization', name: co, url: `${base}/`, logo: { '@type': 'ImageObject', url: abs(base, S.logo || '/icon-512.png') } },
       },
       breadcrumbs(base, [['Home', '/'], ['Blog', '/blog'], [p.title, path]]),
     ];

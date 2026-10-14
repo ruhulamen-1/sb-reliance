@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" role="img" aria-label="SB Reliance logo">
+  <defs>
+    <clipPath id="c"><circle cx="100" cy="100" r="80"/></clipPath>
+  </defs>
+  <circle cx="100" cy="100" r="97" fill="#fff"/><g fill="none" stroke="#b8932f">
+    <circle cx="100" cy="100" r="95" stroke-width="5"/>
+    <circle cx="100" cy="100" r="86" stroke-width="2.5"/>
+  </g>
+  <g clip-path="url(#c)">
+    <path d="M56 162V100l28-10v72" fill="none" stroke="#b8932f" stroke-width="5"/>
+    <path d="M67 162v-54l10-3.5" fill="none" stroke="#b8932f" stroke-width="2.5"/>
+    <path d="M88 162V66l28-12v108z" fill="#b8932f"/>
+    <path d="M120 162V96l26 12v54z" fill="#b8932f"/>
+    <path d="M128 162v-44" stroke="#fff" stroke-width="3" fill="none"/>
+    <path d="M118 162V58" stroke="#fff" stroke-width="2.5" fill="none"/>
+    <path d="M46 160h108" stroke="#b8932f" stroke-width="5" fill="none"/>
+  </g>
+</svg>
