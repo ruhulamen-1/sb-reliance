@@ -270,10 +270,27 @@ export function headTags(path: string, S: Settings, data: SeoData, base: string)
     if (m.description) t.push(`<meta name="twitter:description" content="${esc(m.description)}" />`);
     if (image) t.push(`<meta name="twitter:image" content="${esc(abs(base, image))}" />`);
   }
+  const ga = gaTag(S, path);
+  if (ga) t.push(ga);
   for (const ld of pageJsonLd(path, S, data, base)) {
     t.push(`<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`);
   }
   return { tags: t.join('\n    '), status: m.status };
+}
+
+/** A Google Analytics 4 measurement ID, e.g. G-AB12CD34EF; anything else is ignored. */
+export const gaId = (S: Settings) => {
+  const id = (S.ga_measurement_id || '').trim().toUpperCase();
+  return /^G-[A-Z0-9]{4,20}$/.test(id) ? id : '';
+};
+
+/** Google Analytics (GA4) tag for public pages; never on /admin. Page changes inside the app are
+ *  counted by GA4's "page changes based on browser history" setting, which is on by default. */
+export function gaTag(S: Settings, path: string): string {
+  const id = gaId(S);
+  if (!id || path === '/admin' || path.startsWith('/admin/')) return '';
+  return `<script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>`
+    + `<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${id}');</script>`;
 }
 
 /** Page text with "# " heading lines -> HTML paragraphs and headings. */

@@ -56,6 +56,7 @@ Web App এর **Environment Variables** এ এগুলো দিন:
 - Admin → Settings এ ফোন, WhatsApp (শুধু অঙ্ক, দেশের কোডসহ), email, ঠিকানা, logo ও ছবি দিন।
 - Admin → Team, Gallery, Blog, Testimonials এ আসল তথ্য দিন।
 - Admin → Settings এ trust এর তথ্য দিন (শুধু আসল তথ্য; খালি থাকলে site এ লুকানো থাকে): UEN, licences, Google rating ও reviews link, numbers (যেমন `120+ | Projects completed`), guarantee, quote পাঠানোর পরের message।
+- Google Analytics: analytics.google.com এ GA4 property বানিয়ে Web data stream এর Measurement ID (`G-...`) Admin → Settings → "Google Analytics measurement ID" তে দিন। খালি রাখলে Analytics বন্ধ থাকে; admin পাতায় কখনো চলে না।
 - Admin → Gallery তে project এর location, সময়, কী কাজ এবং before photo দিলে Portfolio তে before / after দেখায়।
 - Privacy policy লেখাটা আপনার আসল নিয়মের সঙ্গে মিলিয়ে নিন।
 - Database এর নিয়মিত backup নিন (hPanel → Backups বা phpMyAdmin → Export)।

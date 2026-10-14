@@ -110,6 +110,7 @@ const DEFAULTS: Record<string, string> = {
   warranty_text: '',
   quote_reply_time: '',
   notify_email: '',
+  ga_measurement_id: '',
   property_types: ['HDB', 'Condo', 'Landed', 'Retail Shop', 'Office', 'Factory / Warehouse', 'Others'].join('\n'),
 };
 

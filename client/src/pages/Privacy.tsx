@@ -18,6 +18,12 @@ export default function Privacy() {
         <h1 className="h1s">Privacy policy</h1>
         {err && <p className="err">{err}</p>}
         {rows.map((l, i) => (l.startsWith('# ') ? <h2 key={i}>{l.slice(2)}</h2> : <p key={i}>{l}</p>))}
+        {/^G-[A-Z0-9]{4,20}$/i.test((S.ga_measurement_id || '').trim()) && (
+          <>
+            <h2>Website analytics</h2>
+            <p>We use Google Analytics to understand how visitors use this website, for example which pages are viewed and how visitors found us. Google Analytics uses cookies and collects information such as your approximate location, device and browser, but not your name or contact details. You can block these cookies in your browser settings or with Google's opt-out add-on (tools.google.com/dlpage/gaoptout).</p>
+          </>
+        )}
       </section>
     </Shell>
   );
