@@ -11,7 +11,7 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
 import { renderHtml, robotsTxt, sitemapXml, SeoPost, SeoService } from './seo.js';
-import { SERVICE_DEFAULTS, slugify } from './serviceDefaults.js';
+import { SERVICE_DEFAULTS, defaultsFor, slugify } from './serviceDefaults.js';
 
 const env = process.env;
 const JWT_SECRET = env.JWT_SECRET || 'change-this-secret';
@@ -439,6 +439,35 @@ app.patch('/api/admin/quotes/:id', auth, wrap(async (req, res) => {
 app.delete('/api/admin/quotes/:id', auth, wrap(async (req, res) => {
   await pool.query('DELETE FROM quotes WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
+}));
+
+// Admin > Services > "Add standard services and fill empty pages":
+// 1) adds back any of the company's standard services that no current service covers (with page text,
+//    FAQ, Google title and description, and the original page address), and
+// 2) fills only the EMPTY page text / FAQ / Google title / description of services that have suggested text.
+// Nothing an admin has written is overwritten, and nothing is deleted.
+app.post('/api/admin/services/standard', auth, wrap(async (_req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, content, faq, seo_title, seo_description, sort_order FROM services');
+  const added: string[] = [];
+  const filled: string[] = [];
+  let order = Math.max(0, ...rows.map((r) => Number(r.sort_order) || 0));
+  for (const [title, d] of Object.entries(SERVICE_DEFAULTS)) {
+    if (rows.some((r) => (d.covers ? d.covers.test(String(r.title)) : String(r.title) === title))) continue;
+    await pool.query(
+      'INSERT INTO services (title, slug, description, content, faq, seo_title, seo_description, sort_order) VALUES (?,?,?,?,?,?,?,?)',
+      [title, await uniqueSlug('services', d.slug), d.description || '', d.content, d.faq, d.seo_title, d.seo_description, ++order],
+    );
+    added.push(title);
+  }
+  for (const r of rows) {
+    const d = defaultsFor(String(r.title));
+    if (!d || (r.content && r.faq && r.seo_title && r.seo_description)) continue;
+    await pool.query('UPDATE services SET content = ?, faq = ?, seo_title = ?, seo_description = ? WHERE id = ?', [
+      r.content || d.content, r.faq || d.faq, r.seo_title || d.seo_title, r.seo_description || d.seo_description, r.id,
+    ]);
+    filled.push(String(r.title));
+  }
+  res.json({ added, filled });
 }));
 
 for (const [table, cols] of Object.entries(CONTENT)) {

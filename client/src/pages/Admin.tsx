@@ -295,11 +295,35 @@ function Settings() {
   );
 }
 
+// One click: add back the company's standard services that are missing and fill empty service pages.
+function StandardServices({ onDone }: { onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  async function run() {
+    if (!confirm('Add any missing standard services (ACMV, aircon, electrical, CCTV, ceiling partition, painting, tiles, general building) and fill EMPTY service page text, FAQ and Google titles? Nothing you have written is changed or deleted.')) return;
+    setBusy(true);
+    setMsg('');
+    try {
+      const r = await api<{ added: string[]; filled: string[] }>('/admin/services/standard', { method: 'POST', auth: true });
+      setMsg([r.added.length ? `Added: ${r.added.join(', ')}.` : 'No services missing.', r.filled.length ? `Filled empty pages: ${r.filled.join(', ')}.` : 'No empty pages to fill.'].join(' '));
+      onDone();
+    } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
+  }
+  return (
+    <div className="card std-svc">
+      <p><strong>Standard services</strong><br /><small>Adds back the services on the company card that are missing, with page text, FAQ and Google title, and fills empty pages of other services. Your own text is never changed.</small></p>
+      <button type="button" className="btn" onClick={run} disabled={busy}>{busy ? 'Working…' : 'Add standard services and fill empty pages'}</button>
+      {msg && <p className="ok" role="status">{msg}</p>}
+    </div>
+  );
+}
+
 const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Settings'] as const;
 
 export default function Admin() {
   const [authed, setAuthed] = useState(!!localStorage.getItem('token'));
   const [tab, setTab] = useState<(typeof TABS)[number]>('Overview');
+  const [stdKey, setStdKey] = useState(0);
   if (!authed) return <div className="wrap narrow"><Login onDone={() => setAuthed(true)} /></div>;
   return (
     <div className="wrap block">
@@ -313,7 +337,8 @@ export default function Admin() {
       <nav className="tabs">{TABS.map((t) => <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>{t}</button>)}</nav>
       {tab === 'Overview' && <Overview />}
       {tab === 'Quotes' && <Quotes />}
-      {tab === 'Services' && <Crud table="services" fields={[
+      {tab === 'Services' && <StandardServices onDone={() => setStdKey((k) => k + 1)} />}
+      {tab === 'Services' && <Crud key={`svc-${stdKey}`} table="services" fields={[
         { key: 'title', label: 'Title' },
         { key: 'description', label: 'Short description (card and top of the service page)', area: true },
         { key: 'slug', label: 'Page address (optional)', optional: true, hint: 'e.g. aircon-installation-singapore → /services/aircon-installation-singapore. Empty = made from the title. Avoid changing it once Google has the page.' },
