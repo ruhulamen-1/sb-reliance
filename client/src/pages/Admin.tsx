@@ -237,6 +237,7 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'warranty_text', label: 'Guarantee / warranty points (optional)', area: true, hint: 'One per line, only what you really offer, e.g. 12 months workmanship warranty. Empty hides the section.' },
   { key: 'quote_reply_time', label: 'Message after a quote is sent (optional)', hint: 'e.g. We reply on WhatsApp within 2 hours during opening hours.' },
   { key: 'notify_email', label: 'Email new quote requests to (optional)', hint: 'Needs the SMTP settings on the server (see DEPLOY.md). Requests are always saved in Admin > Quotes.' },
+  { key: 'price_range', label: 'Price range for Google (optional)', hint: 'Shown to Google only, e.g. $$ or From $300. Leave empty if you prefer not to say.' },
   { key: 'ga_measurement_id', label: 'Google Analytics measurement ID (optional)', hint: 'From Google Analytics > Admin > Data streams > your website, e.g. G-AB12CD34EF. Empty turns Analytics off. Takes effect on the next page load.' },
   { key: 'hero_image', label: 'Hero image 1 (optional, replaces the service tiles)', image: true },
   { key: 'hero_image_2', label: 'Hero image 2 (optional, makes the hero a slider)', image: true },

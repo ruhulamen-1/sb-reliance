@@ -138,6 +138,21 @@ function openingHours(v?: string): string[] {
 
 const areaServed = (S: Settings) => (lines(S.service_area).length ? lines(S.service_area) : ['Singapore']);
 
+/** "236A Serangoon Road Singapore 218084" -> street "236A Serangoon Road" + postal code "218084". */
+export function postalAddress(addr: string): Record<string, string> {
+  const out: Record<string, string> = { '@type': 'PostalAddress', addressLocality: 'Singapore', addressCountry: 'SG' };
+  if (!addr || addr.toLowerCase() === 'singapore') return out;
+  const code = addr.match(/(?:singapore|s)\s*\(?(\d{6})\)?\s*$/i) || addr.match(/\b(\d{6})\s*$/);
+  let street = addr;
+  if (code) {
+    out.postalCode = code[1];
+    street = addr.slice(0, code.index).replace(/[\s,]+$/, '');
+  }
+  street = street.replace(/[\s,]*singapore$/i, '').trim();
+  out.streetAddress = street || addr;
+  return out;
+}
+
 export function businessJsonLd(S: Settings, services: SeoService[], base: string): Record<string, unknown> {
   const co = S.company_name || S.brand || 'SB Reliance';
   const img = S.hero_image || S.about_image || S.logo;
@@ -149,15 +164,11 @@ export function businessJsonLd(S: Settings, services: SeoService[], base: string
     name: co,
     url: `${base}/`,
     description: clip(S.seo_description || S.about_text || ''),
-    address: {
-      '@type': 'PostalAddress',
-      ...(addr && addr.toLowerCase() !== 'singapore' ? { streetAddress: addr } : {}),
-      addressLocality: 'Singapore',
-      addressCountry: 'SG',
-    },
+    address: postalAddress(addr),
     areaServed: areaServed(S),
   };
   if (S.phone) data.telephone = S.phone;
+  if ((S.price_range || '').trim()) data.priceRange = clip(S.price_range, 100);
   if (realEmail(S.email)) data.email = realEmail(S.email);
   if (img) data.image = abs(base, img);
   data.logo = abs(base, S.logo || '/icon-512.png');

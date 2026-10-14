@@ -112,6 +112,7 @@ const DEFAULTS: Record<string, string> = {
   quote_reply_time: '',
   notify_email: '',
   ga_measurement_id: '',
+  price_range: '',
   property_types: ['HDB', 'Condo', 'Landed', 'Retail Shop', 'Office', 'Factory / Warehouse', 'Others'].join('\n'),
 };
 
