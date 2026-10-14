@@ -334,7 +334,10 @@ export function renderHtml(template: string, rawPath: string, S: Settings, data:
   return { html, status };
 }
 
-export const robotsTxt = (base: string) => `User-agent: *\nDisallow: /admin\nDisallow: /api/\n\nSitemap: ${base}/sitemap.xml\n`;
+// /api/public/ stays crawlable: Google renders the pages with JavaScript, and the page text and
+// photos come from there. Admin pages and the rest of the API stay blocked.
+export const robotsTxt = (base: string) =>
+  `User-agent: *\nAllow: /api/public/\nDisallow: /api/\nDisallow: /admin\n\nSitemap: ${base}/sitemap.xml\n`;
 
 export function sitemapXml(base: string, services: SeoService[] = [], posts: SeoPost[] = []): string {
   const url = (p: string, lastmod = '') => `  <url><loc>${esc(base + (p === '/' ? '/' : p))}</loc>${lastmod ? `<lastmod>${lastmod.slice(0, 10)}</lastmod>` : ''}</url>`;
