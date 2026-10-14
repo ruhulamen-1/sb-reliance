@@ -424,3 +424,7 @@ html,body{overflow-x:clip}
 .att-sheet td.att-AL,.att-sheet td.att-MC{background:#e8f0fb}.att-sheet td.att-PH,.att-sheet td.att-OFF{background:#f1f1f1;color:var(--muted)}
 .att-sheet sup{font-size:.62rem;color:#0b6b3a;font-weight:700}
 .att-rules{margin-top:18px}.att-rules summary{cursor:pointer;font-weight:700}.att-rules .pay-bar{margin-top:10px}
+.att-table tr.att-sun{background:#fbf1ef}
+.att-quick{margin-top:10px}.att-quick label{max-width:150px}
+.att-dirty{color:#b3261e}.att-save{margin-top:12px}
+.att-sheet .linkish{border:0;background:none;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer;text-align:left}

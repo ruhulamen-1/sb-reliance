@@ -712,21 +712,14 @@ app.get('/api/admin/attendance/month', auth, wrap(async (req, res) => {
   res.json({ employees: await sheetEmployees(`${period}-%`), records, working_days: workingDays(period, cfg.week), config: cfg });
 }));
 
-// Saves one employee's day. An empty status clears the day.
-app.put('/api/admin/attendance', auth, wrap(async (req, res) => {
-  const b = req.body as Record<string, unknown>;
-  const employeeId = Number(b.employee_id);
-  const date = String(b.work_date || '');
-  if (!employeeId || !DATE.test(date)) return res.status(400).json({ error: 'Employee and date are required' });
-  if (await paidLock(employeeId, date)) return res.status(400).json({ error: 'The salary for this month is marked paid. Mark it unpaid to change attendance.' });
+// Saves one employee's day; an empty status clears the day. Returns the saved row, or null when cleared.
+async function saveDay(employeeId: number, date: string, b: Record<string, unknown>, cfg: PayrollConfig) {
   const status = String(b.status || '');
   if (!status) {
     await pool.query('DELETE FROM attendance WHERE employee_id = ? AND work_date = ?', [employeeId, date]);
-    return res.json(null);
+    return null;
   }
-  if (!ATT_STATUS[status]) return res.status(400).json({ error: 'Unknown status' });
   const timeIn = TIME(b.time_in), timeOut = TIME(b.time_out);
-  const cfg = await payrollConfig();
   // OT left empty = worked from the times (out - in - break - normal hours); a typed number is kept
   const ot = b.ot_hours === '' || b.ot_hours === null || b.ot_hours === undefined
     ? autoOt(status, timeIn, timeOut, cfg)
@@ -734,7 +727,43 @@ app.put('/api/admin/attendance', auth, wrap(async (req, res) => {
   const row = { employee_id: employeeId, work_date: date, status, time_in: timeIn, time_out: timeOut, ot_hours: ot, note: text(b.note, 120) };
   await pool.query('INSERT INTO attendance SET ? ON DUPLICATE KEY UPDATE status = VALUES(status), time_in = VALUES(time_in), time_out = VALUES(time_out), ot_hours = VALUES(ot_hours), note = VALUES(note)', [row]);
   const [out] = await pool.query<RowDataPacket[]>('SELECT * FROM attendance WHERE employee_id = ? AND work_date = ?', [employeeId, date]);
-  res.json(out[0]);
+  return out[0];
+}
+const PAID_MSG = 'The salary for this month is marked paid. Mark it unpaid to change attendance.';
+
+app.put('/api/admin/attendance', auth, wrap(async (req, res) => {
+  const b = req.body as Record<string, unknown>;
+  const employeeId = Number(b.employee_id);
+  const date = String(b.work_date || '');
+  if (!employeeId || !DATE.test(date)) return res.status(400).json({ error: 'Employee and date are required' });
+  if (await paidLock(employeeId, date)) return res.status(400).json({ error: PAID_MSG });
+  if (b.status && !ATT_STATUS[String(b.status)]) return res.status(400).json({ error: 'Unknown status' });
+  res.json(await saveDay(employeeId, date, b, await payrollConfig()));
+}));
+
+// One employee's whole month at once: { employee_id, period, days: [{ work_date, status, time_in, time_out, ot_hours, note }] }
+app.get('/api/admin/attendance/employee', auth, wrap(async (req, res) => {
+  const employeeId = Number(req.query.employee_id);
+  const period = String(req.query.period || '');
+  if (!employeeId || !PERIOD.test(period)) return res.status(400).json({ error: 'Choose an employee and a month' });
+  const [records] = await pool.query<RowDataPacket[]>('SELECT * FROM attendance WHERE employee_id = ? AND work_date LIKE ? ORDER BY work_date', [employeeId, `${period}-%`]);
+  const cfg = await payrollConfig();
+  res.json({ records, locked: await paidLock(employeeId, `${period}-01`), working_days: workingDays(period, cfg.week), config: cfg });
+}));
+app.put('/api/admin/attendance/employee', auth, wrap(async (req, res) => {
+  const b = req.body as { employee_id?: unknown; period?: string; days?: Record<string, unknown>[] };
+  const employeeId = Number(b.employee_id);
+  const period = String(b.period || '');
+  if (!employeeId || !PERIOD.test(period) || !Array.isArray(b.days)) return res.status(400).json({ error: 'Choose an employee and a month' });
+  if (await paidLock(employeeId, `${period}-01`)) return res.status(400).json({ error: PAID_MSG });
+  const days = b.days.filter((d) => DATE.test(String(d.work_date || '')) && String(d.work_date).startsWith(period));
+  const bad = days.find((d) => d.status && !ATT_STATUS[String(d.status)]);
+  if (bad) return res.status(400).json({ error: `Unknown status on ${bad.work_date}` });
+  const cfg = await payrollConfig();
+  let saved = 0, cleared = 0;
+  for (const d of days) (await saveDay(employeeId, String(d.work_date), d, cfg)) ? saved++ : cleared++;
+  const [records] = await pool.query<RowDataPacket[]>('SELECT * FROM attendance WHERE employee_id = ? AND work_date LIKE ? ORDER BY work_date', [employeeId, `${period}-%`]);
+  res.json({ saved, cleared, records });
 }));
 
 // Gives every active employee without an entry that day the same status (usually Present)

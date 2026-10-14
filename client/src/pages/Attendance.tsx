@@ -24,17 +24,22 @@ const dayName = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('en-
 const monthName = (p: string) => new Date(`${p}-01T00:00:00`).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
 
 export default function Attendance() {
-  const [mode, setMode] = useState<'day' | 'month'>('day');
+  const [mode, setMode] = useState<'day' | 'person' | 'month'>('day');
   const [date, setDate] = useState(today());
+  const [person, setPerson] = useState(0);
   return (
     <>
       <div className="row gap att-modes">
         <button type="button" className={mode === 'day' ? 'btn' : 'btn ghost'} onClick={() => setMode('day')}>Daily entry</button>
+        <button type="button" className={mode === 'person' ? 'btn' : 'btn ghost'} onClick={() => setMode('person')}>One employee, full month</button>
         <button type="button" className={mode === 'month' ? 'btn' : 'btn ghost'} onClick={() => setMode('month')}>Month sheet</button>
       </div>
-      {mode === 'day'
-        ? <Day date={date} setDate={setDate} />
-        : <MonthSheet period={date.slice(0, 7)} setPeriod={(p) => setDate(`${p}-01`)} openDay={(d) => { setDate(d); setMode('day'); }} />}
+      {mode === 'day' && <Day date={date} setDate={setDate} />}
+      {mode === 'person' && <Person period={date.slice(0, 7)} setPeriod={(p) => setDate(`${p}-01`)} person={person} setPerson={setPerson} />}
+      {mode === 'month' && (
+        <MonthSheet period={date.slice(0, 7)} setPeriod={(p) => setDate(`${p}-01`)}
+          openDay={(d) => { setDate(d); setMode('day'); }} openPerson={(id) => { setPerson(id); setMode('person'); }} />
+      )}
       <Rules />
     </>
   );
@@ -144,7 +149,143 @@ function Day({ date, setDate }: { date: string; setDate: (d: string) => void }) 
   );
 }
 
-function MonthSheet({ period, setPeriod, openDay }: { period: string; setPeriod: (p: string) => void; openDay: (d: string) => void }) {
+const mins = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+/** Same rule as the server (server/src/attendance.ts), to preview OT before saving */
+function previewOt(d: Row, cfg: Row) {
+  if (d.status !== 'P' || !d.time_in || !d.time_out) return 0;
+  let worked = mins(d.time_out) - mins(d.time_in);
+  if (worked <= 0) worked += 24 * 60;
+  const ot = worked / 60 - Number(cfg.break_hours) - Number(cfg.day_hours);
+  return ot > 0 ? Math.floor(ot * 2) / 2 : 0;
+}
+
+// One employee, every day of the month on one page, saved together with "Save month"
+function Person({ period, setPeriod, person, setPerson }: { period: string; setPeriod: (p: string) => void; person: number; setPerson: (id: number) => void }) {
+  const [emps, setEmps] = useState<Row[]>([]);
+  const [days, setDays] = useState<Row[]>([]);
+  const [locked, setLocked] = useState(false);
+  const [cfg, setCfg] = useState<Row>({ week: '6', day_hours: 8, break_hours: 1 });
+  const [dirty, setDirty] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [tin, setTin] = useState('08:00');
+  const [tout, setTout] = useState('17:00');
+
+  useEffect(() => {
+    api<{ employees: Row[] }>(`/admin/attendance/month?period=${period}`, { auth: true })
+      .then((d) => { setEmps(d.employees); if (!person && d.employees[0]) setPerson(d.employees[0].id); })
+      .catch((e: Error) => setMsg(e.message));
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const blank = useCallback((records: Row[]) => {
+    const [y, m] = period.split('-').map(Number);
+    const by = new Map(records.map((r) => [r.work_date, r]));
+    return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => {
+      const work_date = `${period}-${String(i + 1).padStart(2, '0')}`;
+      const r = by.get(work_date);
+      return { work_date, status: r?.status || '', time_in: r?.time_in || '', time_out: r?.time_out || '', ot_hours: r ? Number(r.ot_hours) || '' : '', note: r?.note || '' };
+    });
+  }, [period]);
+
+  const load = useCallback(() => {
+    if (!person) return;
+    setMsg('');
+    api<{ records: Row[]; locked: boolean; config: Row }>(`/admin/attendance/employee?employee_id=${person}&period=${period}`, { auth: true })
+      .then((d) => { setDays(blank(d.records)); setLocked(d.locked); setCfg(d.config); setDirty(false); })
+      .catch((e: Error) => setMsg(e.message));
+  }, [person, period, blank]);
+  useEffect(() => { load(); }, [load]);
+
+  const wd = (d: string) => new Date(`${d}T00:00:00`).getDay(); // 0 = Sunday
+  const set = (i: number, patch: Row) => { setDays((xs) => xs.map((x, j) => (j === i ? { ...x, ...patch } : x))); setDirty(true); };
+  const each = (f: (d: Row) => Row | null) => { setDays((xs) => xs.map((x) => f(x) || x)); setDirty(true); };
+  // Present on working days, rest day on Sundays (and on Saturdays for a 5-day week)
+  const usual = (d: string) => (wd(d) === 0 || (wd(d) === 6 && cfg.week === '5') ? 'OFF' : 'P');
+  const fillEmpty = () => each((d) => (d.status ? null : { ...d, status: usual(d.work_date) }));
+  const fillAll = () => { if (confirm('Replace every day of the month with Present / Rest day?')) each((d) => ({ ...d, status: usual(d.work_date), time_in: '', time_out: '', ot_hours: '', note: '' })); };
+  const sameTimes = () => each((d) => (d.status === 'P' ? { ...d, time_in: tin, time_out: tout, ot_hours: '' } : null));
+  const clearAll = () => { if (confirm('Clear the whole month for this employee? (Saved only when you press Save month)')) each((d) => ({ ...d, status: '', time_in: '', time_out: '', ot_hours: '', note: '' })); };
+
+  async function saveMonth() {
+    try {
+      const d = await api<{ saved: number; cleared: number; records: Row[] }>('/admin/attendance/employee', { method: 'PUT', auth: true, body: { employee_id: person, period, days } });
+      setDays(blank(d.records)); setDirty(false);
+      setMsg(`Saved ${d.saved} day(s) for ${emps.find((e) => e.id === person)?.name || 'the employee'}.`);
+    } catch (e) { setMsg((e as Error).message); }
+  }
+  function pick(id: number) {
+    if (dirty && !confirm('You have changes that are not saved. Leave without saving?')) return;
+    setPerson(id);
+  }
+
+  const ot = (d: Row) => (d.ot_hours === '' ? previewOt(d, cfg) : Number(d.ot_hours));
+  const tot = { P: 0, unpaid: 0, leave: 0, ot: 0, empty: 0 };
+  for (const d of days) {
+    if (d.status === 'P') tot.P++;
+    if (d.status === 'AL' || d.status === 'MC') tot.leave++;
+    if (!d.status) tot.empty++;
+    tot.unpaid += UNPAID[d.status] || 0;
+    tot.ot += ot(d) || 0;
+  }
+  const saveBtn = <button type="button" className="btn" onClick={saveMonth} disabled={locked || !dirty}>{dirty ? 'Save month' : 'Saved'}</button>;
+
+  return (
+    <>
+      <div className="card pay-bar">
+        <label>Employee
+          <select value={person || ''} onChange={(e) => pick(Number(e.target.value))}>
+            {emps.map((e) => <option key={e.id} value={e.id}>{e.name}{e.active ? '' : ' (inactive)'}</option>)}
+          </select>
+        </label>
+        <label>Month<input type="month" value={period} onChange={(e) => e.target.value && (!dirty || confirm('Leave without saving?')) && setPeriod(e.target.value)} /></label>
+        {saveBtn}
+      </div>
+      {locked && <p className="err">The salary for {monthName(period)} is marked paid, so this month is locked. Mark it unpaid in Monthly payroll to change it.</p>}
+      {!locked && (
+        <div className="card pay-bar att-quick">
+          <button type="button" className="btn ghost" onClick={fillEmpty} disabled={!tot.empty}>Fill empty days: Present, Sundays rest day</button>
+          <button type="button" className="btn ghost" onClick={fillAll}>Reset whole month to Present</button>
+          <label>Time in<input type="time" value={tin} onChange={(e) => setTin(e.target.value)} /></label>
+          <label>Time out<input type="time" value={tout} onChange={(e) => setTout(e.target.value)} /></label>
+          <button type="button" className="btn ghost" onClick={sameTimes} disabled={!tot.P}>Use these times on all Present days</button>
+          <button type="button" className="btn ghost" onClick={clearAll}>Clear month</button>
+        </div>
+      )}
+      <p className="att-day"><strong>{monthName(period)}</strong> · Present {tot.P} · Unpaid days {tot.unpaid} · Paid leave {tot.leave} · OT {tot.ot} h{tot.empty ? ` · ${tot.empty} day(s) not entered` : ''}{dirty && <strong className="att-dirty"> · Not saved yet</strong>}</p>
+      {msg && <p className="ok" role="status">{msg}</p>}
+      <div className="pay-scroll">
+        <table className="pay-table att-table">
+          <thead><tr><th>Date</th><th>Status</th><th>Time in</th><th>Time out</th><th>OT hours</th><th>Note</th></tr></thead>
+          <tbody>
+            {days.map((d, i) => {
+              const label = dayName(d.work_date);
+              return (
+                <tr key={d.work_date} className={wd(d.work_date) === 0 ? 'att-sun' : !d.status ? 'att-empty' : ''}>
+                  <td><strong>{Number(d.work_date.slice(8))}</strong> <small>{new Date(`${d.work_date}T00:00:00`).toLocaleDateString('en-SG', { weekday: 'short' })}</small></td>
+                  <td>
+                    <select aria-label={`Status, ${label}`} disabled={locked} value={d.status} className={`att-s att-${d.status || 'none'}`}
+                      onChange={(e) => set(i, { status: e.target.value, ...(e.target.value === 'P' ? {} : { time_in: '', time_out: '', ot_hours: '' }) })}>
+                      <option value="">— not entered —</option>
+                      {STATUS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </td>
+                  <td><input type="time" aria-label={`Time in, ${label}`} disabled={locked || d.status !== 'P'} value={d.time_in} onChange={(e) => set(i, { time_in: e.target.value, ot_hours: '' })} /></td>
+                  <td><input type="time" aria-label={`Time out, ${label}`} disabled={locked || d.status !== 'P'} value={d.time_out} onChange={(e) => set(i, { time_out: e.target.value, ot_hours: '' })} /></td>
+                  <td><input type="number" min={0} max={24} step="0.5" aria-label={`OT hours, ${label}`} disabled={locked || d.status !== 'P'} value={d.ot_hours}
+                    placeholder={previewOt(d, cfg) ? String(previewOt(d, cfg)) : '0'} onChange={(e) => set(i, { ot_hours: e.target.value })} /></td>
+                  <td><input type="text" maxLength={120} aria-label={`Note, ${label}`} disabled={locked || !d.status} value={d.note} onChange={(e) => set(i, { note: e.target.value })} /></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="row gap att-save">{saveBtn}</p>
+      <p className="pay-hint">Fill the month in a few clicks: "Fill empty days" marks working days Present and Sundays as rest days, then change the days the employee was absent or on leave. Give the usual times once and press "Use these times on all Present days" to work out OT from them, or type the OT hours on the days with overtime. Nothing is saved until you press "Save month".</p>
+    </>
+  );
+}
+
+function MonthSheet({ period, setPeriod, openDay, openPerson }: { period: string; setPeriod: (p: string) => void; openDay: (d: string) => void; openPerson: (id: number) => void }) {
   const [data, setData] = useState<{ employees: Row[]; records: Row[]; working_days: number } | null>(null);
   const [msg, setMsg] = useState('');
   useEffect(() => {
@@ -182,7 +323,7 @@ function MonthSheet({ period, setPeriod, openDay }: { period: string; setPeriod:
                 let present = 0, unpaid = 0, leave = 0, ot = 0;
                 return (
                   <tr key={e.id}>
-                    <td>{e.name}</td>
+                    <td><button type="button" className="linkish" onClick={() => openPerson(e.id)} title="Enter this employee's whole month">{e.name}</button></td>
                     {days.map((d) => {
                       const r = at.get(`${e.id}|${d}`);
                       if (r) {
@@ -201,7 +342,7 @@ function MonthSheet({ period, setPeriod, openDay }: { period: string; setPeriod:
           </table>
         </div>
       )}
-      <p className="pay-hint">P Present · A Absent · UL Unpaid leave · HL Half day unpaid · AL Annual leave · MC Sick leave · PH Public holiday · OFF Rest day. Small number = OT hours. Click a date to edit that day. When the month is done, go to "Monthly payroll" and press "Take OT and unpaid leave from attendance".</p>
+      <p className="pay-hint">P Present · A Absent · UL Unpaid leave · HL Half day unpaid · AL Annual leave · MC Sick leave · PH Public holiday · OFF Rest day. Small number = OT hours. Click a date to edit that day, or a name to enter that employee's whole month. When the month is done, go to "Monthly payroll" and press "Take OT and unpaid leave from attendance".</p>
     </>
   );
 }
