@@ -12,6 +12,7 @@ import nodemailer from 'nodemailer';
 import compression from 'compression';
 import { renderHtml, robotsTxt, sitemapXml, SeoPost, SeoService } from './seo.js';
 import { SERVICE_DEFAULTS, defaultsFor, slugify } from './serviceDefaults.js';
+import { PASS_TYPES, computePay, OW_CEILING } from './payroll.js';
 
 const env = process.env;
 const JWT_SECRET = env.JWT_SECRET || 'change-this-secret';
@@ -468,6 +469,192 @@ app.post('/api/admin/services/standard', auth, wrap(async (_req, res) => {
     filled.push(String(r.title));
   }
   res.json({ added, filled });
+}));
+
+// ---------- Payroll (admin only) ----------
+const EMP_COLS = ['name', 'id_number', 'pass_type', 'date_of_birth', 'designation', 'join_date', 'basic_salary', 'fixed_allowance', 'ot_rate', 'monthly_levy', 'bank_name', 'bank_account', 'active', 'notes'] as const;
+const money = (v: unknown, nullable = false) => {
+  if (v === '' || v === null || v === undefined) return nullable ? null : 0;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : (nullable ? null : 0);
+};
+const day = (v: unknown) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : null);
+const text = (v: unknown, max: number) => (String(v ?? '').trim().slice(0, max) || null);
+function employeeRow(b: Record<string, unknown>) {
+  return {
+    name: String(b.name || '').trim().slice(0, 150),
+    id_number: text(b.id_number, 20),
+    pass_type: PASS_TYPES[String(b.pass_type)] ? String(b.pass_type) : 'WP',
+    date_of_birth: day(b.date_of_birth),
+    designation: text(b.designation, 120),
+    join_date: day(b.join_date),
+    basic_salary: money(b.basic_salary),
+    fixed_allowance: money(b.fixed_allowance),
+    ot_rate: money(b.ot_rate, true),
+    monthly_levy: money(b.monthly_levy),
+    bank_name: text(b.bank_name, 80),
+    bank_account: text(b.bank_account, 40),
+    active: b.active === 0 || b.active === '0' || b.active === false ? 0 : 1,
+    notes: text(b.notes, 2000),
+  };
+}
+app.get('/api/admin/employees', auth, wrap(async (_req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM employees ORDER BY active DESC, name');
+  res.json(rows);
+}));
+app.post('/api/admin/employees', auth, wrap(async (req, res) => {
+  const e = employeeRow(req.body);
+  if (!e.name) return res.status(400).json({ error: 'Name is required' });
+  const [r] = await pool.query<ResultSetHeader>('INSERT INTO employees SET ?', [e]);
+  res.status(201).json({ id: r.insertId });
+}));
+app.put('/api/admin/employees/:id', auth, wrap(async (req, res) => {
+  const e = employeeRow(req.body);
+  if (!e.name) return res.status(400).json({ error: 'Name is required' });
+  await pool.query('UPDATE employees SET ? WHERE id = ?', [e, req.params.id]);
+  res.json({ ok: true });
+}));
+app.delete('/api/admin/employees/:id', auth, wrap(async (req, res) => {
+  const [paid] = await pool.query<RowDataPacket[]>('SELECT id FROM payroll_items WHERE employee_id = ? LIMIT 1', [req.params.id]);
+  if (paid.length) return res.status(400).json({ error: 'This employee has payroll records. Set them to inactive instead of deleting.' });
+  await pool.query('DELETE FROM employees WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
+// Ordinary Wages (capped) already paid this calendar year before the given month, for the CPF bonus ceiling
+async function owYearToDate(employeeId: number, period: string) {
+  const [r] = await pool.query<RowDataPacket[]>(
+    'SELECT gross_pay, bonus FROM payroll_items WHERE employee_id = ? AND period LIKE ? AND period < ?',
+    [employeeId, `${period.slice(0, 4)}-%`, period],
+  );
+  return r.reduce((t, x) => t + Math.min(Number(x.gross_pay) - Number(x.bonus), OW_CEILING), 0);
+}
+async function recalc(item: RowDataPacket, emp: RowDataPacket | undefined) {
+  const result = computePay({
+    pass_type: item.pass_type,
+    date_of_birth: emp?.date_of_birth,
+    basic_salary: Number(item.basic_salary),
+    fixed_allowance: Number(item.fixed_allowance),
+    other_allowance: Number(item.other_allowance),
+    ot_hours: Number(item.ot_hours),
+    ot_rate: emp?.ot_rate === null || emp?.ot_rate === undefined ? null : Number(emp.ot_rate),
+    bonus: Number(item.bonus),
+    unpaid_leave: Number(item.unpaid_leave),
+    other_deduction: Number(item.other_deduction),
+    levy: Number(item.levy),
+    cpf_manual: !!item.cpf_manual,
+    cpf_employee: Number(item.cpf_employee),
+    cpf_employer: Number(item.cpf_employer),
+    ow_ytd: await owYearToDate(item.employee_id, item.period),
+  }, item.period);
+  const { ordinary_wages: _ow, ...save } = result;
+  await pool.query('UPDATE payroll_items SET ? WHERE id = ?', [{ ...save, cpf_manual: save.cpf_manual ? 1 : 0 }, item.id]);
+}
+async function periodItems(period: string) {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE period = ? ORDER BY employee_name', [period]);
+  return rows;
+}
+
+app.get('/api/admin/payroll', auth, wrap(async (req, res) => {
+  const period = String(req.query.period || '');
+  if (!PERIOD.test(period)) return res.status(400).json({ error: 'Choose a month' });
+  res.json({ items: await periodItems(period), passTypes: PASS_TYPES });
+}));
+
+// Adds a draft line for every active employee who is not in the month yet (salary taken from the employee record)
+app.post('/api/admin/payroll/generate', auth, wrap(async (req, res) => {
+  const period = String((req.body as { period?: string }).period || '');
+  if (!PERIOD.test(period)) return res.status(400).json({ error: 'Choose a month' });
+  const [emps] = await pool.query<RowDataPacket[]>('SELECT * FROM employees WHERE active = 1');
+  let added = 0;
+  for (const e of emps) {
+    const [r] = await pool.query<ResultSetHeader>(
+      `INSERT IGNORE INTO payroll_items (period, employee_id, employee_name, pass_type, designation, basic_salary, fixed_allowance, levy)
+       VALUES (?,?,?,?,?,?,?,?)`,
+      [period, e.id, e.name, e.pass_type, e.designation, e.basic_salary, e.fixed_allowance, e.monthly_levy],
+    );
+    if (r.affectedRows) {
+      added++;
+      const [it] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE id = ?', [r.insertId]);
+      await recalc(it[0], e);
+    }
+  }
+  res.json({ added, items: await periodItems(period) });
+}));
+
+app.put('/api/admin/payroll/:id', auth, wrap(async (req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE id = ?', [req.params.id]);
+  const item = rows[0];
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  if (item.status === 'paid') return res.status(400).json({ error: 'This salary is marked paid. Mark it unpaid to change it.' });
+  const b = req.body as Record<string, unknown>;
+  const patch = {
+    basic_salary: money(b.basic_salary ?? item.basic_salary),
+    fixed_allowance: money(b.fixed_allowance ?? item.fixed_allowance),
+    other_allowance: money(b.other_allowance ?? item.other_allowance),
+    ot_hours: money(b.ot_hours ?? item.ot_hours),
+    bonus: money(b.bonus ?? item.bonus),
+    unpaid_leave: money(b.unpaid_leave ?? item.unpaid_leave),
+    other_deduction: money(b.other_deduction ?? item.other_deduction),
+    deduction_note: text(b.deduction_note ?? item.deduction_note, 255),
+    levy: money(b.levy ?? item.levy),
+    cpf_manual: b.cpf_manual === undefined ? item.cpf_manual : (b.cpf_manual ? 1 : 0),
+    cpf_employee: money(b.cpf_employee ?? item.cpf_employee),
+    cpf_employer: money(b.cpf_employer ?? item.cpf_employer),
+  };
+  await pool.query('UPDATE payroll_items SET ? WHERE id = ?', [patch, item.id]);
+  const [emp] = await pool.query<RowDataPacket[]>('SELECT * FROM employees WHERE id = ?', [item.employee_id]);
+  const [fresh] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE id = ?', [item.id]);
+  await recalc(fresh[0], emp[0]);
+  const [out] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE id = ?', [item.id]);
+  res.json(out[0]);
+}));
+
+app.post('/api/admin/payroll/:id/status', auth, wrap(async (req, res) => {
+  const b = req.body as { paid?: boolean; paid_on?: string; payment_mode?: string };
+  if (b.paid) {
+    await pool.query("UPDATE payroll_items SET status = 'paid', paid_on = ?, payment_mode = ? WHERE id = ?",
+      [day(b.paid_on) || new Date().toISOString().slice(0, 10), text(b.payment_mode, 40) || 'Bank transfer', req.params.id]);
+  } else {
+    await pool.query("UPDATE payroll_items SET status = 'draft', paid_on = NULL WHERE id = ?", [req.params.id]);
+  }
+  const [out] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE id = ?', [req.params.id]);
+  res.json(out[0]);
+}));
+
+app.delete('/api/admin/payroll/:id', auth, wrap(async (req, res) => {
+  const [r] = await pool.query<ResultSetHeader>("DELETE FROM payroll_items WHERE id = ? AND status <> 'paid'", [req.params.id]);
+  if (!r.affectedRows) return res.status(400).json({ error: 'Paid salaries cannot be deleted. Mark it unpaid first.' });
+  res.json({ ok: true });
+}));
+
+// The month as a CSV file (opens in Excel)
+app.get('/api/admin/payroll/export', auth, wrap(async (req, res) => {
+  const period = String(req.query.period || '');
+  if (!PERIOD.test(period)) return res.status(400).json({ error: 'Choose a month' });
+  const items = await periodItems(period);
+  const [emps] = await pool.query<RowDataPacket[]>('SELECT id, id_number, bank_name, bank_account FROM employees');
+  const byId = new Map(emps.map((e) => [e.id, e]));
+  const cols: [string, (r: RowDataPacket) => unknown][] = [
+    ['Month', (r) => r.period], ['Employee', (r) => r.employee_name], ['NRIC/FIN', (r) => byId.get(r.employee_id)?.id_number || ''],
+    ['Pass', (r) => PASS_TYPES[r.pass_type] || r.pass_type], ['Designation', (r) => r.designation || ''],
+    ['Basic', (r) => r.basic_salary], ['Fixed allowance', (r) => r.fixed_allowance], ['Other allowance', (r) => r.other_allowance],
+    ['OT hours', (r) => r.ot_hours], ['OT rate', (r) => r.ot_rate], ['OT pay', (r) => r.ot_pay], ['Bonus', (r) => r.bonus],
+    ['Unpaid leave', (r) => r.unpaid_leave], ['Gross pay', (r) => r.gross_pay], ['CPF employee', (r) => r.cpf_employee],
+    ['Other deductions', (r) => r.other_deduction], ['Deduction note', (r) => r.deduction_note || ''], ['Net pay', (r) => r.net_pay],
+    ['CPF employer', (r) => r.cpf_employer], ['SDL', (r) => r.sdl], ['Levy', (r) => r.levy],
+    ['Bank', (r) => byId.get(r.employee_id)?.bank_name || ''], ['Account', (r) => byId.get(r.employee_id)?.bank_account || ''],
+    ['Status', (r) => r.status], ['Paid on', (r) => r.paid_on || ''], ['Payment mode', (r) => r.payment_mode || ''],
+  ];
+  const cell = (v: unknown) => {
+    let s = String(v ?? '');
+    if (/^[=+\-@]/.test(s)) s = `'${s}`; // keep spreadsheet formulas from running
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [cols.map(([h]) => h).join(','), ...items.map((r) => cols.map(([, f]) => cell(f(r))).join(','))].join('\r\n');
+  res.setHeader('Content-Disposition', `attachment; filename="payroll-${period}.csv"`);
+  res.type('text/csv').send('\ufeff' + csv);
 }));
 
 for (const [table, cols] of Object.entries(CONTENT)) {

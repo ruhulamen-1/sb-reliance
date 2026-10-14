@@ -60,3 +60,52 @@ CREATE TABLE IF NOT EXISTS team (
   image_url VARCHAR(255) NULL,
   sort_order INT NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS employees (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  id_number VARCHAR(20) NULL,
+  pass_type VARCHAR(10) NOT NULL DEFAULT 'WP',
+  date_of_birth CHAR(10) NULL,
+  designation VARCHAR(120) NULL,
+  join_date CHAR(10) NULL,
+  basic_salary DECIMAL(10,2) NOT NULL DEFAULT 0,
+  fixed_allowance DECIMAL(10,2) NOT NULL DEFAULT 0,
+  ot_rate DECIMAL(8,2) NULL,
+  monthly_levy DECIMAL(10,2) NOT NULL DEFAULT 0,
+  bank_name VARCHAR(80) NULL,
+  bank_account VARCHAR(40) NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  notes TEXT NULL
+);
+
+CREATE TABLE IF NOT EXISTS payroll_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  period CHAR(7) NOT NULL,
+  employee_id INT NOT NULL,
+  employee_name VARCHAR(150) NOT NULL,
+  pass_type VARCHAR(10) NOT NULL,
+  designation VARCHAR(120) NULL,
+  basic_salary DECIMAL(10,2) NOT NULL DEFAULT 0,
+  fixed_allowance DECIMAL(10,2) NOT NULL DEFAULT 0,
+  other_allowance DECIMAL(10,2) NOT NULL DEFAULT 0,
+  ot_hours DECIMAL(6,2) NOT NULL DEFAULT 0,
+  ot_rate DECIMAL(8,2) NOT NULL DEFAULT 0,
+  ot_pay DECIMAL(10,2) NOT NULL DEFAULT 0,
+  bonus DECIMAL(10,2) NOT NULL DEFAULT 0,
+  unpaid_leave DECIMAL(10,2) NOT NULL DEFAULT 0,
+  other_deduction DECIMAL(10,2) NOT NULL DEFAULT 0,
+  deduction_note VARCHAR(255) NULL,
+  gross_pay DECIMAL(10,2) NOT NULL DEFAULT 0,
+  cpf_employee DECIMAL(10,2) NOT NULL DEFAULT 0,
+  cpf_employer DECIMAL(10,2) NOT NULL DEFAULT 0,
+  cpf_manual TINYINT(1) NOT NULL DEFAULT 0,
+  sdl DECIMAL(8,2) NOT NULL DEFAULT 0,
+  levy DECIMAL(10,2) NOT NULL DEFAULT 0,
+  net_pay DECIMAL(10,2) NOT NULL DEFAULT 0,
+  note VARCHAR(255) NULL,
+  status VARCHAR(10) NOT NULL DEFAULT 'draft',
+  paid_on CHAR(10) NULL,
+  payment_mode VARCHAR(40) NULL,
+  UNIQUE KEY period_employee (period, employee_id)
+);

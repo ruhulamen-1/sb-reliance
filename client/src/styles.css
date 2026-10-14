@@ -388,3 +388,22 @@ html,body{overflow-x:clip}
 
 /* wider screens: WhatsApp and Call float side by side at the bottom right; the footer ends with room for them */
 @media(min-width:701px){.floaters{flex-direction:row}.foot-shade{padding-bottom:84px}}
+
+/* ---------- admin payroll ---------- */
+.pay-hint{color:var(--muted);font-size:.92rem;max-width:90ch}
+.pay-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}.pay-bar label{max-width:220px}
+.pay-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.pay-totals div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.pay-totals small{display:block}.pay-totals strong{font-size:1.15rem}
+.pay-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.pay-table{border-collapse:collapse;width:100%;min-width:1180px;font-size:.92rem}
+.pay-table th,.pay-table td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.pay-table th{background:#eef3f1;font-size:.82rem;white-space:nowrap}
+.pay-table td small{display:block;color:var(--muted)}.pay-table td small.warn{color:#b3261e;font-weight:600}
+.pay-table input{width:96px;padding:5px 6px}.pay-table input[type=text]{margin-top:4px}
+.cpf-manual{display:flex;gap:4px}.cpf-manual input{width:80px}
+.pay-table tr.paid{background:#f3faf5}
+.paid-tag{color:#17692f;font-weight:700;white-space:nowrap}.draft-tag{color:var(--muted)}
+.pay-actions{display:flex;flex-wrap:wrap;gap:6px}.pay-actions .btn{padding:5px 10px;font-size:.85rem}
+#root>*{min-width:0;max-width:100%}
+.pay-table td:first-child{min-width:190px}

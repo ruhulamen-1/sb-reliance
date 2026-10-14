@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
+import Payroll from './Payroll';
 
 type Row = Record<string, any>;
 const STATUSES = ['new', 'contacted', 'scheduled', 'completed', 'cancelled'];
@@ -139,8 +140,9 @@ function Quotes() {
   );
 }
 
-function Crud({ table, fields }: { table: string; fields: { key: string; label: string; area?: boolean; num?: boolean; image?: boolean; required?: boolean; optional?: boolean; hint?: string }[] }) {
-  const blank = Object.fromEntries(fields.map((f) => [f.key, f.num ? 0 : '']));
+type CrudField = { key: string; label: string; area?: boolean; num?: boolean; image?: boolean; required?: boolean; optional?: boolean; hint?: string; options?: [string, string][]; date?: boolean };
+export function Crud({ table, fields }: { table: string; fields: CrudField[] }) {
+  const blank = Object.fromEntries(fields.map((f) => [f.key, f.options ? f.options[0][0] : f.num ? 0 : '']));
   const textKey = fields.find((f, i) => i > 0 && !f.image)?.key;
   const [rows, setRows] = useState<Row[]>([]);
   const [addForm, setAddForm] = useState<Row>(blank);
@@ -181,7 +183,9 @@ function Crud({ table, fields }: { table: string; fields: { key: string; label: 
             {f.hint && <small>{f.hint}</small>}
             {f.area
               ? <textarea rows={4} required={!f.optional} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
-              : <input required={!f.optional} type={f.num ? 'number' : 'text'} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: f.num ? Number(e.target.value) : e.target.value })} />}
+              : f.options
+                ? <select value={String(form[f.key] ?? f.options[0][0])} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+                : <input required={!f.optional} type={f.num ? 'number' : f.date ? 'date' : 'text'} step={f.num ? 'any' : undefined} min={f.num ? 0 : undefined} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: f.num ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value })} />}
           </label>
         ))}
         {err && <p className="err full">{err}</p>}
@@ -318,7 +322,7 @@ function StandardServices({ onDone }: { onDone: () => void }) {
   );
 }
 
-const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Settings'] as const;
+const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Payroll', 'Settings'] as const;
 
 export default function Admin() {
   const [authed, setAuthed] = useState(!!localStorage.getItem('token'));
@@ -360,6 +364,7 @@ export default function Admin() {
         { key: 'before_image_url', label: 'Before photo (optional, shows a before / after view)', image: true },
       ]} />}
       {tab === 'Team' && <Crud table="team" fields={[{ key: 'name', label: 'Name' }, { key: 'role', label: 'Role / title' }, { key: 'bio', label: 'Short bio (optional)', area: true, optional: true }, { key: 'sort_order', label: 'Order (smaller shows first)', num: true }, { key: 'image_url', label: 'Photo (optional)', image: true }]} />}
+      {tab === 'Payroll' && <Payroll />}
       {tab === 'Settings' && <Settings />}
       {tab === 'Testimonials' && <Crud table="testimonials" fields={[{ key: 'name', label: 'Name' }, { key: 'location', label: 'Area' }, { key: 'text', label: 'Review', area: true }]} />}
     </div>

@@ -62,6 +62,13 @@ Web App এর **Environment Variables** এ এগুলো দিন:
 - Database এর নিয়মিত backup নিন (hPanel → Backups বা phpMyAdmin → Export)।
 - Admin password আর `.env` কখনো GitHub এ রাখবেন না (`.env` আগে থেকেই `.gitignore` এ আছে)।
 
+## Payroll (Admin → Payroll)
+- **Employees:** প্রতিটা কর্মী একবার যোগ করুন (নাম, pass, জন্মতারিখ, basic salary, allowance, levy)।
+- **Monthly payroll:** মাস বেছে "Add active employees to this month" চাপুন, তারপর OT ঘণ্টা, bonus, ছুটি কাটা, অন্য কাটা লিখুন। CPF, SDL, net pay নিজে হিসাব হয়।
+- বেতন দেওয়ার পর "Mark paid" দিন; তারপর ওই মাস বদলানো যায় না (আগে "Mark unpaid" করতে হয়)।
+- "Payslip" থেকে প্রিন্ট বা PDF, "Download Excel (CSV)" থেকে পুরো মাস।
+- CPF: Singaporean ও PR (৩য় বছর থেকে) এর জন্য 1 Jan 2026 এর CPF Board rate দিয়ে নিজে হিসাব হয়। PR ১ম/২য় বছরের CPF হাতে লিখতে হয়। Bonus থাকলে CPF Board calculator দিয়ে মিলিয়ে নিন।
+
 ## সমস্যা হলে
 - Deploy log এ `Refusing to start in production` দেখালে `JWT_SECRET`/`ADMIN_PASSWORD` ঠিক করুন।
 - `DB init failed` দেখালে `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` আবার মিলিয়ে দেখুন।
