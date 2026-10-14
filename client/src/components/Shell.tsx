@@ -30,6 +30,14 @@ const Icon = ({ d }: { d: string }) => (
   <svg className="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>
 );
 
+// chat-bubble-with-handset mark for WhatsApp buttons (drawn in the button's text colour)
+const WaIcon = () => (
+  <svg className="wa-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.4L3.5 20.5l1.5-4.3a8.5 8.5 0 1 1 15.5-4.6z" />
+    <path d="M9 8.3c.3-.6.9-.6 1.2 0l.7 1.5c.1.3 0 .6-.2.8l-.6.6a6 6 0 0 0 2.7 2.7l.6-.6c.2-.2.5-.3.8-.2l1.5.7c.6.3.6.9 0 1.2l-.7.5c-.6.4-1.4.5-2.1.2a9 9 0 0 1-4.6-4.6c-.3-.7-.2-1.5.2-2.1z" fill="currentColor" stroke="none" />
+  </svg>
+);
+
 export default function Shell({ S, services = [], children }: { S: Settings; services?: { id: number; title: string; slug?: string | null }[]; children: ReactNode }) {
   useReveal();
   useEffect(() => {
@@ -84,11 +92,11 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
             <NavLink to="/about">About</NavLink>
             <NavLink to="/team">Team</NavLink>
             <div className="menu-actions">
-              <a className="btn" href={wa}>WhatsApp</a>
+              <a className="btn btn-wa" href={wa}><WaIcon />WhatsApp</a>
               {tel && <a className="btn ghost" href={`tel:${tel}`}>Call</a>}
             </div>
           </nav>
-          <a className="btn head-wa" href={wa}>WhatsApp {S.phone}</a>
+          <a className="btn btn-wa head-wa" href={wa}><WaIcon />WhatsApp {S.phone}</a>
         </div>
       </header>
       <main className="page">{children}</main>

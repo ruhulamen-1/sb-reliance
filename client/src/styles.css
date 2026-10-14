@@ -324,3 +324,10 @@ html,body{overflow-x:clip}
   background-position:right clamp(16px,4vw,64px) bottom 0,-44px -44px,0 0,0 0,0 0,0 0,0 0;
 }
 @media(max-width:700px){.foot-shade{background-size:92vw auto,88px 88px,88px 88px,88px 88px,22px 22px,22px 22px,100% 100%;background-position:center bottom 0,-44px -44px,0 0,0 0,0 0,0 0,0 0}}
+
+/* WhatsApp buttons: WhatsApp green, deep enough for white text to stay readable (4.9:1) */
+.btn.btn-wa{background:#16823f;border-color:#16823f;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.btn-wa:hover{background:#0f6b33;border-color:#0f6b33}
+.wa-ico{width:20px;height:20px;flex:none}
+#site-nav .menu-actions a.btn-wa{border-bottom-color:#16823f}
+.fab.wa{background:#16823f}
