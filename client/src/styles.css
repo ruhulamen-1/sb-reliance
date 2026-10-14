@@ -332,3 +332,7 @@ html,body{overflow-x:clip}
 #site-nav .menu-actions a.btn-wa{border-bottom-color:#16823f}
 .fab.wa{background:#16823f}
 .std-svc{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}.std-svc>p:first-child{margin:0;flex:1 1 320px}.std-svc .ok{flex-basis:100%;margin:0}
+
+/* service and blog cards: photo runs edge to edge across the top, no frame or border around it */
+.grid3>article.card{border:0;overflow:hidden;box-shadow:0 1px 3px rgba(16,52,58,.08),0 6px 18px rgba(16,52,58,.08)}
+.grid3>article.card>.cardimg:first-child{display:block;width:calc(100% + 36px);max-width:none;margin:-18px -18px 14px;border-radius:0}
