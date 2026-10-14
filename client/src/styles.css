@@ -336,3 +336,25 @@ html,body{overflow-x:clip}
 /* service and blog cards: photo runs edge to edge across the top, no frame or border around it */
 .grid3>article.card{border:0;overflow:hidden;box-shadow:0 1px 3px rgba(16,52,58,.08),0 6px 18px rgba(16,52,58,.08)}
 .grid3>article.card>.cardimg:first-child{display:block;width:calc(100% + 36px);max-width:none;margin:-18px -18px 14px;border-radius:0}
+
+/* ---------- calmer layout ---------- */
+/* page background photo: only a faint wash behind the hero */
+.hero{background:linear-gradient(rgba(251,250,247,.9),rgba(251,250,247,.94)),var(--hero-bg,none) center/cover no-repeat}
+.airflow{opacity:.18}
+/* sections: one rhythm, plain backgrounds */
+.block{padding-top:64px;padding-bottom:64px}.band{padding:64px 0}
+.block>h2,.band h2,.sechead h2{margin-bottom:22px}
+/* service and blog cards: three per row, equal height, link at the bottom, text kept short */
+#services .grid3,#blog .grid3{grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:22px}
+.grid3>article.card{display:flex;flex-direction:column;margin:0}
+.grid3>article.card>p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted)}
+.grid3>article.card .more,.grid3>article.card small{margin-top:auto;padding-top:10px}
+/* work photos on the home page: six larger photos, caption on the photo */
+.home-work{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.home-work .shot{position:relative;border-radius:8px}
+.home-work .shot img{border-radius:8px}
+.home-work .shot figcaption{position:absolute;left:0;right:0;bottom:0;padding:28px 14px 12px;color:#fff;font-weight:600;font-size:.95rem;background:linear-gradient(to top,rgba(16,30,34,.85),transparent);border-radius:0 0 8px 8px}
+/* desktop already shows WhatsApp in the header: no floating buttons there */
+@media(min-width:1101px){.floaters{display:none}.foot-shade{padding-bottom:22px}}
+@media(max-width:480px){.block{padding-top:44px;padding-bottom:44px}.band{padding:44px 0}}
+.home-work{grid-template-columns:repeat(3,1fr)}@media(max-width:900px){.home-work{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.home-work{grid-template-columns:1fr}}

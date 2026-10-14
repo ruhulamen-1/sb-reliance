@@ -70,7 +70,8 @@ export default function Home() {
 
       {loadErr && <p className="err wrap block">{loadErr}</p>}
 
-      <section className="hero">
+      {/* the "page background image" setting now sits only behind the hero, lightly, instead of behind every section */}
+      <section className="hero" style={S.page_bg ? { ['--hero-bg' as string]: `url("${S.page_bg}")` } : undefined}>
         <svg className="airflow" aria-hidden="true" viewBox="0 0 2400 400" preserveAspectRatio="none">
           {[0, 1200].map((x) => (
             <g key={x} transform={`translate(${x} 0)`} fill="none" strokeLinecap="round">
@@ -118,14 +119,6 @@ export default function Home() {
 
       <TrustBar S={S} />
 
-      {serviceNames.length > 0 && (
-        <div className="ticker" aria-hidden="true">
-          <div className="ticker-track">
-            {[0, 1].map((k) => serviceNames.map((n) => <span key={`${k}-${n}`} className={k ? 'dup' : ''}>{n}</span>))}
-          </div>
-        </div>
-      )}
-
       <section id="services" className="wrap block">
         <h2>{S.services_title}</h2>
         <div className="grid3">
@@ -164,8 +157,8 @@ export default function Home() {
       {data.gallery.length > 0 && (
         <section id="work" className="wrap block">
           <h2>Our work</h2>
-          <div className="gallery">
-            {data.gallery.map((g) => (
+          <div className="gallery home-work">
+            {data.gallery.slice(0, 6).map((g) => (
               <figure key={g.id} className="shot">
                 <img src={g.image_url} alt={g.title} loading="lazy" />
                 <figcaption>{g.title}</figcaption>

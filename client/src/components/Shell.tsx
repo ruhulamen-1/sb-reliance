@@ -75,8 +75,6 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
   const socials = lines(S.social_links).filter((u) => /^https?:\/\//i.test(u));
   return (
     <>
-      {S.page_bg && <div className="pagebg" aria-hidden="true" style={{ backgroundImage: `url("${S.page_bg}")` }} />}
-      <div className="progress" aria-hidden="true" />
       <header className={menu ? 'topbar menu-open' : 'topbar'} ref={header}>
         <div className="wrap row between">
           <Link className="brand brandrow" to="/"><img className="logo" src={S.logo || '/logo.svg'} alt="" />{S.brand}</Link>
