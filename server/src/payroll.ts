@@ -7,7 +7,9 @@
 // Rounding (CPF Board): total to the nearest dollar, employee share rounded down, employer = total - employee.
 //
 // SDL (Skills Development Levy): 0.25% of total wages, at least $2 and at most $11.25, for every employee.
-// Overtime (Employment Act): 1.5 x hourly basic rate, hourly basic rate = 12 x monthly basic / (52 x 44).
+// Overtime (Employment Act): 1.5 x hourly basic rate, hourly basic rate = 12 x monthly basic / (52 x 44);
+// for daily-rated workers, daily rate / normal hours a day.
+// Work on a rest day (Sunday) or public holiday: 2 days' basic pay a day (daily rate, or monthly basic / working days).
 
 export const PASS_TYPES: Record<string, string> = {
   SC: 'Singapore Citizen',
@@ -89,7 +91,19 @@ export function otHourlyRate(basic: number): number {
 export interface PayInput {
   pass_type: string;
   date_of_birth?: string | null;
-  basic_salary: number;
+  /** 'monthly' = fixed monthly basic; 'daily' = daily rate x days worked */
+  pay_basis?: string;
+  basic_salary: number; // monthly basic (monthly-rated)
+  daily_rate?: number;
+  work_days?: number; // paid days (daily-rated)
+  rest_days?: number; // Sundays / public holidays worked, paid double
+  transport?: number;
+  loan?: number;
+  advance?: number;
+  /** working days in the month, for the monthly-rated day rate */
+  month_days?: number;
+  /** normal hours a day, for the daily-rated OT rate */
+  day_hours?: number;
   fixed_allowance: number;
   other_allowance: number;
   ot_hours: number;
@@ -106,15 +120,21 @@ export interface PayInput {
 }
 
 export interface PayResult {
+  basic_pay: number; rest_pay: number;
   ot_rate: number; ot_pay: number; ordinary_wages: number; gross_pay: number;
   cpf_employee: number; cpf_employer: number; cpf_manual: boolean; sdl: number; levy: number; net_pay: number;
   note: string;
 }
 
 export function computePay(i: PayInput, period: string): PayResult {
-  const otRate = i.ot_rate && i.ot_rate > 0 ? r2(i.ot_rate) : otHourlyRate(i.basic_salary);
+  const daily = i.pay_basis === 'daily';
+  const basic = daily ? r2((i.daily_rate || 0) * (i.work_days || 0)) : i.basic_salary;
+  const dayRate = daily ? i.daily_rate || 0 : i.basic_salary / (i.month_days || 26);
+  const restPay = r2(dayRate * 2 * (i.rest_days || 0));
+  const otRate = i.ot_rate && i.ot_rate > 0 ? r2(i.ot_rate)
+    : daily ? r2(((i.daily_rate || 0) / (i.day_hours || 8)) * 1.5) : otHourlyRate(i.basic_salary);
   const otPay = r2(otRate * (i.ot_hours || 0));
-  const ow = r2(Math.max(0, i.basic_salary + i.fixed_allowance + i.other_allowance + otPay - i.unpaid_leave));
+  const ow = r2(Math.max(0, basic + restPay + (i.transport || 0) + i.fixed_allowance + i.other_allowance + otPay - i.unpaid_leave));
   const gross = r2(ow + i.bonus);
   const notes: string[] = [];
   let cpfEe = 0, cpfEr = 0, manual = false;
@@ -135,6 +155,6 @@ export function computePay(i: PayInput, period: string): PayResult {
     cpfEe = r2(i.cpf_employee || 0); cpfEr = r2(i.cpf_employer || 0);
     if (!cpfEe && !cpfEr && i.pass_type !== 'WP' && i.pass_type !== 'SPASS' && i.pass_type !== 'EP') notes.push('Enter CPF by hand (PR 1st/2nd year rates)');
   }
-  const net = r2(gross - cpfEe - i.other_deduction);
-  return { ot_rate: otRate, ot_pay: otPay, ordinary_wages: ow, gross_pay: gross, cpf_employee: cpfEe, cpf_employer: cpfEr, cpf_manual: manual, sdl: sdl(gross), levy: r2(i.levy || 0), net_pay: net, note: notes.join('; ') };
+  const net = r2(gross - cpfEe - i.other_deduction - (i.loan || 0) - (i.advance || 0));
+  return { basic_pay: r2(basic), rest_pay: restPay, ot_rate: otRate, ot_pay: otPay, ordinary_wages: ow, gross_pay: gross, cpf_employee: cpfEe, cpf_employer: cpfEr, cpf_manual: manual, sdl: sdl(gross), levy: r2(i.levy || 0), net_pay: net, note: notes.join('; ') };
 }

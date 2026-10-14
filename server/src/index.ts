@@ -13,7 +13,7 @@ import compression from 'compression';
 import { renderHtml, robotsTxt, sitemapXml, SeoPost, SeoService } from './seo.js';
 import { SERVICE_DEFAULTS, defaultsFor, slugify } from './serviceDefaults.js';
 import { PASS_TYPES, computePay, OW_CEILING } from './payroll.js';
-import { ATT_STATUS, UNPAID_DAYS, autoOt, workingDays, PayrollConfig, readConfig } from './attendance.js';
+import { ATT_STATUS, autoOt, tally, workingDays, PayrollConfig, readConfig } from './attendance.js';
 
 const env = process.env;
 const JWT_SECRET = env.JWT_SECRET || 'change-this-secret';
@@ -193,6 +193,20 @@ async function initDb() {
   await ensureColumn('services', 'seo_description', 'seo_description VARCHAR(320) NULL');
   // payroll: unpaid days taken from attendance
   await ensureColumn('payroll_items', 'unpaid_days', 'unpaid_days DECIMAL(5,1) NOT NULL DEFAULT 0');
+  // payroll: daily-rated workers, Sunday/PH pay, transport, loan and advance (company payslip format)
+  await ensureColumn('employees', 'pay_basis', "pay_basis VARCHAR(8) NOT NULL DEFAULT 'monthly'");
+  await ensureColumn('employees', 'daily_rate', 'daily_rate DECIMAL(8,2) NOT NULL DEFAULT 0');
+  await ensureColumn('employees', 'transport', 'transport DECIMAL(10,2) NOT NULL DEFAULT 0');
+  for (const [col, ddl] of [
+    ['pay_basis', "pay_basis VARCHAR(8) NOT NULL DEFAULT 'monthly'"],
+    ['daily_rate', 'daily_rate DECIMAL(8,2) NOT NULL DEFAULT 0'],
+    ['work_days', 'work_days DECIMAL(5,1) NOT NULL DEFAULT 0'],
+    ['rest_days', 'rest_days DECIMAL(5,1) NOT NULL DEFAULT 0'],
+    ['rest_pay', 'rest_pay DECIMAL(10,2) NOT NULL DEFAULT 0'],
+    ['transport', 'transport DECIMAL(10,2) NOT NULL DEFAULT 0'],
+    ['loan', 'loan DECIMAL(10,2) NOT NULL DEFAULT 0'],
+    ['advance', 'advance DECIMAL(10,2) NOT NULL DEFAULT 0'],
+  ]) await ensureColumn('payroll_items', col, ddl);
 
   const [u] = await pool.query<RowDataPacket[]>('SELECT id FROM users LIMIT 1');
   if (!u.length) {
@@ -475,7 +489,7 @@ app.post('/api/admin/services/standard', auth, wrap(async (_req, res) => {
 }));
 
 // ---------- Payroll (admin only) ----------
-const EMP_COLS = ['name', 'id_number', 'pass_type', 'date_of_birth', 'designation', 'join_date', 'basic_salary', 'fixed_allowance', 'ot_rate', 'monthly_levy', 'bank_name', 'bank_account', 'active', 'notes'] as const;
+const EMP_COLS = ['name', 'id_number', 'pass_type', 'date_of_birth', 'designation', 'join_date', 'pay_basis', 'basic_salary', 'daily_rate', 'transport', 'fixed_allowance', 'ot_rate', 'monthly_levy', 'bank_name', 'bank_account', 'active', 'notes'] as const;
 const money = (v: unknown, nullable = false) => {
   if (v === '' || v === null || v === undefined) return nullable ? null : 0;
   const n = Number(v);
@@ -491,7 +505,10 @@ function employeeRow(b: Record<string, unknown>) {
     date_of_birth: day(b.date_of_birth),
     designation: text(b.designation, 120),
     join_date: day(b.join_date),
+    pay_basis: b.pay_basis === 'daily' ? 'daily' : 'monthly',
     basic_salary: money(b.basic_salary),
+    daily_rate: money(b.daily_rate),
+    transport: money(b.transport),
     fixed_allowance: money(b.fixed_allowance),
     ot_rate: money(b.ot_rate, true),
     monthly_levy: money(b.monthly_levy),
@@ -534,9 +551,19 @@ async function owYearToDate(employeeId: number, period: string) {
   return r.reduce((t, x) => t + Math.min(Number(x.gross_pay) - Number(x.bonus), OW_CEILING), 0);
 }
 async function recalc(item: RowDataPacket, emp: RowDataPacket | undefined) {
+  const cfg = await payrollConfig();
   const result = computePay({
     pass_type: item.pass_type,
     date_of_birth: emp?.date_of_birth,
+    pay_basis: item.pay_basis,
+    daily_rate: Number(item.daily_rate),
+    work_days: Number(item.work_days),
+    rest_days: Number(item.rest_days),
+    transport: Number(item.transport),
+    loan: Number(item.loan),
+    advance: Number(item.advance),
+    month_days: workingDays(item.period, cfg.week),
+    day_hours: cfg.day_hours,
     basic_salary: Number(item.basic_salary),
     fixed_allowance: Number(item.fixed_allowance),
     other_allowance: Number(item.other_allowance),
@@ -551,11 +578,14 @@ async function recalc(item: RowDataPacket, emp: RowDataPacket | undefined) {
     cpf_employer: Number(item.cpf_employer),
     ow_ytd: await owYearToDate(item.employee_id, item.period),
   }, item.period);
-  const { ordinary_wages: _ow, ...save } = result;
-  await pool.query('UPDATE payroll_items SET ? WHERE id = ?', [{ ...save, cpf_manual: save.cpf_manual ? 1 : 0 }, item.id]);
+  const { ordinary_wages: _ow, basic_pay, ...save } = result;
+  // daily-rated: the month's basic is days x rate; monthly-rated keep the basic as entered
+  const basic = item.pay_basis === 'daily' ? { basic_salary: basic_pay } : {};
+  await pool.query('UPDATE payroll_items SET ? WHERE id = ?', [{ ...save, ...basic, cpf_manual: save.cpf_manual ? 1 : 0 }, item.id]);
 }
 async function periodItems(period: string) {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE period = ? ORDER BY employee_name', [period]);
+  const [rows] = await pool.query<RowDataPacket[]>(
+    'SELECT p.*, e.id_number FROM payroll_items p LEFT JOIN employees e ON e.id = p.employee_id WHERE p.period = ? ORDER BY p.employee_name', [period]);
   return rows;
 }
 
@@ -574,9 +604,9 @@ app.post('/api/admin/payroll/generate', auth, wrap(async (req, res) => {
   let added = 0;
   for (const e of emps) {
     const [r] = await pool.query<ResultSetHeader>(
-      `INSERT IGNORE INTO payroll_items (period, employee_id, employee_name, pass_type, designation, basic_salary, fixed_allowance, levy)
-       VALUES (?,?,?,?,?,?,?,?)`,
-      [period, e.id, e.name, e.pass_type, e.designation, e.basic_salary, e.fixed_allowance, e.monthly_levy],
+      `INSERT IGNORE INTO payroll_items (period, employee_id, employee_name, pass_type, designation, pay_basis, daily_rate, basic_salary, transport, fixed_allowance, levy)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [period, e.id, e.name, e.pass_type, e.designation, e.pay_basis, e.daily_rate, e.pay_basis === 'daily' ? 0 : e.basic_salary, e.transport, e.fixed_allowance, e.monthly_levy],
     );
     if (r.affectedRows) {
       added++;
@@ -600,6 +630,12 @@ app.put('/api/admin/payroll/:id', auth, wrap(async (req, res) => {
     basic_salary: money(b.basic_salary ?? item.basic_salary),
     fixed_allowance: money(b.fixed_allowance ?? item.fixed_allowance),
     other_allowance: money(b.other_allowance ?? item.other_allowance),
+    daily_rate: money(b.daily_rate ?? item.daily_rate),
+    work_days: money(b.work_days ?? item.work_days),
+    rest_days: money(b.rest_days ?? item.rest_days),
+    transport: money(b.transport ?? item.transport),
+    loan: money(b.loan ?? item.loan),
+    advance: money(b.advance ?? item.advance),
     ot_hours: money(b.ot_hours ?? item.ot_hours),
     bonus: money(b.bonus ?? item.bonus),
     unpaid_leave: money(b.unpaid_leave ?? item.unpaid_leave),
@@ -653,14 +689,19 @@ app.put('/api/admin/payroll-config', auth, wrap(async (req, res) => {
 // Returns false when the employee has no attendance in that month (the line is left as it is).
 async function applyAttendance(item: RowDataPacket, cfg: PayrollConfig) {
   const [att] = await pool.query<RowDataPacket[]>(
-    'SELECT status, ot_hours FROM attendance WHERE employee_id = ? AND work_date LIKE ?', [item.employee_id, `${item.period}-%`]);
+    'SELECT work_date, status, ot_hours FROM attendance WHERE employee_id = ? AND work_date LIKE ?', [item.employee_id, `${item.period}-%`]);
   if (!att.length) return false;
-  const ot = att.reduce((t, a) => t + Number(a.ot_hours || 0), 0);
-  const unpaid = att.reduce((t, a) => t + (UNPAID_DAYS[a.status] || 0), 0);
-  // MOM: salary for days not worked = monthly gross rate / working days in the month x days
-  const daily = (Number(item.basic_salary) + Number(item.fixed_allowance)) / workingDays(item.period, cfg.week);
-  await pool.query('UPDATE payroll_items SET ot_hours = ?, unpaid_days = ?, unpaid_leave = ? WHERE id = ?',
-    [Math.round(ot * 100) / 100, unpaid, Math.round(daily * unpaid * 100) / 100, item.id]);
+  const t = tally(att as { work_date: string; status: string; ot_hours: unknown }[]);
+  if (item.pay_basis === 'daily') {
+    // daily-rated: paid only for the days worked or on paid leave, so there is no separate unpaid deduction
+    await pool.query('UPDATE payroll_items SET work_days = ?, rest_days = ?, ot_hours = ?, unpaid_days = 0, unpaid_leave = 0 WHERE id = ?',
+      [t.paid_days, t.rest_days, t.ot_hours, item.id]);
+  } else {
+    // MOM: salary for days not worked = monthly gross rate / working days in the month x days
+    const daily = (Number(item.basic_salary) + Number(item.fixed_allowance)) / workingDays(item.period, cfg.week);
+    await pool.query('UPDATE payroll_items SET rest_days = ?, ot_hours = ?, unpaid_days = ?, unpaid_leave = ? WHERE id = ?',
+      [t.rest_days, t.ot_hours, t.unpaid_days, Math.round(daily * t.unpaid_days * 100) / 100, item.id]);
+  }
   return true;
 }
 
@@ -790,10 +831,12 @@ app.get('/api/admin/payroll/export', auth, wrap(async (req, res) => {
   const cols: [string, (r: RowDataPacket) => unknown][] = [
     ['Month', (r) => r.period], ['Employee', (r) => r.employee_name], ['NRIC/FIN', (r) => byId.get(r.employee_id)?.id_number || ''],
     ['Pass', (r) => PASS_TYPES[r.pass_type] || r.pass_type], ['Designation', (r) => r.designation || ''],
-    ['Basic', (r) => r.basic_salary], ['Fixed allowance', (r) => r.fixed_allowance], ['Other allowance', (r) => r.other_allowance],
+    ['Pay basis', (r) => r.pay_basis], ['Days', (r) => (r.pay_basis === 'daily' ? r.work_days : '')], ['Daily rate', (r) => (r.pay_basis === 'daily' ? r.daily_rate : '')],
+    ['Basic', (r) => r.basic_salary], ['Sunday/PH days', (r) => r.rest_days], ['Sunday/PH pay', (r) => r.rest_pay], ['Transport', (r) => r.transport],
+    ['Fixed allowance', (r) => r.fixed_allowance], ['Other allowance', (r) => r.other_allowance],
     ['OT hours', (r) => r.ot_hours], ['OT rate', (r) => r.ot_rate], ['OT pay', (r) => r.ot_pay], ['Bonus', (r) => r.bonus],
     ['Unpaid days', (r) => r.unpaid_days], ['Unpaid leave', (r) => r.unpaid_leave], ['Gross pay', (r) => r.gross_pay], ['CPF employee', (r) => r.cpf_employee],
-    ['Other deductions', (r) => r.other_deduction], ['Deduction note', (r) => r.deduction_note || ''], ['Net pay', (r) => r.net_pay],
+    ['Loan', (r) => r.loan], ['Advance', (r) => r.advance], ['Other deductions', (r) => r.other_deduction], ['Deduction note', (r) => r.deduction_note || ''], ['Net pay', (r) => r.net_pay],
     ['CPF employer', (r) => r.cpf_employer], ['SDL', (r) => r.sdl], ['Levy', (r) => r.levy],
     ['Bank', (r) => byId.get(r.employee_id)?.bank_name || ''], ['Account', (r) => byId.get(r.employee_id)?.bank_account || ''],
     ['Status', (r) => r.status], ['Paid on', (r) => r.paid_on || ''], ['Payment mode', (r) => r.payment_mode || ''],

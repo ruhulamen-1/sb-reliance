@@ -43,11 +43,14 @@ function Employees() {
         { key: 'name', label: 'Name (as on NRIC / work pass)' },
         { key: 'designation', label: 'Designation', optional: true },
         { key: 'pass_type', label: 'Citizenship / pass', options: PASS },
-        { key: 'id_number', label: 'NRIC / FIN (optional)', optional: true, hint: 'Shown only to admins and in the Excel file, not on the payslip.' },
+        { key: 'id_number', label: 'NRIC / FIN (optional)', optional: true, hint: 'Shown on the payslip (IC No / FIN No) and in the Excel file.' },
         { key: 'date_of_birth', label: 'Date of birth', date: true, optional: true, hint: 'Needed for CPF: the rate depends on age.' },
         { key: 'join_date', label: 'Date joined', date: true, optional: true },
-        { key: 'basic_salary', label: 'Basic salary per month (SGD)', num: true },
-        { key: 'fixed_allowance', label: 'Fixed allowance per month (SGD)', num: true, optional: true },
+        { key: 'pay_basis', label: 'Pay basis', options: [['daily', 'Daily rate (days worked x rate)'], ['monthly', 'Monthly salary']] },
+        { key: 'daily_rate', label: 'Daily rate (SGD) – daily-rated workers', num: true, optional: true, hint: 'Basic = days worked x daily rate. Sunday / public holiday worked = 2 x daily rate. OT rate = daily rate / normal hours x 1.5.' },
+        { key: 'basic_salary', label: 'Basic salary per month (SGD) – monthly-rated staff', num: true, optional: true },
+        { key: 'transport', label: 'Transport allowance per month (SGD)', num: true, optional: true },
+        { key: 'fixed_allowance', label: 'Other fixed allowance per month (SGD)', num: true, optional: true },
         { key: 'ot_rate', label: 'OT rate per hour (optional)', num: true, optional: true, hint: 'Empty or 0 = Employment Act rate: 1.5 x basic hourly rate (12 x basic / 52 / 44).' },
         { key: 'monthly_levy', label: 'Foreign worker levy per month (optional)', num: true, optional: true, hint: 'Paid by the company to MOM, never deducted from salary. Only used for the company cost total.' },
         { key: 'bank_name', label: 'Bank (optional)', optional: true },
@@ -59,25 +62,34 @@ function Employees() {
   );
 }
 
-const EDIT: [string, string][] = [
-  ['other_allowance', 'Other allowance'],
+// [field, column heading, shown for: 'daily' | 'monthly' | both]
+const EDIT: [string, string, ('daily' | 'monthly')?][] = [
+  ['work_days', 'Days', 'daily'],
+  ['rest_days', 'Sunday / PH days'],
   ['ot_hours', 'OT hours'],
+  ['transport', 'Transport'],
+  ['other_allowance', 'Allowance'],
   ['bonus', 'Bonus'],
-  ['unpaid_leave', 'Unpaid leave'],
+  ['unpaid_leave', 'Unpaid leave', 'monthly'],
+  ['loan', 'Loan'],
+  ['advance', 'Advance'],
   ['other_deduction', 'Other deduction'],
 ];
+const basisOf = (r: Row) => (r.pay_basis === 'daily' ? 'daily' : 'monthly');
 
 function Month() {
   const [period, setPeriod] = useState(thisMonth());
   const [items, setItems] = useState<Row[]>([]);
   const [msg, setMsg] = useState('');
   const [company, setCompany] = useState<Row>({});
+  const [slip, setSlip] = useState<Row>({});
   const load = useCallback(() => {
     setMsg('');
     api<{ items: Row[] }>(`/admin/payroll?period=${period}`, { auth: true }).then((d) => setItems(d.items)).catch((e: Error) => setMsg(e.message));
   }, [period]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { api<Row>('/admin/settings', { auth: true }).then(setCompany).catch(() => undefined); }, []);
+  useEffect(() => { api<Row>('/admin/payroll-config', { auth: true }).then(setSlip).catch(() => undefined); }, []);
 
   const edit = (id: number, patch: Row) => setItems((xs) => xs.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   async function save(r: Row) {
@@ -133,7 +145,7 @@ function Month() {
       <div className="card pay-bar">
         <label>Month<input type="month" value={period} onChange={(e) => e.target.value && setPeriod(e.target.value)} /></label>
         <button type="button" className="btn" onClick={generate}>Add active employees to this month</button>
-        <button type="button" className="btn ghost" onClick={fromAttendance} disabled={!items.length}>Take OT and unpaid leave from attendance</button>
+        <button type="button" className="btn ghost" onClick={fromAttendance} disabled={!items.length}>Take days, OT and leave from attendance</button>
         <button type="button" className="btn ghost" onClick={download} disabled={!items.length}>Download Excel (CSV)</button>
       </div>
       {msg && <p className="ok" role="status">{msg}</p>}
@@ -152,7 +164,7 @@ function Month() {
           <div className="pay-scroll">
             <table className="pay-table">
               <thead>
-                <tr><th>Employee</th><th>Basic + fixed</th>{EDIT.map(([, l]) => <th key={l}>{l}</th>)}<th>Gross</th><th>CPF employee / employer</th><th>Net pay</th><th>Status</th><th /></tr>
+                <tr><th>Employee</th><th>Basic</th>{EDIT.map(([, l]) => <th key={l}>{l}</th>)}<th>Gross</th><th>CPF employee / employer</th><th>Net pay</th><th>Status</th><th /></tr>
               </thead>
               <tbody>
                 {items.map((r) => {
@@ -160,8 +172,14 @@ function Month() {
                   return (
                     <tr key={r.id} className={locked ? 'paid' : ''}>
                       <td><strong>{r.employee_name}</strong><small>{passName(r.pass_type)}</small>{r.note && <small className="warn">{r.note}</small>}</td>
-                      <td>${$(Number(r.basic_salary) + Number(r.fixed_allowance))}{Number(r.ot_pay) > 0 && <small>OT ${$(r.ot_pay)} @ ${$(r.ot_rate)}/h</small>}</td>
-                      {EDIT.map(([k, l]) => (
+                      <td>
+                        ${$(r.basic_salary)}
+                        {basisOf(r) === 'daily' ? <small>{Number(r.work_days)} day(s) x ${$(r.daily_rate)}</small> : <small>Monthly</small>}
+                        {Number(r.fixed_allowance) > 0 && <small>+ fixed allowance ${$(r.fixed_allowance)}</small>}
+                        {Number(r.rest_pay) > 0 && <small>Sunday/PH ${$(r.rest_pay)}</small>}
+                        {Number(r.ot_pay) > 0 && <small>OT ${$(r.ot_pay)} @ ${$(r.ot_rate)}/h</small>}
+                      </td>
+                      {EDIT.map(([k, l, only]) => only && only !== basisOf(r) ? <td key={k}><small>—</small></td> : (
                         <td key={k}>
                           <input type="number" min={0} step="any" aria-label={`${l}, ${r.employee_name}`} disabled={locked} value={r[k] ?? ''}
                             onChange={(e) => edit(r.id, { [k]: e.target.value })} onBlur={() => save(r)} />
@@ -184,7 +202,7 @@ function Month() {
                       <td><strong>${$(r.net_pay)}</strong></td>
                       <td>{locked ? <span className="paid-tag">Paid {r.paid_on}</span> : <span className="draft-tag">Draft</span>}</td>
                       <td className="pay-actions">
-                        <button type="button" className="btn ghost" onClick={() => payslip(r, company, period)}>Payslip</button>
+                        <button type="button" className="btn ghost" onClick={() => payslip(r, company, slip, period)}>Payslip</button>
                         {locked
                           ? <button type="button" className="btn ghost" onClick={() => setPaid(r, false)}>Mark unpaid</button>
                           : <><button type="button" className="btn" onClick={() => setPaid(r, true)}>Mark paid</button><button type="button" className="btn ghost" onClick={() => remove(r)}>Remove</button></>}
@@ -195,53 +213,124 @@ function Month() {
               </tbody>
             </table>
           </div>
-          <p className="pay-hint">CPF uses the CPF Board rates from 1 January 2026 for Singapore Citizens and PRs from the 3rd year (Ordinary Wage ceiling $8,000). For PRs in their 1st or 2nd year, enter the CPF from the CPF contribution calculator. Check bonuses (Additional Wages) with the CPF calculator before paying. SDL and levy are paid by the company and are not deducted from salary.</p>
+          <SlipHeader company={company} slip={slip} setSlip={setSlip} />
+          <p className="pay-hint">Daily-rated workers: basic = days x daily rate, Sunday / public holiday worked = 2 x daily rate, OT = daily rate / normal hours x 1.5 (all filled from Attendance). CPF uses the CPF Board rates from 1 January 2026 for Singapore Citizens and PRs from the 3rd year (Ordinary Wage ceiling $8,000). For PRs in their 1st or 2nd year, enter the CPF from the CPF contribution calculator. Check bonuses (Additional Wages) with the CPF calculator before paying. SDL and levy are paid by the company and are not deducted from salary.</p>
         </>
       )}
     </>
   );
 }
 
-// Itemised payslip (MOM): employer, employee, period, payment date and mode, basic, allowances, OT hours and pay,
-// other additional payments, itemised deductions, net pay, and CPF.
-function payslip(r: Row, company: Row, period: string) {
-  const w = window.open('', '_blank', 'width=760,height=900');
+// Payslip in the company's own layout (SALARY PAY SLIP: earnings left, deductions right, signature and payment date),
+// keeping what MOM asks for on an itemised payslip: employer, employee, period, payment date and mode, basic pay,
+// allowances, OT hours, period and pay, other payments, itemised deductions, net pay, and CPF.
+function payslip(r: Row, company: Row, slip: Row, period: string) {
+  const w = window.open('', '_blank', 'width=820,height=1000');
   if (!w) return alert('Allow pop-ups for this site to open the payslip.');
-  const line = (label: string, v: unknown, cls = '') => `<tr class="${cls}"><td>${esc(label)}</td><td class="n">${$(v)}</td></tr>`;
-  const allowances = Number(r.fixed_allowance) + Number(r.other_allowance);
+  const [y, m] = period.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  const mon = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')[m - 1];
+  const logo = company.logo ? new URL(company.logo, location.origin).href : `${location.origin}/icon-512.png`;
+  const address = slip.slip_address || company.address || '';
+  const phone = slip.slip_phone || company.phone || '';
+  const email = slip.slip_email || (/example\.com$/i.test(company.email || '') ? '' : company.email) || '';
   const hasCpf = !['WP', 'SPASS', 'EP'].includes(r.pass_type);
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Payslip ${esc(r.employee_name)} ${esc(period)}</title>
+  const n = (v: unknown) => Number(v || 0);
+  const $ = (v: unknown) => n(v).toFixed(2); // plain 1550.00, as on the company's payslip
+  const qty = (v: unknown, unit: string) => (n(v) ? `${n(v)} ${unit}` : '');
+  const allowance = n(r.fixed_allowance) + n(r.other_allowance);
+
+  const earn: [string, string, number][] = [
+    ['Basic Salary', r.pay_basis === 'daily' ? qty(r.work_days, 'Day') : '', n(r.basic_salary)],
+    ['Sunday/PH', qty(r.rest_days, 'Day'), n(r.rest_pay)],
+    ['Transport', '', n(r.transport)],
+    ['OT', qty(r.ot_hours, 'Hours'), n(r.ot_pay)],
+    ['Allowance', '', allowance],
+  ];
+  if (n(r.bonus)) earn.push(['Bonus', '', n(r.bonus)]);
+  if (n(r.unpaid_leave)) earn.push(['Less: unpaid leave', qty(r.unpaid_days, 'Day'), -n(r.unpaid_leave)]);
+  const ded: [string, number][] = [];
+  if (hasCpf) ded.push(['CPF (employee)', n(r.cpf_employee)]);
+  ded.push(['Loan', n(r.loan)], ['Advance', n(r.advance)], [`Other${r.deduction_note ? ` (${r.deduction_note})` : ''}`, n(r.other_deduction)]);
+  const totalDed = ded.reduce((t, [, v]) => t + v, 0);
+  const rows = Math.max(earn.length, ded.length);
+  const body = Array.from({ length: rows }, (_, i) => {
+    const e = earn[i], d = ded[i];
+    return `<tr>
+      <td>${e ? esc(e[0]) : ''}</td><td class="q">${e ? esc(e[1]) : ''}</td><td class="c">${e ? '$' : ''}</td><td class="n">${e ? $(e[2]) : ''}</td>
+      <td class="l">${d ? esc(d[0]) : ''}</td><td class="c">${d ? '$' : ''}</td><td class="n r">${d ? $(d[1]) : ''}</td></tr>`;
+  }).join('');
+
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Payslip_${esc(String(r.employee_name).replace(/\s+/g, '_'))}_${esc(mon)}${y}</title>
 <style>
-body{font:14px/1.45 system-ui,sans-serif;color:#10343a;max-width:680px;margin:24px auto;padding:0 16px}
-h1{font-size:20px;margin:0}h2{font-size:15px;margin:22px 0 6px;border-bottom:2px solid #f2b705;padding-bottom:4px}
-.top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}.muted{color:#5b7276}
-table{width:100%;border-collapse:collapse}td{padding:5px 0;border-bottom:1px solid #e3eae8}td.n{text-align:right;white-space:nowrap}
-.total td{font-weight:700;border-top:2px solid #10343a}.net td{font-size:17px;font-weight:800}
-.meta td:first-child{color:#5b7276;width:42%}
-button{margin-top:20px;padding:8px 16px;font:inherit;cursor:pointer}@media print{button{display:none}}
+@page{size:A4;margin:16mm}
+*{box-sizing:border-box}
+body{font:13px/1.35 Arial,Helvetica,sans-serif;color:#000;max-width:740px;margin:20px auto;padding:0 18px}
+.head{display:flex;align-items:center;gap:18px;padding-bottom:12px;border-bottom:2px solid #000}
+.head img{width:72px;height:72px;object-fit:contain}
+.head .co{flex:1;text-align:center}
+.head h1{font-size:20px;margin:0 0 4px}.head div div{font-size:13px}
+h2{text-align:center;font-size:14px;text-decoration:underline;margin:22px 0 16px}
+.meta{border-collapse:collapse;margin-bottom:22px}.meta td{padding:2px 0}
+.meta td:first-child{width:200px}.meta td:nth-child(2){width:100px}.meta td:last-child{text-decoration:underline}
+.meta .name{font-weight:700;font-style:italic}
+table.pay{width:100%;border-collapse:collapse;border:2px solid #000}
+.pay th{background:#e6e6e6;font-style:italic;border-bottom:2px solid #000;padding:3px}
+.pay th+th,.pay td.l{border-left:2px solid #000}
+.pay td{padding:3px 4px;vertical-align:top}
+.pay tbody tr:first-child td{padding-top:16px}.pay tbody tr:last-child td{padding-bottom:16px}
+.pay .q{text-align:right;width:80px}.pay .c{width:28px;text-align:center}.pay .n{text-align:right;width:84px}
+.pay tfoot td{border-top:1px solid #000}.pay tfoot tr.g td{border-top:1px solid #000;font-weight:700}
+.pay tfoot td.lbl{font-weight:400}
+.cpf{font-size:12px;margin-top:8px}
+.sign{display:flex;justify-content:space-between;gap:40px;margin-top:120px}
+.sign div{flex:0 0 42%;text-align:center}.sign .line{border-top:1px solid #000;padding-top:16px;min-height:20px}
+.sign .val{min-height:18px}
+button{margin-top:28px;padding:8px 16px;font:inherit;cursor:pointer}@media print{button{display:none}body{margin:0}}
 </style></head><body>
-<div class="top"><div><h1>${esc(company.company_name || 'Company')}</h1><div class="muted">${esc(company.address || '')}${company.uen ? ` · UEN ${esc(company.uen)}` : ''}</div></div>
-<div><strong>PAYSLIP</strong><div class="muted">${esc(monthName(period))}</div></div></div>
-<h2>Employee</h2><table class="meta">
-<tr><td>Name</td><td>${esc(r.employee_name)}</td></tr>
-${r.designation ? `<tr><td>Designation</td><td>${esc(r.designation)}</td></tr>` : ''}
-<tr><td>Salary period</td><td>${esc(monthName(period))}</td></tr>
-<tr><td>Date of payment</td><td>${esc(r.paid_on || 'Not paid yet')}</td></tr>
-<tr><td>Mode of payment</td><td>${esc(r.payment_mode || '—')}</td></tr></table>
-<h2>Earnings (SGD)</h2><table>
-${line('Basic salary', r.basic_salary)}
-${allowances ? line('Allowances', allowances) : ''}
-${Number(r.ot_hours) ? line(`Overtime: ${r.ot_hours} hours at $${$(r.ot_rate)}/hour (${monthName(period)})`, r.ot_pay) : ''}
-${Number(r.bonus) ? line('Other additional payments (bonus)', r.bonus) : ''}
-${Number(r.unpaid_leave) ? line(`Less: unpaid leave${Number(r.unpaid_days) ? ` (${Number(r.unpaid_days)} day(s))` : ''}`, -Number(r.unpaid_leave)) : ''}
-${line('Gross pay', r.gross_pay, 'total')}</table>
-<h2>Deductions (SGD)</h2><table>
-${hasCpf ? line('Employee CPF contribution', r.cpf_employee) : ''}
-${Number(r.other_deduction) ? line(`Other deduction${r.deduction_note ? `: ${r.deduction_note}` : ''}`, r.other_deduction) : ''}
-${line('Total deductions', Number(r.cpf_employee) + Number(r.other_deduction), 'total')}</table>
-<table><tr class="net"><td>Net pay</td><td class="n">$${$(r.net_pay)}</td></tr></table>
-${hasCpf ? `<h2>Employer contributions (not deducted)</h2><table>${line('Employer CPF contribution', r.cpf_employer)}</table>` : ''}
+<div class="head"><img src="${esc(logo)}" alt=""><div class="co"><h1>${esc(String(company.company_name || 'Company').toUpperCase())}</h1>
+${address ? `<div>${esc(String(address).toUpperCase())}</div>` : ''}
+<div>${phone ? `HP: ${esc(phone)}` : ''}${phone && email ? '&nbsp; ' : ''}${email ? `E-mail:${esc(email)}` : ''}</div></div><div style="width:72px"></div></div>
+<h2>SALARY PAY SLIP</h2>
+<table class="meta">
+<tr><td>Name Of Worker</td><td>:</td><td class="name">${esc(String(r.employee_name).toUpperCase())}</td></tr>
+<tr><td>IC No/Fin No</td><td>:</td><td>${esc(r.id_number || '')}</td></tr>
+<tr><td>Occupation</td><td>:</td><td>${esc(r.designation || '')}</td></tr>
+<tr><td>Payslip For</td><td>:</td><td>01-${last} ${esc(mon)} ${y}</td></tr>
+<tr><td>Mode Of Payment</td><td>:</td><td>${esc(r.payment_mode || 'Bank Transfer')}</td></tr>
+</table>
+<table class="pay">
+<thead><tr><th colspan="4">Earnings</th><th colspan="3">Deductions</th></tr></thead>
+<tbody>${body}</tbody>
+<tfoot>
+<tr><td class="lbl">Total Earnings</td><td></td><td class="c">$</td><td class="n">${$(r.gross_pay)}</td><td class="l">Total Deductions</td><td class="c">$</td><td class="n">${$(totalDed)}</td></tr>
+<tr class="g"><td class="lbl">Gross Pay</td><td></td><td class="c">$</td><td class="n">${$(r.gross_pay)}</td><td class="l lbl">NET Pay</td><td class="c">$</td><td class="n">${$(r.net_pay)}</td></tr>
+</tfoot></table>
+${hasCpf ? `<div class="cpf">Employer CPF contribution (paid by the company, not deducted): $${$(r.cpf_employer)}</div>` : ''}
+<div class="sign"><div><div class="val"></div><div class="line">Signature of The Employee</div></div>
+<div><div class="val">${esc(r.paid_on ? new Date(`${r.paid_on}T00:00:00`).toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' }) : '')}</div><div class="line">Date Of Payment</div></div></div>
 <button onclick="print()">Print / Save as PDF</button>
 </body></html>`);
   w.document.close();
+}
+
+// Address, phone and email printed at the top of the payslip (the website's are used while these are empty)
+function SlipHeader({ company, slip, setSlip }: { company: Row; slip: Row; setSlip: (s: Row) => void }) {
+  const [msg, setMsg] = useState('');
+  async function save() {
+    try { setSlip(await api<Row>('/admin/payroll-config', { method: 'PUT', auth: true, body: slip })); setMsg('Saved.'); } catch (e) { setMsg((e as Error).message); }
+  }
+  return (
+    <details className="card att-rules">
+      <summary>Payslip header</summary>
+      <div className="pay-bar">
+        <label>Address<input value={slip.slip_address || ''} placeholder={company.address} onChange={(e) => setSlip({ ...slip, slip_address: e.target.value })} /></label>
+        <label>Phone (HP)<input value={slip.slip_phone || ''} placeholder={company.phone} onChange={(e) => setSlip({ ...slip, slip_phone: e.target.value })} /></label>
+        <label>Email<input type="email" value={slip.slip_email || ''} placeholder={company.email} onChange={(e) => setSlip({ ...slip, slip_email: e.target.value })} /></label>
+        <button type="button" className="btn" onClick={save}>Save</button>
+        {msg && <span role="status">{msg}</span>}
+      </div>
+      <p className="pay-hint">Leave a box empty to use the website's details (Admin → Settings). The company name and logo come from Settings too.</p>
+    </details>
+  );
 }
