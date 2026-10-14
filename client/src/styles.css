@@ -355,7 +355,6 @@ html,body{overflow-x:clip}
 .home-work .shot img{border-radius:8px}
 .home-work .shot figcaption{position:absolute;left:0;right:0;bottom:0;padding:28px 14px 12px;color:#fff;font-weight:600;font-size:.95rem;background:linear-gradient(to top,rgba(16,30,34,.85),transparent);border-radius:0 0 8px 8px}
 /* desktop already shows WhatsApp in the header: no floating buttons there */
-@media(min-width:1101px){.floaters{display:none}.foot-shade{padding-bottom:22px}}
 @media(max-width:480px){.block{padding-top:44px;padding-bottom:44px}.band{padding:44px 0}}
 .home-work{grid-template-columns:repeat(3,1fr)}@media(max-width:900px){.home-work{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.home-work{grid-template-columns:1fr}}
 
@@ -386,3 +385,6 @@ html,body{overflow-x:clip}
   .foot-bottom>span{flex-basis:100%}
 }
 @media(min-width:601px){.foot-grid>nav[aria-label="Quick links"] ul{grid-template-columns:auto auto;column-gap:28px;justify-content:start}}
+
+/* wider screens: WhatsApp and Call float side by side at the bottom right; the footer ends with room for them */
+@media(min-width:701px){.floaters{flex-direction:row}.foot-shade{padding-bottom:84px}}
