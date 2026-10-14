@@ -407,3 +407,20 @@ html,body{overflow-x:clip}
 .pay-actions{display:flex;flex-wrap:wrap;gap:6px}.pay-actions .btn{padding:5px 10px;font-size:.85rem}
 #root>*{min-width:0;max-width:100%}
 .pay-table td:first-child{min-width:190px}
+
+/* Payroll > Attendance */
+.att-modes{margin:4px 0 12px}
+.att-day{margin:8px 0}
+.att-table input[type=time]{width:128px}.att-table input[type=text]{width:160px;margin:0}
+.att-table select{padding:5px 6px;max-width:190px}
+.att-table tr.att-empty td:first-child strong{color:#b3261e}
+.att-s.att-P{background:#e8f6ec}.att-s.att-A,.att-s.att-UL,.att-s.att-HL{background:#fdecea}.att-s.att-AL,.att-s.att-MC{background:#e8f0fb}.att-s.att-PH,.att-s.att-OFF{background:#f1f1f1}
+.att-sheet{border-collapse:collapse;font-size:.8rem;min-width:100%}
+.att-sheet th,.att-sheet td{border:1px solid var(--line);padding:3px 4px;text-align:center;white-space:nowrap}
+.att-sheet th:first-child,.att-sheet td:first-child{text-align:left;position:sticky;left:0;background:var(--card);min-width:150px;z-index:1}
+.att-sheet thead th{background:#eef3f1}.att-sheet th.sun{background:#f6e3e1}
+.att-sheet th button{border:0;background:none;font:inherit;cursor:pointer;padding:0;line-height:1.1}.att-sheet th small{display:block;color:var(--muted);font-size:.7rem}
+.att-sheet td.att-P{background:#e8f6ec}.att-sheet td.att-A,.att-sheet td.att-UL,.att-sheet td.att-HL{background:#fdecea;color:#b3261e;font-weight:700}
+.att-sheet td.att-AL,.att-sheet td.att-MC{background:#e8f0fb}.att-sheet td.att-PH,.att-sheet td.att-OFF{background:#f1f1f1;color:var(--muted)}
+.att-sheet sup{font-size:.62rem;color:#0b6b3a;font-weight:700}
+.att-rules{margin-top:18px}.att-rules summary{cursor:pointer;font-weight:700}.att-rules .pay-bar{margin-top:10px}

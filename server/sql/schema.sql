@@ -109,3 +109,22 @@ CREATE TABLE IF NOT EXISTS payroll_items (
   payment_mode VARCHAR(40) NULL,
   UNIQUE KEY period_employee (period, employee_id)
 );
+
+-- Daily attendance (Admin > Payroll > Attendance). OT hours and unpaid days feed the monthly payroll.
+CREATE TABLE IF NOT EXISTS attendance (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  work_date CHAR(10) NOT NULL,
+  status VARCHAR(4) NOT NULL DEFAULT 'P',
+  time_in CHAR(5) NULL,
+  time_out CHAR(5) NULL,
+  ot_hours DECIMAL(5,2) NOT NULL DEFAULT 0,
+  note VARCHAR(120) NULL,
+  UNIQUE KEY employee_day (employee_id, work_date)
+);
+
+-- Payroll rules that are not public (unlike settings): work week and normal hours per day
+CREATE TABLE IF NOT EXISTS payroll_config (
+  id INT PRIMARY KEY,
+  data TEXT NOT NULL
+);

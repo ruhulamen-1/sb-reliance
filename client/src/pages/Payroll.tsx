@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
 import { Crud } from './Admin';
+import Attendance from './Attendance';
 
 // Admin > Payroll: employees and the monthly salary run (OT, allowances, CPF, SDL), payslips and a CSV for Excel.
 // All arithmetic is done on the server (server/src/payroll.ts); this page only edits inputs and shows results.
@@ -21,14 +22,15 @@ const monthName = (p: string) => new Date(`${p}-01T00:00:00`).toLocaleDateString
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 export default function Payroll() {
-  const [view, setView] = useState<'month' | 'staff'>('month');
+  const [view, setView] = useState<'month' | 'att' | 'staff'>('month');
   return (
     <>
       <div className="tabs" role="tablist" aria-label="Payroll">
         <button role="tab" aria-selected={view === 'month'} className={view === 'month' ? 'on' : ''} onClick={() => setView('month')}>Monthly payroll</button>
+        <button role="tab" aria-selected={view === 'att'} className={view === 'att' ? 'on' : ''} onClick={() => setView('att')}>Attendance</button>
         <button role="tab" aria-selected={view === 'staff'} className={view === 'staff' ? 'on' : ''} onClick={() => setView('staff')}>Employees</button>
       </div>
-      {view === 'staff' ? <Employees /> : <Month />}
+      {view === 'staff' ? <Employees /> : view === 'att' ? <Attendance /> : <Month />}
     </>
   );
 }
@@ -91,6 +93,13 @@ function Month() {
       setMsg(d.added ? `Added ${d.added} employee(s) to ${monthName(period)}.` : 'Every active employee is already in this month.');
     } catch (e) { setMsg((e as Error).message); }
   }
+  async function fromAttendance() {
+    try {
+      const d = await api<{ updated: number; paid: number; none: number; items: Row[] }>('/admin/payroll/from-attendance', { method: 'POST', auth: true, body: { period } });
+      setItems(d.items);
+      setMsg([`OT hours and unpaid leave updated for ${d.updated} employee(s).`, d.none ? `${d.none} had no attendance this month and were left as they were.` : '', d.paid ? `${d.paid} already paid, not changed.` : ''].filter(Boolean).join(' '));
+    } catch (e) { setMsg((e as Error).message); }
+  }
   async function setPaid(r: Row, paid: boolean) {
     let body: Row = { paid };
     if (paid) {
@@ -124,6 +133,7 @@ function Month() {
       <div className="card pay-bar">
         <label>Month<input type="month" value={period} onChange={(e) => e.target.value && setPeriod(e.target.value)} /></label>
         <button type="button" className="btn" onClick={generate}>Add active employees to this month</button>
+        <button type="button" className="btn ghost" onClick={fromAttendance} disabled={!items.length}>Take OT and unpaid leave from attendance</button>
         <button type="button" className="btn ghost" onClick={download} disabled={!items.length}>Download Excel (CSV)</button>
       </div>
       {msg && <p className="ok" role="status">{msg}</p>}
@@ -155,6 +165,7 @@ function Month() {
                         <td key={k}>
                           <input type="number" min={0} step="any" aria-label={`${l}, ${r.employee_name}`} disabled={locked} value={r[k] ?? ''}
                             onChange={(e) => edit(r.id, { [k]: e.target.value })} onBlur={() => save(r)} />
+                          {k === 'unpaid_leave' && Number(r.unpaid_days) > 0 && <small>{Number(r.unpaid_days)} day(s)</small>}
                           {k === 'other_deduction' && Number(r.other_deduction) > 0 && (
                             <input type="text" placeholder="What for?" aria-label={`Deduction note, ${r.employee_name}`} disabled={locked} value={r.deduction_note ?? ''}
                               onChange={(e) => edit(r.id, { deduction_note: e.target.value })} onBlur={() => save(r)} />
@@ -222,7 +233,7 @@ ${line('Basic salary', r.basic_salary)}
 ${allowances ? line('Allowances', allowances) : ''}
 ${Number(r.ot_hours) ? line(`Overtime: ${r.ot_hours} hours at $${$(r.ot_rate)}/hour (${monthName(period)})`, r.ot_pay) : ''}
 ${Number(r.bonus) ? line('Other additional payments (bonus)', r.bonus) : ''}
-${Number(r.unpaid_leave) ? line('Less: unpaid leave', -Number(r.unpaid_leave)) : ''}
+${Number(r.unpaid_leave) ? line(`Less: unpaid leave${Number(r.unpaid_days) ? ` (${Number(r.unpaid_days)} day(s))` : ''}`, -Number(r.unpaid_leave)) : ''}
 ${line('Gross pay', r.gross_pay, 'total')}</table>
 <h2>Deductions (SGD)</h2><table>
 ${hasCpf ? line('Employee CPF contribution', r.cpf_employee) : ''}

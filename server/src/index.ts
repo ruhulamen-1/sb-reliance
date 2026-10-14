@@ -13,6 +13,7 @@ import compression from 'compression';
 import { renderHtml, robotsTxt, sitemapXml, SeoPost, SeoService } from './seo.js';
 import { SERVICE_DEFAULTS, defaultsFor, slugify } from './serviceDefaults.js';
 import { PASS_TYPES, computePay, OW_CEILING } from './payroll.js';
+import { ATT_STATUS, UNPAID_DAYS, autoOt, workingDays, PayrollConfig, readConfig } from './attendance.js';
 
 const env = process.env;
 const JWT_SECRET = env.JWT_SECRET || 'change-this-secret';
@@ -190,6 +191,8 @@ async function initDb() {
   await ensureColumn('services', 'faq', 'faq TEXT NULL');
   await ensureColumn('services', 'seo_title', 'seo_title VARCHAR(190) NULL');
   await ensureColumn('services', 'seo_description', 'seo_description VARCHAR(320) NULL');
+  // payroll: unpaid days taken from attendance
+  await ensureColumn('payroll_items', 'unpaid_days', 'unpaid_days DECIMAL(5,1) NOT NULL DEFAULT 0');
 
   const [u] = await pool.query<RowDataPacket[]>('SELECT id FROM users LIMIT 1');
   if (!u.length) {
@@ -567,6 +570,7 @@ app.post('/api/admin/payroll/generate', auth, wrap(async (req, res) => {
   const period = String((req.body as { period?: string }).period || '');
   if (!PERIOD.test(period)) return res.status(400).json({ error: 'Choose a month' });
   const [emps] = await pool.query<RowDataPacket[]>('SELECT * FROM employees WHERE active = 1');
+  const cfg = await payrollConfig();
   let added = 0;
   for (const e of emps) {
     const [r] = await pool.query<ResultSetHeader>(
@@ -577,7 +581,10 @@ app.post('/api/admin/payroll/generate', auth, wrap(async (req, res) => {
     if (r.affectedRows) {
       added++;
       const [it] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE id = ?', [r.insertId]);
-      await recalc(it[0], e);
+      if (await applyAttendance(it[0], cfg)) {
+        const [again] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE id = ?', [r.insertId]);
+        await recalc(again[0], e);
+      } else await recalc(it[0], e);
     }
   }
   res.json({ added, items: await periodItems(period) });
@@ -596,6 +603,7 @@ app.put('/api/admin/payroll/:id', auth, wrap(async (req, res) => {
     ot_hours: money(b.ot_hours ?? item.ot_hours),
     bonus: money(b.bonus ?? item.bonus),
     unpaid_leave: money(b.unpaid_leave ?? item.unpaid_leave),
+    unpaid_days: money(b.unpaid_days ?? item.unpaid_days),
     other_deduction: money(b.other_deduction ?? item.other_deduction),
     deduction_note: text(b.deduction_note ?? item.deduction_note, 255),
     levy: money(b.levy ?? item.levy),
@@ -629,6 +637,120 @@ app.delete('/api/admin/payroll/:id', auth, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ---------- Attendance (admin only) ----------
+async function payrollConfig(): Promise<PayrollConfig> {
+  const [r] = await pool.query<RowDataPacket[]>('SELECT data FROM payroll_config WHERE id = 1');
+  return readConfig(r[0]?.data);
+}
+app.get('/api/admin/payroll-config', auth, wrap(async (_req, res) => { res.json(await payrollConfig()); }));
+app.put('/api/admin/payroll-config', auth, wrap(async (req, res) => {
+  const cfg = readConfig(JSON.stringify(req.body || {}));
+  await pool.query('INSERT INTO payroll_config (id, data) VALUES (1, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)', [JSON.stringify(cfg)]);
+  res.json(cfg);
+}));
+
+// Sets a draft payroll line's OT hours, unpaid days and unpaid leave amount from the month's attendance.
+// Returns false when the employee has no attendance in that month (the line is left as it is).
+async function applyAttendance(item: RowDataPacket, cfg: PayrollConfig) {
+  const [att] = await pool.query<RowDataPacket[]>(
+    'SELECT status, ot_hours FROM attendance WHERE employee_id = ? AND work_date LIKE ?', [item.employee_id, `${item.period}-%`]);
+  if (!att.length) return false;
+  const ot = att.reduce((t, a) => t + Number(a.ot_hours || 0), 0);
+  const unpaid = att.reduce((t, a) => t + (UNPAID_DAYS[a.status] || 0), 0);
+  // MOM: salary for days not worked = monthly gross rate / working days in the month x days
+  const daily = (Number(item.basic_salary) + Number(item.fixed_allowance)) / workingDays(item.period, cfg.week);
+  await pool.query('UPDATE payroll_items SET ot_hours = ?, unpaid_days = ?, unpaid_leave = ? WHERE id = ?',
+    [Math.round(ot * 100) / 100, unpaid, Math.round(daily * unpaid * 100) / 100, item.id]);
+  return true;
+}
+
+app.post('/api/admin/payroll/from-attendance', auth, wrap(async (req, res) => {
+  const period = String((req.body as { period?: string }).period || '');
+  if (!PERIOD.test(period)) return res.status(400).json({ error: 'Choose a month' });
+  const cfg = await payrollConfig();
+  let updated = 0, paid = 0, none = 0;
+  for (const item of await periodItems(period)) {
+    if (item.status === 'paid') { paid++; continue; }
+    if (!(await applyAttendance(item, cfg))) { none++; continue; }
+    const [emp] = await pool.query<RowDataPacket[]>('SELECT * FROM employees WHERE id = ?', [item.employee_id]);
+    const [fresh] = await pool.query<RowDataPacket[]>('SELECT * FROM payroll_items WHERE id = ?', [item.id]);
+    await recalc(fresh[0], emp[0]);
+    updated++;
+  }
+  res.json({ updated, paid, none, items: await periodItems(period) });
+}));
+
+const DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const TIME = (v: unknown) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || '')) ? String(v) : null);
+// Employees shown on a day or month sheet: active ones, plus anyone who already has attendance in it
+async function sheetEmployees(like: string) {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT id, name, designation, pass_type, active FROM employees
+     WHERE active = 1 OR id IN (SELECT employee_id FROM attendance WHERE work_date LIKE ?) ORDER BY name`, [like]);
+  return rows;
+}
+async function paidLock(employeeId: number, date: string) {
+  const [r] = await pool.query<RowDataPacket[]>(
+    "SELECT id FROM payroll_items WHERE employee_id = ? AND period = ? AND status = 'paid'", [employeeId, date.slice(0, 7)]);
+  return r.length > 0;
+}
+
+app.get('/api/admin/attendance', auth, wrap(async (req, res) => {
+  const date = String(req.query.date || '');
+  if (!DATE.test(date)) return res.status(400).json({ error: 'Choose a date' });
+  const [records] = await pool.query<RowDataPacket[]>('SELECT * FROM attendance WHERE work_date = ?', [date]);
+  const [paid] = await pool.query<RowDataPacket[]>("SELECT employee_id FROM payroll_items WHERE period = ? AND status = 'paid'", [date.slice(0, 7)]);
+  res.json({ employees: await sheetEmployees(date), records, locked: paid.map((p) => p.employee_id), config: await payrollConfig() });
+}));
+
+app.get('/api/admin/attendance/month', auth, wrap(async (req, res) => {
+  const period = String(req.query.period || '');
+  if (!PERIOD.test(period)) return res.status(400).json({ error: 'Choose a month' });
+  const [records] = await pool.query<RowDataPacket[]>(
+    'SELECT employee_id, work_date, status, ot_hours FROM attendance WHERE work_date LIKE ?', [`${period}-%`]);
+  const cfg = await payrollConfig();
+  res.json({ employees: await sheetEmployees(`${period}-%`), records, working_days: workingDays(period, cfg.week), config: cfg });
+}));
+
+// Saves one employee's day. An empty status clears the day.
+app.put('/api/admin/attendance', auth, wrap(async (req, res) => {
+  const b = req.body as Record<string, unknown>;
+  const employeeId = Number(b.employee_id);
+  const date = String(b.work_date || '');
+  if (!employeeId || !DATE.test(date)) return res.status(400).json({ error: 'Employee and date are required' });
+  if (await paidLock(employeeId, date)) return res.status(400).json({ error: 'The salary for this month is marked paid. Mark it unpaid to change attendance.' });
+  const status = String(b.status || '');
+  if (!status) {
+    await pool.query('DELETE FROM attendance WHERE employee_id = ? AND work_date = ?', [employeeId, date]);
+    return res.json(null);
+  }
+  if (!ATT_STATUS[status]) return res.status(400).json({ error: 'Unknown status' });
+  const timeIn = TIME(b.time_in), timeOut = TIME(b.time_out);
+  const cfg = await payrollConfig();
+  // OT left empty = worked from the times (out - in - break - normal hours); a typed number is kept
+  const ot = b.ot_hours === '' || b.ot_hours === null || b.ot_hours === undefined
+    ? autoOt(status, timeIn, timeOut, cfg)
+    : Math.min(24, money(b.ot_hours) as number);
+  const row = { employee_id: employeeId, work_date: date, status, time_in: timeIn, time_out: timeOut, ot_hours: ot, note: text(b.note, 120) };
+  await pool.query('INSERT INTO attendance SET ? ON DUPLICATE KEY UPDATE status = VALUES(status), time_in = VALUES(time_in), time_out = VALUES(time_out), ot_hours = VALUES(ot_hours), note = VALUES(note)', [row]);
+  const [out] = await pool.query<RowDataPacket[]>('SELECT * FROM attendance WHERE employee_id = ? AND work_date = ?', [employeeId, date]);
+  res.json(out[0]);
+}));
+
+// Gives every active employee without an entry that day the same status (usually Present)
+app.post('/api/admin/attendance/fill', auth, wrap(async (req, res) => {
+  const b = req.body as { date?: string; status?: string };
+  const date = String(b.date || '');
+  const status = String(b.status || 'P');
+  if (!DATE.test(date) || !ATT_STATUS[status]) return res.status(400).json({ error: 'Choose a date' });
+  const [r] = await pool.query<ResultSetHeader>(
+    `INSERT IGNORE INTO attendance (employee_id, work_date, status)
+     SELECT e.id, ?, ? FROM employees e WHERE e.active = 1
+       AND e.id NOT IN (SELECT employee_id FROM payroll_items WHERE period = ? AND status = 'paid')`,
+    [date, status, date.slice(0, 7)]);
+  res.json({ added: r.affectedRows });
+}));
+
 // The month as a CSV file (opens in Excel)
 app.get('/api/admin/payroll/export', auth, wrap(async (req, res) => {
   const period = String(req.query.period || '');
@@ -641,7 +763,7 @@ app.get('/api/admin/payroll/export', auth, wrap(async (req, res) => {
     ['Pass', (r) => PASS_TYPES[r.pass_type] || r.pass_type], ['Designation', (r) => r.designation || ''],
     ['Basic', (r) => r.basic_salary], ['Fixed allowance', (r) => r.fixed_allowance], ['Other allowance', (r) => r.other_allowance],
     ['OT hours', (r) => r.ot_hours], ['OT rate', (r) => r.ot_rate], ['OT pay', (r) => r.ot_pay], ['Bonus', (r) => r.bonus],
-    ['Unpaid leave', (r) => r.unpaid_leave], ['Gross pay', (r) => r.gross_pay], ['CPF employee', (r) => r.cpf_employee],
+    ['Unpaid days', (r) => r.unpaid_days], ['Unpaid leave', (r) => r.unpaid_leave], ['Gross pay', (r) => r.gross_pay], ['CPF employee', (r) => r.cpf_employee],
     ['Other deductions', (r) => r.other_deduction], ['Deduction note', (r) => r.deduction_note || ''], ['Net pay', (r) => r.net_pay],
     ['CPF employer', (r) => r.cpf_employer], ['SDL', (r) => r.sdl], ['Levy', (r) => r.levy],
     ['Bank', (r) => byId.get(r.employee_id)?.bank_name || ''], ['Account', (r) => byId.get(r.employee_id)?.bank_account || ''],

@@ -65,6 +65,8 @@ Web App এর **Environment Variables** এ এগুলো দিন:
 ## Payroll (Admin → Payroll)
 - **Employees:** প্রতিটা কর্মী একবার যোগ করুন (নাম, pass, জন্মতারিখ, basic salary, allowance, levy)।
 - **Monthly payroll:** মাস বেছে "Add active employees to this month" চাপুন, তারপর OT ঘণ্টা, bonus, ছুটি কাটা, অন্য কাটা লিখুন। CPF, SDL, net pay নিজে হিসাব হয়।
+- **Attendance:** প্রতিদিন তারিখ বেছে "Mark the rest Present" চাপুন, তারপর যারা আসেনি/ছুটিতে তাদের status বদলান। Time in/out দিলে OT নিজে হিসাব হয়, না হলে OT ঘণ্টা নিজে লিখুন। "Month sheet" এ পুরো মাস দেখা যায়।
+- মাস শেষে Monthly payroll এ "Take OT and unpaid leave from attendance" চাপুন: OT ঘণ্টা আর unpaid দিনের কাটা (basic + fixed allowance ÷ মাসের working days × দিন) নিজে বসে যায়। Work week (৬/৫½/৫ দিন), দিনের normal ঘণ্টা আর break বদলাতে Attendance → "Attendance rules"।
 - বেতন দেওয়ার পর "Mark paid" দিন; তারপর ওই মাস বদলানো যায় না (আগে "Mark unpaid" করতে হয়)।
 - "Payslip" থেকে প্রিন্ট বা PDF, "Download Excel (CSV)" থেকে পুরো মাস।
 - CPF: Singaporean ও PR (৩য় বছর থেকে) এর জন্য 1 Jan 2026 এর CPF Board rate দিয়ে নিজে হিসাব হয়। PR ১ম/২য় বছরের CPF হাতে লিখতে হয়। Bonus থাকলে CPF Board calculator দিয়ে মিলিয়ে নিন।
