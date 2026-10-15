@@ -5,6 +5,7 @@ import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
 import { TextBlocks, Service } from '../components/content';
+import { HIGH, photo, SIZES } from '../img';
 
 interface Post { id: number; title: string; slug: string; excerpt: string; content: string; image_url?: string | null; created_at: string }
 
@@ -38,7 +39,7 @@ export default function PostPage() {
           </nav>
           <h1 className="h1m">{post.title}</h1>
           <small>{new Date(post.created_at).toLocaleDateString('en-SG', { dateStyle: 'medium' })}</small>
-          {post.image_url && <img className="cardimg postimg" src={post.image_url} alt={post.title} />}
+          {post.image_url && <img className="cardimg postimg" {...photo(post.image_url, SIZES.wide)} alt={post.title} {...HIGH} />}
           <p className="lead">{post.excerpt}</p>
           <div className="prose"><TextBlocks text={post.content} /></div>
           <p className="row gap">

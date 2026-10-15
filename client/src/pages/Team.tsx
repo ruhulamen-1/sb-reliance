@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { api, homeData } from '../api';
+import { api, homeData, initialHome } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
+import { photo, SIZES } from '../img';
 
 interface Member { id: number; name: string; role: string; bio?: string | null; image_url?: string | null }
 
 const initials = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
 
 export default function Team() {
-  const [S, setS] = useState<Settings>({});
+  const [S, setS] = useState<Settings>(() => initialHome()?.settings ?? {});
   const [members, setMembers] = useState<Member[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState('');
@@ -29,7 +30,7 @@ export default function Team() {
         <div className="members">
           {members.map((m) => (
             <article key={m.id} className="member">
-              {m.image_url ? <img src={m.image_url} alt={m.name} loading="lazy" /> : <span className="avatar" aria-hidden="true">{initials(m.name)}</span>}
+              {m.image_url ? <img {...photo(m.image_url, SIZES.card)} alt={m.name} loading="lazy" /> : <span className="avatar" aria-hidden="true">{initials(m.name)}</span>}
               <h3>{m.name}</h3>
               <p className="role">{m.role}</p>
               {m.bio && <p>{m.bio}</p>}

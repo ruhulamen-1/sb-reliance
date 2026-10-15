@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { homeData } from '../api';
+import { homeData, initialHome } from '../api';
 import Shell, { Settings, realEmail } from '../components/Shell';
 import { Service } from '../components/content';
 import { AddressMap, GoogleRating } from '../components/Trust';
@@ -8,8 +8,8 @@ import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
 
 export default function Contact() {
-  const [S, setS] = useState<Settings>({});
-  const [services, setServices] = useState<Service[]>([]);
+  const [S, setS] = useState<Settings>(() => initialHome()?.settings ?? {});
+  const [services, setServices] = useState<Service[]>(() => initialHome()?.services ?? []);
   const serviceNames = services.map((s) => s.title);
   const [err, setErr] = useState('');
 

@@ -8,6 +8,7 @@ import useSeo from '../components/useSeo';
 import { api, initialHome } from '../api';
 import { serviceHeading } from '../components/content';
 import { Guarantee, ReviewsButton, Stats, TrustBar } from '../components/Trust';
+import { HIGH, photo, SIZES } from '../img';
 
 interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
 interface Testimonial { id: number; name: string; location: string; text: string; rating?: number | null }
@@ -46,11 +47,22 @@ export default function Home() {
   const slideCount = Math.max(slides.length, headlines.filter(Boolean).length, 1);
   const [slide, setSlide] = useState(0);
   const [paused, setPaused] = useState(false);
+  // the 2nd and 3rd hero photos are added only after the page has loaded, so phones spend
+  // their bandwidth on the first photo and the headline first (PageSpeed LCP)
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    if (slideCount < 2 || paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const go = () => setTimeout(() => setReady(true), 1500);
+    if (document.readyState === 'complete') { const t = go(); return () => clearTimeout(t); }
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const onLoad = () => { t = go(); };
+    window.addEventListener('load', onLoad, { once: true });
+    return () => { window.removeEventListener('load', onLoad); if (t) clearTimeout(t); };
+  }, []);
+  useEffect(() => {
+    if (slideCount < 2 || paused || !ready || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const t = setInterval(() => setSlide((i) => (i + 1) % slideCount), 6000);
     return () => clearInterval(t);
-  }, [slideCount, paused]);
+  }, [slideCount, paused, ready]);
   const cur = slide % slideCount;
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
   const serviceNames = data.services.map((s) => s.title);
@@ -94,9 +106,9 @@ export default function Home() {
           </div>
           {slides.length > 0 ? (
             <div className="heroslides" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
-              {slides.map((src, i) => (
-                <img key={src} className={i === cur % slides.length ? 'heroimg on' : 'heroimg'} src={src} alt={S.company_name || ''}
-                  {...(i === 0 ? { fetchpriority: 'high' } : { loading: 'lazy' as const })} />
+              {slides.slice(0, ready ? slides.length : 1).map((src, i) => (
+                <img key={src} className={i === cur % slides.length ? 'heroimg on' : 'heroimg'} {...photo(src, SIZES.hero)} alt={S.company_name || ''}
+                  {...(i === 0 ? HIGH : { loading: 'lazy' as const })} />
               ))}
               {slideCount > 1 && (
                 <div className="dots">
@@ -127,7 +139,7 @@ export default function Home() {
         <div className="grid3">
           {data.services.map((s) => (
             <article key={s.id} className="card">
-              {s.image_url && <img className="cardimg" src={s.image_url} alt={serviceHeading(s)} loading="lazy" />}
+              {s.image_url && <img className="cardimg" {...photo(s.image_url, SIZES.card)} alt={serviceHeading(s)} loading="lazy" />}
               <h3>{s.slug ? <Link to={`/services/${s.slug}`}>{s.title}</Link> : s.title}</h3>
               <p>{s.description}</p>
               {s.slug && <Link className="more" to={`/services/${s.slug}`}>More about {s.title.toLowerCase()} <span aria-hidden="true">→</span></Link>}
@@ -163,7 +175,7 @@ export default function Home() {
           <div className="gallery home-work">
             {data.gallery.slice(0, 6).map((g) => (
               <figure key={g.id} className="shot">
-                <img src={g.image_url} alt={g.title} loading="lazy" />
+                <img {...photo(g.image_url, SIZES.card)} alt={g.title} loading="lazy" />
                 <figcaption>{g.title}</figcaption>
               </figure>
             ))}
@@ -173,7 +185,7 @@ export default function Home() {
       )}
 
       {(data.testimonials.length > 0 || S.google_reviews_url) && (
-        <section className="wrap block">
+        <section className="wrap block reviews">
           <h2>What customers say</h2>
           <div className="grid3">
             {data.testimonials.map((t) => (
@@ -194,7 +206,7 @@ export default function Home() {
           <div className="grid3">
             {data.posts.map((p) => (
               <article key={p.id} className="card">
-                {p.image_url && <img className="cardimg" src={p.image_url} alt={p.title} loading="lazy" />}
+                {p.image_url && <img className="cardimg" {...photo(p.image_url, SIZES.card)} alt={p.title} loading="lazy" />}
                 <h3><Link to={`/blog/${p.slug}`}>{p.title}</Link></h3>
                 <p>{p.excerpt}</p>
                 <small>{new Date(p.created_at).toLocaleDateString('en-SG', { dateStyle: 'medium' })}</small>

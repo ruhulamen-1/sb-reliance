@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { homeData } from '../api';
+import { homeData, initialHome } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
+import { HIGH, photo, SIZES } from '../img';
 
 interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
 
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
 export default function About() {
-  const [S, setS] = useState<Settings>({});
-  const [services, setServices] = useState<Service[]>([]);
+  const [S, setS] = useState<Settings>(() => initialHome()?.settings ?? {});
+  const [services, setServices] = useState<Service[]>(() => initialHome()?.services ?? []);
   const [err, setErr] = useState('');
   const [tab, setTab] = useState(0);
 
@@ -39,7 +40,7 @@ export default function About() {
             <h1 className="h1s">About {S.brand || 'us'}</h1>
             {lines(S.about_intro).map((p) => <p key={p} className="lead">{p}</p>)}
           </div>
-          {S.about_image && <img className="heroimg" src={S.about_image} alt={S.company_name || ''} />}
+          {S.about_image && <img className="heroimg" {...photo(S.about_image, SIZES.hero)} alt={S.company_name || ''} {...HIGH} />}
         </div>
       </section>
 
@@ -78,7 +79,7 @@ export default function About() {
           <div className="gallery">
             {services.map((s) => (
               <Link key={s.id} to={s.slug ? `/services/${s.slug}` : '/contact'} className="tile">
-                {s.image_url ? <img src={s.image_url} alt={s.title} loading="lazy" /> : <span className="tile-ph" aria-hidden="true" />}
+                {s.image_url ? <img {...photo(s.image_url, SIZES.card)} alt={s.title} loading="lazy" /> : <span className="tile-ph" aria-hidden="true" />}
                 <span className="tile-label">{s.title}</span>
               </Link>
             ))}

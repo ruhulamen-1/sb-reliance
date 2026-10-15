@@ -1,20 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api } from '../api';
+import { api, initialHome } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
 import { Guarantee, TrustBar } from '../components/Trust';
 import { faqPairs, serviceHeading, TextBlocks, Service } from '../components/content';
+import { HIGH, photo, SIZES } from '../img';
 
 interface GalleryItem { id: number; title: string; image_url: string }
 
 export default function ServicePage() {
   const { slug = '' } = useParams();
-  const [S, setS] = useState<Settings>({});
-  const [service, setService] = useState<Service | null>(null);
-  const [services, setServices] = useState<Service[]>([]);
+  // the settings and services are already in the page (window.__HOME__), so the service shows at once; only its photos are fetched
+  const [S, setS] = useState<Settings>(() => initialHome()?.settings ?? {});
+  const [services, setServices] = useState<Service[]>(() => initialHome()?.services ?? []);
+  const [service, setService] = useState<Service | null>(() => services.find((x) => x.slug === slug) ?? null);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [state, setState] = useState<'loading' | 'ok' | 'missing' | 'err'>('loading');
   const [err, setErr] = useState('');
@@ -56,7 +58,7 @@ export default function ServicePage() {
                   <a className="btn ghost" href={wa}>WhatsApp {S.phone}</a>
                 </div>
               </div>
-              {service.image_url && <img className="heroimg" src={service.image_url} alt={serviceHeading(service)} />}
+              {service.image_url && <img className="heroimg" {...photo(service.image_url, SIZES.hero)} alt={serviceHeading(service)} {...HIGH} />}
             </div>
           </section>
 
@@ -85,7 +87,7 @@ export default function ServicePage() {
               <div className="gallery">
                 {gallery.map((g) => (
                   <figure key={g.id} className="shot">
-                    <img src={g.image_url} alt={g.title} loading="lazy" />
+                    <img {...photo(g.image_url, SIZES.card)} alt={g.title} loading="lazy" />
                     <figcaption>{g.title}</figcaption>
                   </figure>
                 ))}

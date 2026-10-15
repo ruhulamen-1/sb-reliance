@@ -3,6 +3,15 @@
 // The page titles/descriptions below are mirrored in client/src/pages/* (useSeo) for in-app navigation.
 
 export type Settings = Record<string, string>;
+
+/** Widths of the smaller photo copies served as /uploads/<name>?w=<width> (server/src/images.ts, client/src/img.ts). */
+export const PHOTO_WIDTHS = [480, 800, 1200];
+
+/** srcset for an uploaded JPEG / PNG / WebP, or '' for anything else. */
+export function srcSet(url: string): string {
+  if (!/^\/uploads\/[\w-]+\.(jpe?g|png|webp)$/i.test(url)) return '';
+  return [...PHOTO_WIDTHS.map((w) => `${url}?w=${w} ${w}w`), `${url} 1600w`].join(', ');
+}
 export interface SeoService {
   title: string;
   description: string;
@@ -367,7 +376,11 @@ export function renderHtml(template: string, rawPath: string, S: Settings, data:
   let tags = head.tags;
   // start the biggest picture early (it is what PageSpeed measures as "Largest Contentful Paint")
   const lcp = lcpImage(path, S, data);
-  if (lcp) tags = `<link rel="preload" as="image" href="${esc(lcp)}" fetchpriority="high" />\n    ` + tags;
+  if (lcp) {
+    // same srcset / sizes as the <img> on the page (client/src/img.ts), so a phone preloads the small copy
+    const set = srcSet(lcp);
+    tags = `<link rel="preload" as="image" href="${esc(lcp)}"${set ? ` imagesrcset="${esc(set)}" imagesizes="(max-width: 800px) 100vw, 45vw"` : ''} fetchpriority="high" />\n    ` + tags;
+  }
   // the faded photo behind the home hero (wide screens only, see styles.css); without this it is found only after the app runs
   if ((path === '/' || path in HOME_ALIASES) && S.page_bg) tags = `<link rel="preload" as="image" href="${esc(S.page_bg)}" media="(min-width: 801px)" />\n    ` + tags;
   // the shared page data, so the app renders at once instead of fetching it again

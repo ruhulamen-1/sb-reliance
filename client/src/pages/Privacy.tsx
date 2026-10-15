@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { homeData } from '../api';
+import { homeData, initialHome } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 
 export default function Privacy() {
-  const [S, setS] = useState<Settings>({});
+  const [S, setS] = useState<Settings>(() => initialHome()?.settings ?? {});
   const [err, setErr] = useState('');
   useEffect(() => {
     homeData<{ settings?: Settings }>().then((d) => setS(d.settings ?? {})).catch((e: Error) => setErr(e.message));

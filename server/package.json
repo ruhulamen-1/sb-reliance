@@ -28,5 +28,8 @@
     "@types/nodemailer": "^6.4.24",
     "tsx": "^4.16.0",
     "typescript": "^5.5.0"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.33.5"
   }
 }

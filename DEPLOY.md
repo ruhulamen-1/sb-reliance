@@ -77,6 +77,7 @@ Web App এর **Environment Variables** এ এগুলো দিন:
 - Deploy log এ `Refusing to start in production` দেখালে `JWT_SECRET`/`ADMIN_PASSWORD` ঠিক করুন।
 - `DB init failed` দেখালে `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` আবার মিলিয়ে দেখুন।
 - সাইট খোলে কিন্তু ছবি আসে না: `UPLOAD_DIR` এর folder এ লেখার অনুমতি আছে কিনা দেখুন।
+- Phone এ ছবির ছোট কপি: server নিজে `sharp` দিয়ে বানায় আর `UPLOAD_DIR/.w/` folder এ রাখে। `sharp` install না হলে সাইট আগের মতোই চলে, শুধু phone এ পুরো ছবিটা যায়।
 
 ## SEO ও বিশ্বাসযোগ্যতা (live হওয়ার পর)
 - `https://আপনার-domain/robots.txt` আর `/sitemap.xml` খুলে দেখুন (server নিজে বানায়)।

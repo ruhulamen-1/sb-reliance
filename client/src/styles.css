@@ -1,3 +1,6 @@
+/* self-hosted fonts (latin), preloaded in index.html */
+@font-face{font-family:'Bricolage Grotesque';font-style:normal;font-weight:500 800;font-display:swap;src:url(/fonts/bricolage-grotesque-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Source Sans 3';font-style:normal;font-weight:400 600;font-display:swap;src:url(/fonts/source-sans-3-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
 :root{--ink:#10343a;--paper:#fbfaf7;--sun:#f2b705;--line:#d9e2e0;--muted:#5b7276;--card:#fff}
 *{box-sizing:border-box}
 body{margin:0;font:17px/1.55 'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--paper)}
@@ -480,3 +483,39 @@ html,body{overflow-x:clip}
 .tag{display:inline-block;font-size:.8rem;font-weight:600;padding:1px 8px;border-radius:10px;background:#fde7a6;color:var(--ink);margin-left:8px;vertical-align:middle}
 .tag.hidden{background:#e3e8e7}
 .review-link{display:grid;gap:8px}.review-link code{word-break:break-all}
+
+/* ---------- phones: shorter pages, smaller photos, bigger tap targets ---------- */
+@media(max-width:700px){
+  h1{font-size:clamp(1.9rem,8.4vw,2.4rem)}
+  .lead{font-size:1.05rem;margin-bottom:1.1rem}
+  .hero{padding:32px 0 28px}
+  .hero-grid{gap:24px}
+  .heroimg{aspect-ratio:16/10}
+  /* the two main buttons share one row, full width */
+  .hero .row.gap,.svc-hero .row.gap{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .svc-hero .row.gap{grid-template-columns:1fr}
+  .hero .row.gap .btn,.svc-hero .row.gap .btn{text-align:center;padding-left:8px;padding-right:8px;min-height:48px;display:flex;align-items:center;justify-content:center}
+  /* service and blog cards: small photo on the left instead of a full-width photo on top */
+  #services .grid3,#blog .grid3{grid-template-columns:1fr;gap:12px}
+  .grid3>article.card{display:grid;grid-template-columns:96px 1fr;column-gap:14px;align-items:start;padding:12px}
+  .grid3>article.card>.cardimg:first-child{grid-row:1/span 3;width:96px;height:96px;margin:0;border-radius:6px;aspect-ratio:1;object-fit:cover}
+  .grid3>article.card>*:not(.cardimg){grid-column:2}
+  .grid3>article.card h3{font-size:1.05rem;margin:0 0 4px}
+  .grid3>article.card>p{-webkit-line-clamp:2;font-size:.95rem;margin:0}
+  .grid3>article.card .more,.grid3>article.card small{padding-top:6px;font-size:.92rem}
+  /* photo grids: two per row */
+  .gallery,.home-work{grid-template-columns:1fr 1fr;gap:8px}
+  .shot figcaption{font-size:.85rem}
+  .home-work .shot figcaption{padding:20px 8px 6px;font-size:.8rem}
+  /* reviews: swipe sideways instead of a long column */
+  .reviews .grid3{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin:0 -20px;padding:2px 20px 10px;scroll-padding:0 20px;scrollbar-width:none}
+  .reviews .grid3::-webkit-scrollbar{display:none}
+  .reviews .grid3>figure{flex:0 0 84%;scroll-snap-align:center;margin:0}
+  /* forms: larger checkboxes and touch rows */
+  .check{min-height:40px}.check input{width:20px;height:20px}
+  fieldset{gap:0 16px}
+  .btn{min-height:46px}
+}
+@media(max-width:480px){.reviews .grid3{margin:0 -16px;padding:2px 16px 10px;scroll-padding:0 16px}}
+/* the footer starts below the screen while a page's content is still loading, so it does not jump (PageSpeed CLS) */
+main.page{min-height:100vh}

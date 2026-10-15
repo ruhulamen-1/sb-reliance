@@ -13,6 +13,7 @@ import compression from 'compression';
 import { renderHtml, robotsTxt, sitemapXml, SeoPost, SeoService } from './seo.js';
 import { SERVICE_DEFAULTS, defaultsFor, slugify } from './serviceDefaults.js';
 import { PASS_TYPES, computePay, OW_CEILING } from './payroll.js';
+import { resizedUploads } from './images.js';
 import { ATT_STATUS, autoOt, tally, workingDays, PayrollConfig, readConfig } from './attendance.js';
 
 const env = process.env;
@@ -352,6 +353,8 @@ app.use((req, res, next) => {
 });
 app.use(cors());
 // upload names are unique (time + random), so a file never changes: browsers may keep it for 30 days
+// ?w=480|800|1200 gives a smaller copy for phones (srcset); the original is served otherwise
+app.use('/uploads', resizedUploads(uploadsDir));
 app.use('/uploads', express.static(uploadsDir, { maxAge: '30d', immutable: true }));
 // the upload route has its own, larger JSON limit
 app.use((req, res, next) => (req.path === '/api/admin/upload' ? next() : express.json({ limit: '1mb' })(req, res, next)));
@@ -951,8 +954,8 @@ if (existsSync(clientDist)) {
   const template = readFileSync(indexFile, 'utf8');
   app.use(express.static(clientDist, {
     index: false,
-    // build files in /assets have a content hash in their name: cache them for a year
-    setHeaders: (res, file) => { if (/[\\/]assets[\\/]/.test(file)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); },
+    // build files in /assets have a content hash in their name, and /fonts never change: cache them for a year
+    setHeaders: (res, file) => { if (/[\\/](assets|fonts)[\\/]/.test(file)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); },
   }));
   app.get(/^\/(?!api).*/, async (req, res) => {
     try {

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, homeData } from '../api';
+import { api, homeData, initialHome } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
+import { photo, SIZES } from '../img';
 
 interface Project { id: number; title: string; category: string; image_url: string; before_image_url?: string | null; location?: string | null; duration?: string | null; description?: string | null }
 
 export default function Portfolio() {
-  const [S, setS] = useState<Settings>({});
+  const [S, setS] = useState<Settings>(() => initialHome()?.settings ?? {});
   const [items, setItems] = useState<Project[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState('');
@@ -53,7 +54,7 @@ export default function Portfolio() {
           {shown.map((p, i) => (
             <button key={p.id} type="button" className="proj" onClick={() => show(i)} aria-label={`View ${p.title}`}>
               <span className="projimg">
-                <img src={p.image_url} alt={p.title} loading="lazy" />
+                <img {...photo(p.image_url, SIZES.card)} alt={p.title} loading="lazy" />
                 {p.before_image_url && <span className="badge">Before / after</span>}
               </span>
               <strong>{p.title}</strong>
