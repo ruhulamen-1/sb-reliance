@@ -10,7 +10,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
-import { renderHtml, robotsTxt, sitemapXml, SeoPost, SeoService } from './seo.js';
+import { projectService, renderHtml, robotsTxt, sitemapXml, SeoPost, SeoProject, SeoService } from './seo.js';
 import { SERVICE_DEFAULTS, defaultsFor, slugify } from './serviceDefaults.js';
 import { PASS_TYPES, computePay, OW_CEILING } from './payroll.js';
 import { resizedUploads } from './images.js';
@@ -44,7 +44,7 @@ const CONTENT: Record<string, string[]> = {
   services: ['title', 'slug', 'description', 'content', 'faq', 'seo_title', 'seo_description', 'sort_order', 'image_url'],
   posts: ['title', 'slug', 'excerpt', 'content', 'image_url'],
   testimonials: ['name', 'location', 'text', 'rating', 'status'],
-  gallery: ['title', 'category', 'image_url', 'before_image_url', 'location', 'duration', 'description'],
+  gallery: ['title', 'slug', 'category', 'image_url', 'before_image_url', 'photo_2', 'photo_3', 'photo_4', 'location', 'duration', 'description'],
   team: ['name', 'role', 'bio', 'image_url', 'sort_order'],
 };
 
@@ -192,6 +192,11 @@ async function initDb() {
   await ensureColumn('gallery', 'location', 'location VARCHAR(120) NULL');
   await ensureColumn('gallery', 'duration', 'duration VARCHAR(80) NULL');
   await ensureColumn('gallery', 'description', 'description TEXT NULL');
+  // each project has its own page (/portfolio/:slug) with up to three more photos
+  await ensureColumn('gallery', 'slug', 'slug VARCHAR(190) NULL');
+  await ensureColumn('gallery', 'photo_2', 'photo_2 VARCHAR(255) NULL');
+  await ensureColumn('gallery', 'photo_3', 'photo_3 VARCHAR(255) NULL');
+  await ensureColumn('gallery', 'photo_4', 'photo_4 VARCHAR(255) NULL');
   // service pages (/services/:slug)
   await ensureColumn('services', 'slug', 'slug VARCHAR(190) NULL');
   await ensureColumn('services', 'content', 'content MEDIUMTEXT NULL');
@@ -239,7 +244,21 @@ async function initDb() {
       await pool.query('INSERT INTO services (title, description, sort_order) VALUES (?, ?, ?)', [seed[i][0], seed[i][1], i + 1]);
   }
   await fillServicePages();
+  await fillProjectSlugs();
 }
+
+// Projects added before project pages existed get a page address from their name and location
+async function fillProjectSlugs() {
+  const [rows] = await pool.query<RowDataPacket[]>("SELECT id, title, location FROM gallery WHERE slug IS NULL OR slug = ''");
+  for (const r of rows) {
+    await pool.query('UPDATE gallery SET slug = ? WHERE id = ?', [await uniqueSlug('gallery', projectSlugSource(r), r.id), r.id]);
+  }
+}
+const projectSlugSource = (r: Record<string, unknown>) => {
+  const title = String(r.title || '');
+  const loc = String(r.location || '').trim();
+  return loc && !slugify(title).includes(slugify(loc)) ? `${title} ${loc}` : title;
+};
 
 // Services without a slug get one (and, for the built-in services, starting page text, FAQ and Google
 // title/description). Runs on every start but only touches rows whose slug is still empty.
@@ -259,8 +278,8 @@ async function fillServicePages() {
 }
 
 // A URL-safe slug that no other row of the table uses (adds -2, -3... when taken)
-async function uniqueSlug(table: 'services' | 'posts', wanted: string, id?: number | string) {
-  const base = slugify(wanted) || table.slice(0, -1);
+async function uniqueSlug(table: 'services' | 'posts' | 'gallery', wanted: string, id?: number | string) {
+  const base = slugify(wanted) || (table === 'gallery' ? 'project' : table.slice(0, -1));
   for (let n = 1; ; n++) {
     const slug = n === 1 ? base : `${base}-${n}`;
     const [taken] = await pool.query<RowDataPacket[]>('SELECT id FROM ?? WHERE slug = ? AND id <> ? LIMIT 1', [table, slug, id ?? 0]);
@@ -371,7 +390,7 @@ app.post('/api/auth/login', wrap(async (req, res) => {
 
 // ---------- Public ----------
 app.get('/api/public/gallery', wrap(async (_req, res) => {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, category, image_url, before_image_url, location, duration, description FROM gallery ORDER BY id DESC LIMIT 200');
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, category, image_url, before_image_url, location, duration, description FROM gallery ORDER BY id DESC LIMIT 200');
   res.json(rows);
 }));
 
@@ -386,7 +405,7 @@ async function homeData() {
   const [services] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
   const [testimonials] = await pool.query<RowDataPacket[]>("SELECT id, name, location, text, rating FROM testimonials WHERE status = 'approved' ORDER BY id DESC LIMIT 6");
   const [posts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 3');
-  const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, image_url FROM gallery ORDER BY id DESC LIMIT 12');
+  const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, image_url FROM gallery ORDER BY id DESC LIMIT 12');
   return { services, testimonials, posts, gallery, settings: await getSettings() };
 }
 
@@ -394,11 +413,32 @@ app.get('/api/public/home', wrap(async (_req, res) => {
   res.json(await homeData());
 }));
 
+// One project page: the project, the service it belongs to and a few more projects
+async function projectData(slug: string) {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM gallery WHERE slug = ? LIMIT 1', [slug]);
+  const project = rows[0];
+  if (!project) return null;
+  const [services] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, description FROM services ORDER BY sort_order, id');
+  const [others] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, category, location, image_url FROM gallery WHERE id <> ? ORDER BY id DESC LIMIT 60', [project.id]);
+  // same category first
+  const same = others.filter((o) => project.category && o.category === project.category);
+  const related = [...same, ...others.filter((o) => !same.includes(o))].slice(0, 3);
+  return { project, service: projectService(project, services as SeoService[]) || null, related };
+}
+app.get('/api/public/projects/:slug', wrap(async (req, res) => {
+  const d = await projectData(req.params.slug);
+  if (!d) return res.status(404).json({ error: 'Project not found' });
+  res.json(d);
+}));
+
 app.get('/api/public/services/:slug', wrap(async (req, res) => {
   const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
   const service = rows.find((r) => r.slug === req.params.slug);
   if (!service) return res.status(404).json({ error: 'Service not found' });
-  const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, image_url FROM gallery ORDER BY id DESC LIMIT 8');
+  // this service's own projects first, then the latest others
+  const [all] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, category, image_url FROM gallery ORDER BY id DESC LIMIT 100');
+  const mine = all.filter((g) => projectService(g, rows as SeoService[])?.id === service.id);
+  const gallery = [...mine, ...all.filter((g) => !mine.includes(g))].slice(0, 8);
   res.json({ service, services: rows, gallery, settings: await getSettings() });
 }));
 
@@ -904,12 +944,14 @@ for (const [table, cols] of Object.entries(CONTENT)) {
     // testimonials: review status and an optional 1-5 star rating
     if (c === 'status') return ['approved', 'pending', 'hidden'].includes(String(b.status)) ? b.status : 'approved';
     if (c === 'rating') { const n = Math.round(Number(b.rating)); return n >= 1 && n <= 5 ? n : null; }
+    if (table === 'gallery' && c === 'category') return b.category ?? ''; // NOT NULL column
     return b[c] ?? null;
   });
-  // services and posts get a clean, unique slug (from the title when left empty)
+  // services, posts and projects get a clean, unique slug (from the title, and a project's location, when left empty)
   const withSlug = async (b: Record<string, unknown>, id?: string) => {
-    if (table !== 'services' && table !== 'posts') return b;
-    return { ...b, slug: await uniqueSlug(table, String(b.slug || '').trim() || String(b.title || ''), id) };
+    if (table !== 'services' && table !== 'posts' && table !== 'gallery') return b;
+    const from = String(b.slug || '').trim() || (table === 'gallery' ? projectSlugSource(b) : String(b.title || ''));
+    return { ...b, slug: await uniqueSlug(table, from, id) };
   };
   app.get(base, auth, wrap(async (_req, res) => {
     const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM ?? ORDER BY id DESC', [table]);
@@ -945,7 +987,8 @@ app.get('/robots.txt', wrap(async (req, res) => {
 app.get('/sitemap.xml', wrap(async (req, res) => {
   const [services] = await pool.query<RowDataPacket[]>('SELECT title, description, slug FROM services ORDER BY sort_order, id');
   const [posts] = await pool.query<RowDataPacket[]>('SELECT title, slug, excerpt, created_at FROM posts ORDER BY id DESC');
-  res.type('application/xml').send(sitemapXml(baseUrl(req, await getSettings()), services as SeoService[], posts as SeoPost[]));
+  const [projects] = await pool.query<RowDataPacket[]>('SELECT title, slug, description FROM gallery ORDER BY id DESC');
+  res.type('application/xml').send(sitemapXml(baseUrl(req, await getSettings()), services as SeoService[], posts as SeoPost[], projects as SeoProject[]));
 }));
 
 const clientDist = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'client', 'dist');
@@ -970,7 +1013,16 @@ if (existsSync(clientDist)) {
         const [p] = await pool.query<RowDataPacket[]>('SELECT title, slug, excerpt, content, image_url, created_at FROM posts WHERE slug = ? LIMIT 1', [slug]);
         post = (p[0] as SeoPost) || null;
       }
-      const { html, status } = renderHtml(template, req.path, S, { services: services as SeoService[], post }, baseUrl(req, S), home);
+      const projSlug = /^\/portfolio\/([^/]+)\/?$/.exec(req.path)?.[1];
+      let project: Awaited<ReturnType<typeof projectData>> = null;
+      if (projSlug) {
+        let slug = projSlug;
+        try { slug = decodeURIComponent(projSlug); } catch { /* keep as is */ }
+        project = await projectData(slug);
+      }
+      const data = { services: services as SeoService[], post, project: (project?.project as SeoProject) || null };
+      // a project page gets its own data too, so it shows without a second request
+      const { html, status } = renderHtml(template, req.path, S, data, baseUrl(req, S), project ? { ...home, project } : home);
       res.status(status).type('html').setHeader('Cache-Control', 'no-cache').send(html);
     } catch (e) {
       console.error('SEO render failed, sending plain index.html:', (e as Error).message);

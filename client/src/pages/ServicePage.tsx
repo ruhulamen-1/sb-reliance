@@ -9,7 +9,7 @@ import { Guarantee, TrustBar } from '../components/Trust';
 import { faqPairs, serviceHeading, TextBlocks, Service } from '../components/content';
 import { HIGH, photo, SIZES } from '../img';
 
-interface GalleryItem { id: number; title: string; image_url: string }
+interface GalleryItem { id: number; title: string; slug?: string | null; image_url: string }
 
 export default function ServicePage() {
   const { slug = '' } = useParams();
@@ -86,10 +86,10 @@ export default function ServicePage() {
               <h2>Recent projects</h2>
               <div className="gallery">
                 {gallery.map((g) => (
-                  <figure key={g.id} className="shot">
+                  <Link key={g.id} className="shot" to={g.slug ? `/portfolio/${g.slug}` : '/portfolio'}>
                     <img {...photo(g.image_url, SIZES.card)} alt={g.title} loading="lazy" />
                     <figcaption>{g.title}</figcaption>
-                  </figure>
+                  </Link>
                 ))}
               </div>
               <p><Link className="btn ghost" to="/portfolio">View all projects</Link></p>

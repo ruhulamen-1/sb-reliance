@@ -13,7 +13,7 @@ import { HIGH, photo, SIZES } from '../img';
 interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
 interface Testimonial { id: number; name: string; location: string; text: string; rating?: number | null }
 interface Post { id: number; title: string; slug: string; excerpt: string; image_url?: string | null; created_at: string }
-interface GalleryItem { id: number; title: string; image_url: string }
+interface GalleryItem { id: number; title: string; slug?: string | null; image_url: string }
 type Settings = Record<string, string>;
 interface HomeData { services: Service[]; testimonials: Testimonial[]; posts: Post[]; gallery: GalleryItem[]; settings: Settings }
 
@@ -174,10 +174,10 @@ export default function Home() {
           <h2>Our work</h2>
           <div className="gallery home-work">
             {data.gallery.slice(0, 6).map((g) => (
-              <figure key={g.id} className="shot">
+              <Link key={g.id} className="shot" to={g.slug ? `/portfolio/${g.slug}` : '/portfolio'}>
                 <img {...photo(g.image_url, SIZES.card)} alt={g.title} loading="lazy" />
                 <figcaption>{g.title}</figcaption>
-              </figure>
+              </Link>
             ))}
           </div>
           <p><Link className="btn ghost" to="/portfolio">View all projects</Link></p>

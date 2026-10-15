@@ -10,6 +10,7 @@ import Privacy from './pages/Privacy';
 import NotFound from './pages/NotFound';
 import ServicePage from './pages/ServicePage';
 import PostPage from './pages/PostPage';
+import ProjectPage from './pages/ProjectPage';
 import './styles.css';
 
 // admin (with payroll and attendance) and the review form are rarely opened: load them only when visited,
@@ -28,6 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/services/:slug" element={<ServicePage />} />
           <Route path="/blog/:slug" element={<PostPage />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/portfolio/:slug" element={<ProjectPage />} />
           <Route path="/team" element={<Team />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/privacy-policy" element={<Privacy />} />

@@ -13,6 +13,7 @@ export function srcSet(url: string): string {
   return [...PHOTO_WIDTHS.map((w) => `${url}?w=${w} ${w}w`), `${url} 1600w`].join(', ');
 }
 export interface SeoService {
+  id?: number;
   title: string;
   description: string;
   slug?: string | null;
@@ -30,7 +31,17 @@ export interface SeoPost {
   image_url?: string | null;
   created_at?: string | Date | null;
 }
-export interface SeoData { services: SeoService[]; post?: SeoPost | null }
+export interface SeoProject {
+  title: string;
+  slug: string;
+  category?: string | null;
+  location?: string | null;
+  duration?: string | null;
+  description?: string | null;
+  image_url?: string | null;
+  before_image_url?: string | null;
+}
+export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null }
 
 const lines = (v?: string | null) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 const clip = (v: string, max = 160) => {
@@ -70,6 +81,42 @@ export const serviceHeading = (s: SeoService) => (/singapore/i.test(s.title) ? s
 const findService = (services: SeoService[], slug: string) => services.find((s) => s.slug === slug);
 const servicePath = (path: string) => path.match(/^\/services\/([^/]+)$/)?.[1];
 const blogPath = (path: string) => path.match(/^\/blog\/([^/]+)$/)?.[1];
+const projectPath = (path: string) => path.match(/^\/portfolio\/([^/]+)$/)?.[1];
+
+/** "Office ACMV installation" + ", Jurong" unless the name already says where. */
+export const projectHeading = (p: SeoProject) => {
+  const loc = (p.location || '').trim();
+  return loc && !p.title.toLowerCase().includes(loc.toLowerCase()) ? `${p.title}, ${loc}` : p.title;
+};
+
+/** Project pages with only a photo and a name are too thin for Google: they stay out of search until
+ *  "What we did" has a few sentences (Admin > Gallery). */
+export const projectIndexable = (p: SeoProject) => (p.description || '').replace(/\s+/g, ' ').trim().length >= 80;
+
+// words that say which service a project belongs to (besides the service's own name)
+const ALIASES: [RegExp, string[]][] = [
+  [/air.?con/i, ['aircon', 'air-con', 'air con', 'air-condition', 'air condition', 'split unit']],
+  [/acmv/i, ['acmv', 'ventilation', 'ducting']],
+  [/tile/i, ['tile', 'tiling']],
+  [/paint/i, ['paint']],
+  [/ceiling|partition/i, ['ceiling', 'partition', 'drywall']],
+  [/electric/i, ['electric', 'wiring', 'lighting', 'db box']],
+  [/cctv/i, ['cctv', 'camera']],
+];
+/** The service a project belongs to, from its category, then its name (general building works last). */
+export function projectService<T extends SeoService>(project: object, services: T[]): T | undefined {
+  const p = project as { title?: unknown; category?: unknown };
+  const words = (s: SeoService) => {
+    const own = s.title.toLowerCase();
+    const extra = ALIASES.filter(([re]) => re.test(own)).flatMap(([, w]) => w);
+    return extra.length ? extra : [own];
+  };
+  for (const text of [String(p.category || ''), String(p.title || '')].map((t) => t.toLowerCase()).filter(Boolean)) {
+    const hit = services.find((s) => words(s).some((w) => text.includes(w)));
+    if (hit) return hit;
+  }
+  return undefined;
+}
 
 /** Pages that should be in the sitemap. /services, /why-us and /blog show the home page, so they are not listed. */
 export const INDEXABLE = ['/', '/portfolio', '/team', '/contact', '/about', '/privacy-policy'];
@@ -99,6 +146,20 @@ export function pageMeta(path: string, S: Settings, data: SeoData = { services: 
       canonical: path,
       status: 200,
       image: s.image_url || undefined,
+    };
+  }
+  const projSlug = projectPath(path);
+  if (projSlug) {
+    const p = data.project && data.project.slug === safeDecode(projSlug) ? data.project : null;
+    if (!p) return notFound;
+    const facts = [p.category, p.duration && `done in ${p.duration}`].filter(Boolean).join(', ');
+    return {
+      title: `${projectHeading(p)} – ${co}`,
+      description: clip(p.description || `${projectHeading(p)} by ${co}${facts ? ` (${facts})` : ''}. See photos of the finished work.`),
+      canonical: path,
+      noindex: !projectIndexable(p),
+      status: 200,
+      image: p.image_url || undefined,
     };
   }
   const postSlug = blogPath(path);
@@ -249,6 +310,9 @@ export function pageJsonLd(path: string, S: Settings, data: SeoData, base: strin
     if (pairs.length) out.push(faqJsonLd(pairs));
     return out;
   }
+  if (projectPath(path) && data.project) {
+    return [breadcrumbs(base, [['Home', '/'], ['Portfolio', '/portfolio'], [projectHeading(data.project), path]])];
+  }
   if (blogPath(path) && data.post) {
     const p = data.post;
     return [
@@ -276,7 +340,8 @@ export function headTags(path: string, S: Settings, data: SeoData, base: string)
   const image = m.image || S.hero_image || S.about_image || S.logo;
   const t: string[] = [`<title>${esc(m.title)}</title>`];
   if (m.description) t.push(`<meta name="description" content="${esc(m.description)}" />`);
-  t.push(m.noindex ? '<meta name="robots" content="noindex, nofollow" />' : '<meta name="robots" content="index, follow, max-image-preview:large" />');
+  // a thin project page stays out of search, but its links (services, other projects) still count
+  t.push(m.noindex ? `<meta name="robots" content="noindex, ${projectPath(path) && m.status === 200 ? 'follow' : 'nofollow'}" />` : '<meta name="robots" content="index, follow, max-image-preview:large" />');
   if (!m.noindex && m.canonical) {
     const url = base + (m.canonical === '/' ? '/' : m.canonical);
     t.push(`<link rel="canonical" href="${esc(url)}" />`);
@@ -343,6 +408,14 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
       + (pairs.length ? `<h2>Frequently asked questions</h2>${pairs.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}` : '')
       + contact
       + (others ? `<h2>Other services</h2><ul>${others}</ul>` : '');
+  } else if (projectPath(path) && data.project) {
+    const p = data.project;
+    const svc = projectService(p, data.services);
+    // no <img> here: it would download the full-size photo before the app picks the small copy
+    main = `<article><h1>${esc(projectHeading(p))}</h1>`
+      + `${lines(p.description).map((l) => `<p>${esc(l)}</p>`).join('')}</article>`
+      + (svc?.slug ? `<p><a href="/services/${esc(encodeURIComponent(svc.slug))}">${esc(serviceHeading(svc))}</a></p>` : '')
+      + contact;
   } else if (blogPath(path) && data.post) {
     main = `<article><h1>${esc(data.post.title)}</h1><p>${esc(data.post.excerpt || '')}</p>${textHtml(data.post.content)}</article>${contact}`;
   } else if (path === '/' || path in HOME_ALIASES) {
@@ -365,6 +438,7 @@ export function lcpImage(path: string, S: Settings, data: SeoData): string {
   const svcSlug = servicePath(path);
   if (svcSlug) return findService(data.services, safeDecode(svcSlug))?.image_url || '';
   if (path === '/about') return S.about_image || '';
+  if (projectPath(path) && data.project) return data.project.before_image_url || data.project.image_url || '';
   return '';
 }
 
@@ -379,7 +453,9 @@ export function renderHtml(template: string, rawPath: string, S: Settings, data:
   if (lcp) {
     // same srcset / sizes as the <img> on the page (client/src/img.ts), so a phone preloads the small copy
     const set = srcSet(lcp);
-    tags = `<link rel="preload" as="image" href="${esc(lcp)}"${set ? ` imagesrcset="${esc(set)}" imagesizes="(max-width: 800px) 100vw, 45vw"` : ''} fetchpriority="high" />\n    ` + tags;
+    // project photos are drawn wider than hero photos (SIZES.wide vs SIZES.hero in client/src/img.ts)
+    const sizes = projectPath(path) ? '(max-width: 900px) 100vw, 900px' : '(max-width: 800px) 100vw, 45vw';
+    tags = `<link rel="preload" as="image" href="${esc(lcp)}"${set ? ` imagesrcset="${esc(set)}" imagesizes="${sizes}"` : ''} fetchpriority="high" />\n    ` + tags;
   }
   // the faded photo behind the home hero (wide screens only, see styles.css); without this it is found only after the app runs
   if ((path === '/' || path in HOME_ALIASES) && S.page_bg) tags = `<link rel="preload" as="image" href="${esc(S.page_bg)}" media="(min-width: 801px)" />\n    ` + tags;
@@ -400,12 +476,13 @@ export function renderHtml(template: string, rawPath: string, S: Settings, data:
 export const robotsTxt = (base: string) =>
   `User-agent: *\nAllow: /api/public/\nDisallow: /api/\nDisallow: /admin\n\nSitemap: ${base}/sitemap.xml\n`;
 
-export function sitemapXml(base: string, services: SeoService[] = [], posts: SeoPost[] = []): string {
+export function sitemapXml(base: string, services: SeoService[] = [], posts: SeoPost[] = [], projects: SeoProject[] = []): string {
   const url = (p: string, lastmod = '') => `  <url><loc>${esc(base + (p === '/' ? '/' : p))}</loc>${lastmod ? `<lastmod>${lastmod.slice(0, 10)}</lastmod>` : ''}</url>`;
   const all = [
     ...INDEXABLE.map((p) => url(p)),
     ...services.filter((s) => s.slug).map((s) => url(`/services/${encodeURIComponent(s.slug!)}`)),
     ...posts.filter((p) => p.slug).map((p) => url(`/blog/${encodeURIComponent(p.slug)}`, isoDate(p.created_at))),
+    ...projects.filter((p) => p.slug && projectIndexable(p)).map((p) => url(`/portfolio/${encodeURIComponent(p.slug)}`)),
   ];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${all.join('\n')}\n</urlset>\n`;
 }

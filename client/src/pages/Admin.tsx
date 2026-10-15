@@ -407,13 +407,17 @@ export default function Admin() {
       ]} />}
       {tab === 'Blog' && <Crud table="posts" fields={[{ key: 'title', label: 'Title' }, { key: 'slug', label: 'Page address (optional)', optional: true, hint: 'e.g. aircon-servicing-tips → /blog/aircon-servicing-tips. Empty = made from the title.' }, { key: 'excerpt', label: 'Excerpt', area: true }, { key: 'content', label: 'Content', area: true, hint: 'One paragraph per line. A line starting with "# " becomes a heading.' }, { key: 'image_url', label: 'Cover image', image: true }]} />}
       {tab === 'Gallery' && <Crud table="gallery" fields={[
-        { key: 'title', label: 'Project name' },
-        { key: 'category', label: 'Category (optional, e.g. Aircon, Commercial, Residential)', optional: true },
-        { key: 'location', label: 'Location (optional)', optional: true, hint: 'e.g. Tampines HDB 4-room, Ubi office' },
+        { key: 'title', label: 'Project name', hint: 'Say the work and the place type, e.g. Office ACMV installation, HDB 4-room aircon replacement' },
+        { key: 'category', label: 'Category (optional, e.g. Aircon, ACMV, CCTV, Electrical)', optional: true, hint: 'Use a service name so the project links to that service page and shows there first.' },
+        { key: 'location', label: 'Location (optional)', optional: true, hint: 'e.g. Jurong, Tampines HDB, Ubi office. Added to the page title: "Office ACMV installation, Jurong".' },
         { key: 'duration', label: 'Time taken (optional)', optional: true, hint: 'e.g. 1 day, 3 weeks' },
-        { key: 'description', label: 'What we did (optional)', area: true, optional: true, hint: 'A few lines about the job. Shown when the project is opened in Portfolio.' },
+        { key: 'description', label: 'What we did (optional, needed for Google)', area: true, optional: true, hint: 'One paragraph per line: the problem, what we installed or fixed (brands, number of units), and the result. Google lists the project page only once this has at least 2–3 sentences.' },
+        { key: 'slug', label: 'Page address (optional)', optional: true, hint: 'e.g. office-acmv-installation-jurong → /portfolio/office-acmv-installation-jurong. Empty = made from the name and location.' },
         { key: 'image_url', label: 'Photo (after / finished work)', image: true, required: true },
         { key: 'before_image_url', label: 'Before photo (optional, shows a before / after view)', image: true },
+        { key: 'photo_2', label: 'More photo 1 (optional)', image: true },
+        { key: 'photo_3', label: 'More photo 2 (optional)', image: true },
+        { key: 'photo_4', label: 'More photo 3 (optional)', image: true },
       ]} />}
       {tab === 'Team' && <Crud table="team" fields={[{ key: 'name', label: 'Name' }, { key: 'role', label: 'Role / title' }, { key: 'bio', label: 'Short bio (optional)', area: true, optional: true }, { key: 'sort_order', label: 'Order (smaller shows first)', num: true }, { key: 'image_url', label: 'Photo (optional)', image: true }]} />}
       {tab === 'Payroll' && <Payroll />}

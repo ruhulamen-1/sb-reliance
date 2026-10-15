@@ -519,3 +519,17 @@ html,body{overflow-x:clip}
 @media(max-width:480px){.reviews .grid3{margin:0 -16px;padding:2px 16px 10px;scroll-padding:0 16px}}
 /* the footer starts below the screen while a page's content is still loading, so it does not jump (PageSpeed CLS) */
 main.page{min-height:100vh}
+
+/* project pages (/portfolio/:slug) and links to them */
+a.shot,.proj{display:block;text-decoration:none;color:inherit}
+.proj strong{display:block;margin-top:6px}
+.project .projfacts{margin:0 0 18px}
+.projmain{display:block;width:100%;max-height:70vh;object-fit:cover;border-radius:8px}
+.projba{border-radius:8px;overflow:hidden}
+.projba img{width:100%;aspect-ratio:4/3;max-height:none;object-fit:cover;display:block}
+.projtext{max-width:70ch;margin-top:22px}
+.projtext p{margin:0 0 .9rem}
+.projmore{margin-top:18px}
+.projmore img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;display:block}
+.projsvc{margin-top:18px;font-weight:600}
+.projlink span{display:block;padding-top:6px;font-weight:600}
