@@ -338,8 +338,9 @@ html,body{overflow-x:clip}
 .grid3>article.card>.cardimg:first-child{display:block;width:calc(100% + 36px);max-width:none;margin:-18px -18px 14px;border-radius:0}
 
 /* ---------- calmer layout ---------- */
-/* page background photo: only a faint wash behind the hero */
-.hero{background:linear-gradient(rgba(251,250,247,.9),rgba(251,250,247,.94)),var(--hero-bg,none) center/cover no-repeat}
+/* page background photo behind the hero: stronger wash on the text side, lighter on the right so the photo shows */
+.hero{background:linear-gradient(90deg,rgba(251,250,247,.9) 0%,rgba(251,250,247,.8) 45%,rgba(251,250,247,.55) 100%),var(--hero-bg,none) center/cover no-repeat}
+@media(max-width:800px){.hero{background-image:linear-gradient(rgba(251,250,247,.8),rgba(251,250,247,.8)),var(--hero-bg,none)}}
 .airflow{opacity:.18}
 /* sections: one rhythm, plain backgrounds */
 .block{padding-top:64px;padding-bottom:64px}.band{padding:64px 0}
