@@ -247,7 +247,7 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'hero_image_2', label: 'Hero image 2 (optional, makes the hero a slider)', image: true },
   { key: 'hero_image_3', label: 'Hero image 3 (optional)', image: true },
   { key: 'hero_headlines', label: 'Slider headlines (optional)', area: true, hint: 'One per line, in slide order. Empty lines use the main headline.' },
-  { key: 'page_bg', label: 'Page background image (optional, shown faded behind the whole page)', image: true },
+  { key: 'page_bg', label: 'Hero background image (optional, shown very faded behind the top section of the home page)', image: true },
   { key: 'hero_title', label: 'Hero headline' },
   { key: 'hero_lead', label: 'Hero paragraph', area: true },
   { key: 'services_title', label: 'Services section title' },
