@@ -535,8 +535,11 @@ app.put('/api/admin/employees/:id', auth, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 app.delete('/api/admin/employees/:id', auth, wrap(async (req, res) => {
-  const [paid] = await pool.query<RowDataPacket[]>('SELECT id FROM payroll_items WHERE employee_id = ? LIMIT 1', [req.params.id]);
-  if (paid.length) return res.status(400).json({ error: 'This employee has payroll records. Set them to inactive instead of deleting.' });
+  // Paid months are kept as records; unpaid draft lines and attendance go with the employee
+  const [paid] = await pool.query<RowDataPacket[]>("SELECT period FROM payroll_items WHERE employee_id = ? AND status = 'paid' ORDER BY period", [req.params.id]);
+  if (paid.length) return res.status(400).json({ error: `This employee was paid for ${paid.map((p) => p.period).join(', ')}. Paid salary records must be kept, so set them to Inactive instead of deleting.` });
+  await pool.query('DELETE FROM attendance WHERE employee_id = ?', [req.params.id]);
+  await pool.query('DELETE FROM payroll_items WHERE employee_id = ?', [req.params.id]);
   await pool.query('DELETE FROM employees WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
 }));
