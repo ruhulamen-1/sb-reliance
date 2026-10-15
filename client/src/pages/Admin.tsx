@@ -141,6 +141,24 @@ function Quotes() {
 }
 
 type CrudField = { key: string; label: string; area?: boolean; num?: boolean; image?: boolean; required?: boolean; optional?: boolean; hint?: string; options?: [string, string][]; date?: boolean };
+// Testimonials: the /review link to send customers after a job
+function ReviewLink() {
+  const url = `${location.origin}/review`;
+  const [copied, setCopied] = useState(false);
+  const msg = `Hi, thank you for choosing us. Could you take a minute to tell us how the job went? ${url}`;
+  return (
+    <div className="card review-link">
+      <strong>Ask a customer for a review</strong>
+      <p>Send this link after a job. New reviews arrive here as "Waiting for approval"; edit one and choose "Yes, show it" to put it on the website.</p>
+      <code>{url}</code>
+      <div className="row gap">
+        <button type="button" className="btn" onClick={() => { navigator.clipboard?.writeText(msg).then(() => setCopied(true)).catch(() => undefined); }}>{copied ? 'Copied' : 'Copy message'}</button>
+        <a className="btn ghost" href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer">Send on WhatsApp</a>
+      </div>
+    </div>
+  );
+}
+
 export function Crud({ table, fields }: { table: string; fields: CrudField[] }) {
   const blank = Object.fromEntries(fields.map((f) => [f.key, f.options ? f.options[0][0] : f.num ? 0 : '']));
   const textKey = fields.find((f, i) => i > 0 && !f.image)?.key;
@@ -206,7 +224,7 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
       </dialog>
       {rows.map((r) => (
         <div key={r.id} className="card row between">
-          <div className="row gap crud-main">{r.image_url && <img src={r.image_url} alt="" className="thumb" />}<div><strong>{r[fields[0].key]}</strong>{textKey && <p>{String(r[textKey] ?? '').slice(0, 120)}</p>}</div></div>
+          <div className="row gap crud-main">{r.image_url && <img src={r.image_url} alt="" className="thumb" />}<div><strong>{r[fields[0].key]}</strong>{r.status && r.status !== 'approved' && <span className={`tag ${r.status}`}>{r.status === 'pending' ? 'Waiting for approval' : 'Hidden'}</span>}{textKey && <p>{String(r[textKey] ?? '').slice(0, 120)}</p>}</div></div>
           <div className="row gap crud-actions">
             <button className="btn ghost" onClick={() => { setEditId(r.id); setEditForm(Object.fromEntries(fields.map((f) => [f.key, r[f.key]]))); dlg.current?.showModal(); }}>Edit</button>
             <button className="btn ghost" onClick={async () => { if (confirm(table === 'employees' ? 'Delete this employee? Their attendance and unpaid payroll lines are deleted too.' : 'Delete?')) { try { await api(`/admin/${table}/${r.id}`, { method: 'DELETE', auth: true }); load(); } catch (x) { alert((x as Error).message); } } }}>Delete</button>
@@ -330,7 +348,7 @@ const INTRO: Record<(typeof TABS)[number], string> = {
   Blog: 'Articles that answer customer questions and bring visitors from Google.',
   Gallery: 'Finished projects shown in Portfolio and on the home page. The project name is also the photo description for Google.',
   Team: 'People shown on the About page.',
-  Testimonials: 'Reviews from real customers only.',
+  Testimonials: 'Reviews from real customers. Send the review link after a job and approve new reviews before they show.',
   Payroll: 'Employees, daily attendance and the monthly salary run with payslips.',
   Settings: 'Company details, contact, Google and trust information used across the site.',
 };
@@ -400,7 +418,14 @@ export default function Admin() {
       {tab === 'Team' && <Crud table="team" fields={[{ key: 'name', label: 'Name' }, { key: 'role', label: 'Role / title' }, { key: 'bio', label: 'Short bio (optional)', area: true, optional: true }, { key: 'sort_order', label: 'Order (smaller shows first)', num: true }, { key: 'image_url', label: 'Photo (optional)', image: true }]} />}
       {tab === 'Payroll' && <Payroll />}
       {tab === 'Settings' && <Settings />}
-      {tab === 'Testimonials' && <Crud table="testimonials" fields={[{ key: 'name', label: 'Name' }, { key: 'location', label: 'Area' }, { key: 'text', label: 'Review', area: true }]} />}
+      {tab === 'Testimonials' && <ReviewLink />}
+      {tab === 'Testimonials' && <Crud table="testimonials" fields={[
+        { key: 'name', label: 'Name' },
+        { key: 'text', label: 'Review', area: true },
+        { key: 'location', label: 'Area (optional)', optional: true },
+        { key: 'rating', label: 'Stars (1–5, optional)', num: true, optional: true },
+        { key: 'status', label: 'Show on website?', options: [['approved', 'Yes, show it'], ['pending', 'Waiting for approval'], ['hidden', 'No, hide it']] },
+      ]} />}
       </main>
     </div>
   );

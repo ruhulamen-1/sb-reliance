@@ -466,3 +466,16 @@ html,body{overflow-x:clip}
 .quickq .ok,.quickq .err{margin:8px 0 0}.quickq .ok{color:#bff0c9}.quickq .err{color:#ffc4c4}
 .quickq :focus-visible{outline-color:var(--sun)}
 @media(max-width:1000px){.quickq-form{grid-template-columns:1fr 1fr}.quickq h2,.quickq-form .btn{grid-column:1/-1}.quickq h2{margin:0}}
+
+/* /review: star rating, screen-reader text, hidden bot trap */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.stars{gap:4px;padding:8px 12px}.stars legend{font-weight:600;padding:0 4px}
+.stars label{position:relative;cursor:pointer;font-size:2.2rem;line-height:1;color:#c9d3d1}
+.stars label.on{color:var(--sun)}
+.stars input{position:absolute;opacity:0;width:1px;height:1px}
+.stars label:has(input:focus-visible){outline:3px solid var(--ink);outline-offset:2px;border-radius:4px}
+.hp{position:absolute;left:-9999px}
+.qstars{color:var(--sun);letter-spacing:2px;margin:0 0 6px}
+.tag{display:inline-block;font-size:.8rem;font-weight:600;padding:1px 8px;border-radius:10px;background:#fde7a6;color:var(--ink);margin-left:8px;vertical-align:middle}
+.tag.hidden{background:#e3e8e7}
+.review-link{display:grid;gap:8px}.review-link code{word-break:break-all}

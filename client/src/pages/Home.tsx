@@ -10,7 +10,7 @@ import { serviceHeading } from '../components/content';
 import { Guarantee, ReviewsButton, Stats, TrustBar } from '../components/Trust';
 
 interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
-interface Testimonial { id: number; name: string; location: string; text: string }
+interface Testimonial { id: number; name: string; location: string; text: string; rating?: number | null }
 interface Post { id: number; title: string; slug: string; excerpt: string; image_url?: string | null; created_at: string }
 interface GalleryItem { id: number; title: string; image_url: string }
 type Settings = Record<string, string>;
@@ -178,8 +178,9 @@ export default function Home() {
           <div className="grid3">
             {data.testimonials.map((t) => (
               <figure key={t.id} className="card quote">
+                {t.rating ? <p className="qstars" aria-label={`${t.rating} out of 5 stars`}>{'★'.repeat(t.rating)}</p> : null}
                 <blockquote>{t.text}</blockquote>
-                <figcaption>{t.name}, {t.location}</figcaption>
+                <figcaption>{t.location ? `${t.name}, ${t.location}` : t.name}</figcaption>
               </figure>
             ))}
           </div>

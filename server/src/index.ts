@@ -42,7 +42,7 @@ const STATUSES = ['new', 'contacted', 'scheduled', 'completed', 'cancelled'] as 
 const CONTENT: Record<string, string[]> = {
   services: ['title', 'slug', 'description', 'content', 'faq', 'seo_title', 'seo_description', 'sort_order', 'image_url'],
   posts: ['title', 'slug', 'excerpt', 'content', 'image_url'],
-  testimonials: ['name', 'location', 'text'],
+  testimonials: ['name', 'location', 'text', 'rating', 'status'],
   gallery: ['title', 'category', 'image_url', 'before_image_url', 'location', 'duration', 'description'],
   team: ['name', 'role', 'bio', 'image_url', 'sort_order'],
 };
@@ -179,6 +179,11 @@ async function initDb() {
 
   await ensureColumn('services', 'image_url', 'image_url VARCHAR(255) NULL');
   await ensureColumn('quotes', 'email', 'email VARCHAR(150) NULL');
+  // reviews customers send from /review wait as 'pending' until approved in Admin > Testimonials
+  await ensureColumn('testimonials', 'rating', 'rating TINYINT NULL');
+  await ensureColumn('testimonials', 'status', "status VARCHAR(10) NOT NULL DEFAULT 'approved'");
+  await ensureColumn('testimonials', 'whatsapp', 'whatsapp VARCHAR(40) NULL');
+  await ensureColumn('testimonials', 'created_at', 'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
   await ensureColumn('posts', 'image_url', 'image_url VARCHAR(255) NULL');
   await ensureColumn('gallery', 'category', "category VARCHAR(80) NOT NULL DEFAULT ''");
   // project case studies (Portfolio)
@@ -318,6 +323,15 @@ async function notifyQuote(q: Record<string, unknown>) {
   await mailer.sendMail({ from: env.SMTP_FROM || env.SMTP_USER, to, subject: `New quote request: ${q.service_type} – ${q.name}`, text });
 }
 
+async function notifyReview(name: string, rating: number, reviewText: string) {
+  if (!mailer) return;
+  const S = await getSettings();
+  const to = (S.notify_email || env.NOTIFY_EMAIL || '').trim();
+  if (!to) return;
+  const text = `${name} left a ${rating}-star review:\n\n${reviewText}\n\nOpen Admin > Testimonials to approve it. It is not shown on the website until you do.`;
+  await mailer.sendMail({ from: env.SMTP_FROM || env.SMTP_USER, to, subject: `New review (${rating}★) from ${name}`, text });
+}
+
 const app = express();
 app.set('trust proxy', 1); // hosting proxies terminate HTTPS; needed for the correct https:// in canonical URLs
 app.disable('x-powered-by');
@@ -367,7 +381,7 @@ app.get('/api/public/team', wrap(async (_req, res) => {
 // Also put into the first HTML response, so pages render without waiting for a second request.
 async function homeData() {
   const [services] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
-  const [testimonials] = await pool.query<RowDataPacket[]>('SELECT * FROM testimonials ORDER BY id DESC LIMIT 6');
+  const [testimonials] = await pool.query<RowDataPacket[]>("SELECT id, name, location, text, rating FROM testimonials WHERE status = 'approved' ORDER BY id DESC LIMIT 6");
   const [posts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 3');
   const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, image_url FROM gallery ORDER BY id DESC LIMIT 12');
   return { services, testimonials, posts, gallery, settings: await getSettings() };
@@ -407,6 +421,26 @@ app.post('/api/quotes', wrap(async (req, res) => {
   );
   res.status(201).json({ id: r.insertId });
   notifyQuote(b).catch((e) => console.error('Quote email failed:', (e as Error).message));
+}));
+
+// Customer review from /review: saved as pending, shown on the site only after approval in Admin
+const reviewHits = new Map<string, number[]>();
+app.post('/api/reviews', wrap(async (req, res) => {
+  const b = req.body as Record<string, unknown>;
+  if (String(b.website ?? '')) return res.status(201).json({ ok: true }); // hidden field only bots fill in
+  const now = Date.now();
+  const hits = (reviewHits.get(req.ip || '') || []).filter((t) => now - t < 3600_000);
+  if (hits.length >= 5) return res.status(429).json({ error: 'Too many reviews from this connection. Please try again later.' });
+  const name = String(b.name ?? '').trim().slice(0, 120);
+  const reviewText = String(b.text ?? '').trim().slice(0, 1500);
+  const rating = Math.round(Number(b.rating));
+  if (!name || reviewText.length < 10) return res.status(400).json({ error: 'Please enter your name and a few words about the job' });
+  if (!(rating >= 1 && rating <= 5)) return res.status(400).json({ error: 'Please choose a star rating' });
+  reviewHits.set(req.ip || '', [...hits, now]);
+  await pool.query("INSERT INTO testimonials (name, location, text, rating, whatsapp, status) VALUES (?,?,?,?,?,'pending')",
+    [name, String(b.location ?? '').trim().slice(0, 120), reviewText, rating, String(b.whatsapp ?? '').trim().slice(0, 40) || null]);
+  res.status(201).json({ ok: true });
+  notifyReview(name, rating, reviewText).catch((e) => console.error('Review email failed:', (e as Error).message));
 }));
 
 // ---------- Admin ----------
@@ -863,7 +897,12 @@ app.get('/api/admin/payroll/export', auth, wrap(async (req, res) => {
 
 for (const [table, cols] of Object.entries(CONTENT)) {
   const base = `/api/admin/${table}`;
-  const values = (b: Record<string, unknown>) => cols.map((c) => b[c] ?? null);
+  const values = (b: Record<string, unknown>) => cols.map((c) => {
+    // testimonials: review status and an optional 1-5 star rating
+    if (c === 'status') return ['approved', 'pending', 'hidden'].includes(String(b.status)) ? b.status : 'approved';
+    if (c === 'rating') { const n = Math.round(Number(b.rating)); return n >= 1 && n <= 5 ? n : null; }
+    return b[c] ?? null;
+  });
   // services and posts get a clean, unique slug (from the title when left empty)
   const withSlug = async (b: Record<string, unknown>, id?: string) => {
     if (table !== 'services' && table !== 'posts') return b;

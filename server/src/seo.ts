@@ -115,6 +115,8 @@ export function pageMeta(path: string, S: Settings, data: SeoData = { services: 
       return { title: `About us – ${co}`, description: clip(lines(S.about_intro)[0] || S.about_text || ''), canonical: path, status: 200, schema: true };
     case '/privacy-policy':
       return { title: `Privacy policy – ${co}`, description: clip(`How ${co} collects and uses the details you send us.`), canonical: path, status: 200 };
+    case '/review':
+      return { title: `Leave a review – ${co}`, description: clip(`Tell us how ${co} did on your job.`), noindex: true, status: 200 };
     case '/admin':
       return { title: `Admin – ${co}`, description: '', noindex: true, status: 200 };
     default:
