@@ -122,8 +122,8 @@ function Quotes() {
           <div key={r.id} className="card qrow">
             <div>
               <h3>{r.name} <small>{new Date(r.created_at).toLocaleString('en-SG')}</small></h3>
-              <p><a href={`https://wa.me/${String(r.whatsapp).replace(/\D/g, '')}`}>{r.whatsapp}</a> · {r.address}</p>
-              <p>{r.house_type} · {r.service_type}{addons.length ? ` · ${addons.join(', ')}` : ''}</p>
+              <p><a href={`https://wa.me/${String(r.whatsapp).replace(/\D/g, '')}`}>{r.whatsapp}</a>{r.email && <> · <a href={`mailto:${r.email}`}>{r.email}</a></>}{r.address !== '-' && ` · ${r.address}`}</p>
+              <p>{r.house_type === '-' ? r.service_type : `${r.house_type} · ${r.service_type}`}{addons.length ? ` · ${addons.join(', ')}` : ''}</p>
               {r.preferred_date && <p>Preferred: {String(r.preferred_date).slice(0, 10)}</p>}
               {r.message && <p>“{r.message}”</p>}
             </div>
@@ -335,9 +335,21 @@ const INTRO: Record<(typeof TABS)[number], string> = {
   Settings: 'Company details, contact, Google and trust information used across the site.',
 };
 
+function tabFromHash() {
+  const h = decodeURIComponent(location.hash.slice(1)).toLowerCase();
+  return TABS.find((t) => t.toLowerCase() === h) ?? 'Overview';
+}
+
 export default function Admin() {
   const [authed, setAuthed] = useState(!!localStorage.getItem('token'));
-  const [tab, setTab] = useState<(typeof TABS)[number]>('Overview');
+  // the open section lives in the address (#payroll), so a reload or Back stays on it
+  const [tab, setTabState] = useState<(typeof TABS)[number]>(tabFromHash);
+  const setTab = (t: (typeof TABS)[number]) => { setTabState(t); history.replaceState(null, '', `#${t.toLowerCase()}`); };
+  useEffect(() => {
+    const onHash = () => setTabState(tabFromHash());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
   const [stdKey, setStdKey] = useState(0);
   if (!authed) return <div className="wrap narrow"><Login onDone={() => setAuthed(true)} /></div>;
   return (

@@ -455,3 +455,16 @@ html,body{overflow-x:clip}
 .admin-body>.row.gap>select{max-width:260px}
 .admin-body .tabs{flex-wrap:nowrap;overflow-x:auto;margin:0 0 14px;scrollbar-width:thin}
 .admin-body .tabs button{flex:none;white-space:nowrap;padding:6px 12px;font-size:.95rem}
+
+/* Home: one-row quick quote under the hero */
+.quickq{background:var(--ink);color:#fff;padding:22px 0}
+.quickq h2{font-size:1.35rem;margin:0 0 10px;color:#fff}
+.quickq-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:10px;align-items:end}
+.quickq-form label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.9rem}
+.quickq-form small{display:inline;font-weight:400;font-size:inherit;color:#d5e3e1}
+.quickq-form input{color:var(--ink)}
+.quickq-form .btn{background:var(--sun);color:var(--ink);border-color:var(--sun);height:44px;padding:0 26px;white-space:nowrap}
+.quickq .ok{color:#bff0c9;margin-top:10px}.quickq .err{color:#ffc4c4;margin-top:10px}
+@media(max-width:900px){.quickq-form{grid-template-columns:1fr 1fr}.quickq-form .btn{grid-column:1/-1}}
+@media(max-width:480px){.quickq-form{grid-template-columns:1fr}}
+.quickq :focus-visible{outline-color:var(--sun)}

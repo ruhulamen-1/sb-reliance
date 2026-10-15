@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
+import { useRemembered } from '../remember';
 
 // Admin > Payroll > Attendance: daily entry (status, in/out, OT) and a month sheet.
 // "Take from attendance" in Monthly payroll turns it into OT hours and unpaid leave.
@@ -27,9 +28,9 @@ const dayName = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('en-
 const monthName = (p: string) => new Date(`${p}-01T00:00:00`).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
 
 export default function Attendance() {
-  const [mode, setMode] = useState<'day' | 'person' | 'month'>('day');
-  const [date, setDate] = useState(today());
-  const [person, setPerson] = useState(0);
+  const [mode, setMode] = useRemembered<'day' | 'person' | 'month'>('att.mode', 'day');
+  const [date, setDate] = useRemembered('att.date', today());
+  const [person, setPerson] = useRemembered<number>('att.person', 0);
   return (
     <>
       <div className="row gap att-modes">

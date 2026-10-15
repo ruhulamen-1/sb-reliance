@@ -178,6 +178,7 @@ async function initDb() {
   await root.end();
 
   await ensureColumn('services', 'image_url', 'image_url VARCHAR(255) NULL');
+  await ensureColumn('quotes', 'email', 'email VARCHAR(150) NULL');
   await ensureColumn('posts', 'image_url', 'image_url VARCHAR(255) NULL');
   await ensureColumn('gallery', 'category', "category VARCHAR(80) NOT NULL DEFAULT ''");
   // project case studies (Portfolio)
@@ -304,6 +305,7 @@ async function notifyQuote(q: Record<string, unknown>) {
   const text = [
     `Name: ${q.name}`,
     `WhatsApp: ${q.whatsapp}  (https://wa.me/${String(q.whatsapp).replace(/\D/g, '')})`,
+    `Email: ${q.email || '-'}`,
     `Address: ${q.address}`,
     `Property: ${q.house_type}`,
     `Service: ${q.service_type}`,
@@ -392,11 +394,16 @@ app.get('/api/public/posts/:slug', wrap(async (req, res) => {
 
 app.post('/api/quotes', wrap(async (req, res) => {
   const b = req.body as Record<string, unknown>;
-  const need = ['name', 'whatsapp', 'address', 'house_type', 'service_type'];
+  // the one-row form under the home page hero sends only name, WhatsApp and optional email / address
+  const quick = b.quick === true;
+  const need = quick ? ['name', 'whatsapp'] : ['name', 'whatsapp', 'address', 'house_type', 'service_type'];
   if (need.some((k) => !String(b[k] ?? '').trim())) return res.status(400).json({ error: 'Please fill all required fields' });
+  const email = String(b.email ?? '').trim().slice(0, 150);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Please check the email address' });
+  if (quick) Object.assign(b, { address: String(b.address ?? '').trim() || '-', house_type: '-', service_type: 'Quick enquiry', addons: [] });
   const [r] = await pool.query<ResultSetHeader>(
-    'INSERT INTO quotes (name, whatsapp, address, house_type, service_type, addons, preferred_date, message) VALUES (?,?,?,?,?,?,?,?)',
-    [b.name, b.whatsapp, b.address, b.house_type, b.service_type, JSON.stringify(b.addons || []), b.preferred_date || null, b.message || null],
+    'INSERT INTO quotes (name, whatsapp, email, address, house_type, service_type, addons, preferred_date, message) VALUES (?,?,?,?,?,?,?,?,?)',
+    [b.name, b.whatsapp, email || null, b.address, b.house_type, b.service_type, JSON.stringify(b.addons || []), b.preferred_date || null, b.message || null],
   );
   res.status(201).json({ id: r.insertId });
   notifyQuote(b).catch((e) => console.error('Quote email failed:', (e as Error).message));

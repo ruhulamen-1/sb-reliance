@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Shell from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
+import QuickQuote from '../components/QuickQuote';
 import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
 import { api, initialHome } from '../api';
@@ -118,6 +119,8 @@ export default function Home() {
       </section>
 
       <TrustBar S={S} />
+
+      <QuickQuote S={S} />
 
       <section id="services" className="wrap block">
         <h2>{S.services_title}</h2>

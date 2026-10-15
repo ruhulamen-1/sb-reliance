@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api';
+import { useRemembered } from '../remember';
 import { Crud } from './Admin';
 import Attendance from './Attendance';
 
@@ -22,7 +23,7 @@ const monthName = (p: string) => new Date(`${p}-01T00:00:00`).toLocaleDateString
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 export default function Payroll() {
-  const [view, setView] = useState<'month' | 'att' | 'staff'>('month');
+  const [view, setView] = useRemembered<'month' | 'att' | 'staff'>('pay.view', 'month');
   return (
     <>
       <div className="tabs" role="tablist" aria-label="Payroll">
@@ -78,7 +79,7 @@ const EDIT: [string, string, ('daily' | 'monthly')?][] = [
 const basisOf = (r: Row) => (r.pay_basis === 'daily' ? 'daily' : 'monthly');
 
 function Month() {
-  const [period, setPeriod] = useState(thisMonth());
+  const [period, setPeriod] = useRemembered('pay.period', thisMonth());
   const [items, setItems] = useState<Row[]>([]);
   const [msg, setMsg] = useState('');
   const [company, setCompany] = useState<Row>({});
