@@ -368,6 +368,8 @@ export function renderHtml(template: string, rawPath: string, S: Settings, data:
   // start the biggest picture early (it is what PageSpeed measures as "Largest Contentful Paint")
   const lcp = lcpImage(path, S, data);
   if (lcp) tags = `<link rel="preload" as="image" href="${esc(lcp)}" fetchpriority="high" />\n    ` + tags;
+  // the faded photo behind the home hero (wide screens only, see styles.css); without this it is found only after the app runs
+  if ((path === '/' || path in HOME_ALIASES) && S.page_bg) tags = `<link rel="preload" as="image" href="${esc(S.page_bg)}" media="(min-width: 801px)" />\n    ` + tags;
   // the shared page data, so the app renders at once instead of fetching it again
   if (initial && path !== '/admin') tags += `\n    <script>window.__HOME__=${JSON.stringify(initial).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')}</script>`;
   const body = bodyHtml(path, S, data);
