@@ -430,3 +430,28 @@ html,body{overflow-x:clip}
 .att-sheet .linkish{border:0;background:none;padding:0;font:inherit;color:var(--ink);text-decoration:underline;cursor:pointer;text-align:left}
 .att-s.att-RW,.att-sheet td.att-RW{background:#fff4d6}.att-sheet td.att-RW{font-weight:700;color:#7a5500}
 .pay-table input[type=number]{width:76px}.pay-table td:nth-child(2){min-width:150px}
+
+/* ---------- admin: one layout for every section ---------- */
+.admin{width:100%;flex:1 0 auto}
+.admin-inner{width:100%;max-width:1240px;margin:0 auto;padding-left:clamp(16px,3vw,32px);padding-right:clamp(16px,3vw,32px)}
+.admin-bar{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgba(16,52,58,.05)}
+.admin-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0 8px}
+.admin-brand{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:1.35rem}
+.admin-links{display:flex;align-items:center;gap:14px}.admin-links .btn{padding:7px 14px}
+.admin-tabs{margin:0;padding:0 0 10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
+.admin-tabs button{flex:none;white-space:nowrap;padding:7px 14px}
+.admin-body{padding-top:22px;padding-bottom:56px;min-height:70vh}
+.admin-head{margin-bottom:18px}.admin-head h1{font-size:1.7rem;margin:0 0 4px}.admin-head p{margin:0;color:var(--muted);max-width:80ch}
+.admin-body>.card,.admin-body form.card{max-width:none}
+.admin-body .stats{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+@media (max-width:700px){
+  .admin-top{padding:10px 0 6px}.admin-brand{font-size:1.15rem}
+  .admin-links{gap:10px}.admin-links .btn{padding:6px 10px;font-size:.9rem}
+  .admin-tabs{margin:0 -16px;padding:0 16px 8px}
+  .admin-head h1{font-size:1.4rem}.admin-head p{font-size:.95rem}
+  .admin-body{padding-top:16px}
+}
+.admin-body .stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.admin-body>.row.gap>select{max-width:260px}
+.admin-body .tabs{flex-wrap:nowrap;overflow-x:auto;margin:0 0 14px;scrollbar-width:thin}
+.admin-body .tabs button{flex:none;white-space:nowrap;padding:6px 12px;font-size:.95rem}

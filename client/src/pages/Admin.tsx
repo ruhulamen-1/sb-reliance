@@ -323,6 +323,17 @@ function StandardServices({ onDone }: { onDone: () => void }) {
 }
 
 const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Payroll', 'Settings'] as const;
+const INTRO: Record<(typeof TABS)[number], string> = {
+  Overview: 'Quote requests by status and revenue from completed jobs.',
+  Quotes: 'Requests sent from the website. Update the status, amount and notes as the job moves on.',
+  Services: 'The services shown on the site, each with its own page for Google.',
+  Blog: 'Articles that answer customer questions and bring visitors from Google.',
+  Gallery: 'Finished projects shown in Portfolio and on the home page. The project name is also the photo description for Google.',
+  Team: 'People shown on the About page.',
+  Testimonials: 'Reviews from real customers only.',
+  Payroll: 'Employees, daily attendance and the monthly salary run with payslips.',
+  Settings: 'Company details, contact, Google and trust information used across the site.',
+};
 
 export default function Admin() {
   const [authed, setAuthed] = useState(!!localStorage.getItem('token'));
@@ -330,15 +341,26 @@ export default function Admin() {
   const [stdKey, setStdKey] = useState(0);
   if (!authed) return <div className="wrap narrow"><Login onDone={() => setAuthed(true)} /></div>;
   return (
-    <div className="wrap block">
-      <div className="row between">
-        <h1 className="h1s">Management</h1>
-        <div className="row gap">
-          <a href="/">View site</a>
-          <button className="btn ghost" onClick={() => { localStorage.removeItem('token'); setAuthed(false); }}>Sign out</button>
+    <div className="admin">
+      <header className="admin-bar">
+        <div className="admin-inner">
+          <div className="admin-top">
+            <strong className="admin-brand">Management</strong>
+            <div className="admin-links">
+              <a href="/">View site</a>
+              <button className="btn ghost" onClick={() => { localStorage.removeItem('token'); setAuthed(false); }}>Sign out</button>
+            </div>
+          </div>
+          <nav className="tabs admin-tabs" aria-label="Management sections">
+            {TABS.map((t) => <button key={t} className={t === tab ? 'on' : ''} aria-current={t === tab ? 'page' : undefined} onClick={() => { setTab(t); window.scrollTo({ top: 0 }); }}>{t}</button>)}
+          </nav>
         </div>
+      </header>
+      <main className="admin-inner admin-body">
+      <div className="admin-head">
+        <h1>{tab}</h1>
+        <p>{INTRO[tab]}</p>
       </div>
-      <nav className="tabs">{TABS.map((t) => <button key={t} className={t === tab ? 'on' : ''} onClick={() => setTab(t)}>{t}</button>)}</nav>
       {tab === 'Overview' && <Overview />}
       {tab === 'Quotes' && <Quotes />}
       {tab === 'Services' && <StandardServices onDone={() => setStdKey((k) => k + 1)} />}
@@ -367,6 +389,7 @@ export default function Admin() {
       {tab === 'Payroll' && <Payroll />}
       {tab === 'Settings' && <Settings />}
       {tab === 'Testimonials' && <Crud table="testimonials" fields={[{ key: 'name', label: 'Name' }, { key: 'location', label: 'Area' }, { key: 'text', label: 'Review', area: true }]} />}
+      </main>
     </div>
   );
 }
