@@ -561,3 +561,10 @@ a.shot,.proj{display:block;text-decoration:none;color:inherit}
 @media(max-width:700px){.grv-card{flex-basis:84%;min-height:0}.grv-nav{display:none}.grv-track{margin:0 -20px;padding:4px 20px 8px;scroll-padding:0 20px}}
 @media(max-width:480px){.grv-track{margin:0 -16px;padding:4px 16px 8px;scroll-padding:0 16px}}
 .greviews .reviews-cta{text-align:center;margin-top:18px}
+
+/* home: short About block under "What we do" */
+.home-about{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:40px;align-items:center}
+.home-about:not(:has(.home-about-img)){grid-template-columns:minmax(0,1fr);max-width:820px}
+.home-about-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;display:block}
+.home-about p{color:var(--muted);max-width:62ch}
+@media(max-width:800px){.home-about{grid-template-columns:minmax(0,1fr);gap:20px}.home-about-img{aspect-ratio:16/10}}

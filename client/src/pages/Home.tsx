@@ -43,6 +43,7 @@ export default function Home() {
     else if (!id) window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
   }, [pathname, data]);
   const slides = [S.hero_image, S.hero_image_2, S.hero_image_3].filter(Boolean) as string[];
+  const aboutLines = lines(S.about_intro || S.about_text).slice(0, 2);
   const headlines = (S.hero_headlines || '').split('\n').map((x) => x.trim());
   const slideCount = Math.max(slides.length, headlines.filter(Boolean).length, 1);
   const [slide, setSlide] = useState(0);
@@ -147,6 +148,18 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* short company introduction; the full story is on /about (text and photo from Admin > Settings > About page) */}
+      {aboutLines.length > 0 && (
+        <section className="wrap block home-about" aria-labelledby="home-about-title">
+          {S.about_image && <img className="home-about-img" {...photo(S.about_image, SIZES.hero)} alt={S.company_name || ''} loading="lazy" />}
+          <div>
+            <h2 id="home-about-title">About {S.brand || S.company_name || 'us'}</h2>
+            {aboutLines.map((l) => <p key={l}>{l}</p>)}
+            <Link className="more" to="/about">More about us <span aria-hidden="true">→</span></Link>
+          </div>
+        </section>
+      )}
 
       <Stats S={S} />
 
