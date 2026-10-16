@@ -7,7 +7,7 @@ import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
 import { api, initialHome } from '../api';
 import { serviceHeading } from '../components/content';
-import { Guarantee, ReviewsButton, Stats, TrustBar } from '../components/Trust';
+import { Guarantee, Offer, ReviewsButton, Stats, TrustBar } from '../components/Trust';
 import { HIGH, photo, SIZES } from '../img';
 
 interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
@@ -102,6 +102,7 @@ export default function Home() {
               <Link className="btn" to="/contact">Request a quote</Link>
               <a className="btn ghost" href={wa}>Chat on WhatsApp</a>
             </div>
+            <Offer S={S} />
             <OpenStatus hours={S.open_hours} />
           </div>
           {slides.length > 0 ? (

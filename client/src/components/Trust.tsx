@@ -20,6 +20,23 @@ export function GoogleRating({ S }: { S: Settings }) {
     : <span>{text}</span>;
 }
 
+/** The company's offer as a highlighted badge next to the main buttons, e.g.
+ *  "Attractive Pricing & Complimentary Site Review" (Admin > Settings > Offer, one per line). */
+export function Offer({ S }: { S: Settings }) {
+  const items = lines(S.offer_text);
+  if (!items.length) return null;
+  return (
+    <ul className="offer" aria-label="Our offer">
+      {items.map((t) => (
+        <li key={t}>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M21.4 11.6 12.4 2.6A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7c0 .55.22 1.05.59 1.42l9 9a2 2 0 0 0 2.82 0l7-7a2 2 0 0 0 0-2.82zM6.5 8A1.5 1.5 0 1 1 8 6.5 1.5 1.5 0 0 1 6.5 8z"/></svg>
+          {t}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Thin row under the hero: Google rating, UEN and licences. */
 export function TrustBar({ S }: { S: Settings }) {
   const items = [
