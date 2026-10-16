@@ -533,6 +533,8 @@ a.shot,.proj{display:block;text-decoration:none;color:inherit}
 .greviews h2{text-align:center;margin-bottom:28px}
 .grv{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:center}
 .grv:not(:has(.grv-sum)){grid-template-columns:minmax(0,1fr)}
+/* no review cards yet: the rating summary sits alone in the middle */
+.grv:not(:has(.grv-rail)){grid-template-columns:minmax(0,1fr);justify-items:center}
 .grv-sumlink{text-decoration:none;color:inherit}
 .grv-sum{text-align:center;display:grid;justify-items:center;gap:6px;padding:10px}
 .grv-label{font:800 1.35rem 'Bricolage Grotesque',sans-serif;text-transform:uppercase;letter-spacing:.02em}
