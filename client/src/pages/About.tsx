@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { homeData, initialHome } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
+import { AddressMap, Guarantee, Stats } from '../components/Trust';
 import { HIGH, photo, SIZES } from '../img';
 
+interface GalleryItem { id: number; title: string; slug?: string | null; image_url: string }
 interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
 
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
@@ -13,7 +15,7 @@ export default function About() {
   const [S, setS] = useState<Settings>(() => initialHome()?.settings ?? {});
   const [services, setServices] = useState<Service[]>(() => initialHome()?.services ?? []);
   const [err, setErr] = useState('');
-  const [tab, setTab] = useState(0);
+  const [gallery] = useState<GalleryItem[]>(() => initialHome()?.gallery ?? []);
 
   useEffect(() => {
     homeData<{ settings?: Settings; services?: Service[] }>()
@@ -23,12 +25,12 @@ export default function About() {
   useSeo({ title: S.company_name ? `About us – ${S.company_name}` : '', description: lines(S.about_intro)[0] || S.about_text, canonical: '/about' });
 
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
-  const steps = lines(S.steps).map((l) => { const [t, ...d] = l.split('|'); return [t.trim(), d.join('|').trim()]; });
-  const tabs = [
-    { id: 'mission', label: 'Our mission', body: <p>{S.about_mission}</p> },
-    { id: 'how', label: 'How we work', body: <ol className="steps">{steps.map(([t, d]) => <li key={t}><strong>{t}</strong><span>{d}</span></li>)}</ol> },
-    { id: 'why', label: S.why_title || 'Why us', body: <ul className="ticks">{lines(S.why_list).map((t) => <li key={t}>{t}</li>)}</ul> },
-  ];
+  const pairs = (v?: string) => lines(v).map((l) => { const [t, ...d] = l.split('|'); return [t.trim(), d.join('|').trim()]; }).filter(([t]) => t);
+  const steps = pairs(S.steps);
+  const values = pairs(S.about_values);
+  const why = lines(S.why_list);
+  const brands = lines(S.brands);
+  const work = gallery.slice(0, 6);
 
   return (
     <Shell S={S} services={services}>
@@ -39,37 +41,87 @@ export default function About() {
           <div>
             <h1 className="h1s">About {S.brand || 'us'}</h1>
             {lines(S.about_intro).map((p) => <p key={p} className="lead">{p}</p>)}
+            <div className="row gap">
+              <Link className="btn" to="/contact">Request a quote</Link>
+              <a className="btn ghost" href={wa}>Chat on WhatsApp</a>
+            </div>
           </div>
           {S.about_image && <img className="heroimg" {...photo(S.about_image, SIZES.hero)} alt={S.company_name || ''} {...HIGH} />}
         </div>
       </section>
 
-      <section className="wrap block">
-        <div role="tablist" aria-label="About us" className="tabs">
-          {tabs.map((t, i) => (
-            <button key={t.id} role="tab" id={`tab-${t.id}`} aria-selected={tab === i} aria-controls={`panel-${t.id}`} tabIndex={tab === i ? 0 : -1}
-              className={tab === i ? 'on' : ''} onClick={() => setTab(i)}
-              onKeyDown={(e) => {
-                if (e.key === 'ArrowRight') setTab((tab + 1) % tabs.length);
-                if (e.key === 'ArrowLeft') setTab((tab + tabs.length - 1) % tabs.length);
-              }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-        {tabs.map((t, i) => (
-          <div key={t.id} role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} hidden={tab !== i} className="tabpanel">
-            {t.body}
-          </div>
-        ))}
-      </section>
+      <Stats S={S} />
 
-      {(S.uen || lines(S.licenses).length > 0 || S.service_area) && (
+      {why.length > 0 && (
+        <section className="wrap block" aria-labelledby="about-why">
+          <h2 id="about-why">{S.why_title || 'Why work with us'}</h2>
+          <ul className="why-cards">
+            {why.map((t) => <li key={t}><span className="why-ico" aria-hidden="true">✓</span>{t}</li>)}
+          </ul>
+        </section>
+      )}
+
+      {steps.length > 0 && (
+        <section className="band light" aria-labelledby="about-steps">
+          <div className="wrap">
+            <h2 id="about-steps">{S.process_title || 'How we work'}</h2>
+            <ol className="step-cards">
+              {steps.map(([t, d], i) => <li key={t}><span className="step-no" aria-hidden="true">{i + 1}</span><strong>{t}</strong>{d && <p>{d}</p>}</li>)}
+            </ol>
+          </div>
+        </section>
+      )}
+
+      {(S.about_mission || S.about_vision || values.length > 0) && (
+        <section className="wrap block" aria-label="Mission, vision and values">
+          {(S.about_mission || S.about_vision) && (
+            <div className="mv">
+              {S.about_mission && <div className="card"><h2>Our mission</h2><p>{S.about_mission}</p></div>}
+              {S.about_vision && <div className="card"><h2>Our vision</h2><p>{S.about_vision}</p></div>}
+            </div>
+          )}
+          {values.length > 0 && (
+            <>
+              <h2 className="values-title">Our values</h2>
+              <div className="value-cards">
+                {values.map(([t, d]) => <div key={t} className="card"><h3>{t}</h3>{d && <p>{d}</p>}</div>)}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      <Guarantee S={S} />
+
+      {work.length > 0 && (
+        <section className="wrap block" aria-labelledby="about-work">
+          <h2 id="about-work">Recent work</h2>
+          <div className="gallery home-work">
+            {work.map((g) => (
+              <Link key={g.id} className="shot" to={g.slug ? `/portfolio/${g.slug}` : '/portfolio'}>
+                <img {...photo(g.image_url, SIZES.card)} alt={g.title} loading="lazy" />
+                <figcaption>{g.title}</figcaption>
+              </Link>
+            ))}
+          </div>
+          <p><Link className="btn ghost" to="/portfolio">View all projects</Link></p>
+        </section>
+      )}
+
+      {brands.length > 0 && (
+        <section className="wrap block" aria-labelledby="about-brands">
+          <h2 id="about-brands">Brands we work with</h2>
+          <ul className="brand-list">{brands.map((b) => <li key={b}>{b}</li>)}</ul>
+        </section>
+      )}
+
+      {(S.uen || lines(S.licenses).length > 0 || S.service_area || (S.address && S.address.trim().toLowerCase() !== 'singapore')) && (
         <section className="wrap block" aria-labelledby="company-details">
           <div className="sechead"><h2 id="company-details">Company details</h2></div>
           {S.uen && <p><strong>UEN:</strong> {S.uen}</p>}
           {S.service_area && <p><strong>Areas served:</strong> {lines(S.service_area).join(', ')}</p>}
           {lines(S.licenses).length > 0 && <ul className="ticks">{lines(S.licenses).map((l) => <li key={l}>{l}</li>)}</ul>}
+          <AddressMap S={S} />
         </section>
       )}
 

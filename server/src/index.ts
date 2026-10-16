@@ -82,6 +82,15 @@ const DEFAULTS: Record<string, string> = {
   about_image: '',
   about_mission:
     'To deliver air-conditioning, electrical, security and building works that are clearly scoped, fairly priced and properly finished.',
+  // About page: vision, values ("Title | text" per line) and brands (one per line); empty hides each block
+  about_vision: '',
+  about_values: [
+    'Clear pricing | A written quotation for your exact scope before any work starts, with no surprise charges.',
+    'Quality workmanship | Work done to the agreed specification and checked with you at handover.',
+    'Safety | Safe work practices on every site, for our team, your family, staff and neighbours.',
+    'Clear communication | One point of contact who keeps you updated from site visit to handover.',
+  ].join('\n'),
+  brands: '',
   page_bg: '',
   hero_title: 'Air-con, electrical, CCTV and building works from one contractor.',
   hero_lead:

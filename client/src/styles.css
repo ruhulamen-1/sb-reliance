@@ -568,3 +568,23 @@ a.shot,.proj{display:block;text-decoration:none;color:inherit}
 .home-about-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;display:block}
 .home-about p{color:var(--muted);max-width:62ch}
 @media(max-width:800px){.home-about{grid-template-columns:minmax(0,1fr);gap:20px}.home-about-img{aspect-ratio:16/10}}
+
+/* ---------- About page ---------- */
+.about-intro .row.gap{margin-top:8px}
+.why-cards{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.why-cards li{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px;font-weight:600}
+.why-ico{flex:none;width:28px;height:28px;border-radius:50%;background:var(--sun);color:var(--ink);display:grid;place-items:center;font-weight:800}
+.step-cards{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;counter-reset:none}
+.step-cards li{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px}
+.step-cards strong{display:block;font:700 1.1rem 'Bricolage Grotesque',sans-serif;margin:10px 0 4px}
+.step-cards p{margin:0;color:var(--muted)}
+.step-no{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--ink);color:#fff;font-weight:800}
+.mv{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:34px}
+.mv .card h2{font-size:1.4rem;margin-bottom:8px}.mv .card p{margin:0}
+.values-title{margin-bottom:16px}
+.value-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.value-cards .card{border-top:4px solid var(--sun)}
+.value-cards h3{margin-bottom:6px}.value-cards p{margin:0;color:var(--muted)}
+.brand-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:10px}
+.brand-list li{border:1px solid var(--line);background:#fff;border-radius:8px;padding:10px 18px;font-weight:700;font-size:1.05rem}
+@media(max-width:700px){.why-cards,.step-cards,.value-cards{grid-template-columns:1fr}}
