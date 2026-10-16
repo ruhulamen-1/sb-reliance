@@ -243,7 +243,7 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'whatsapp', label: 'WhatsApp number (digits only, with country code)', hint: 'e.g. 6585334478' },
   { key: 'email', label: 'Email' },
   { key: 'address', label: 'Address' },
-  { key: 'site_url', label: 'Website address (optional, e.g. https://sbreliance.com.sg)', hint: 'Used for Google/WhatsApp link previews and the sitemap. Leave empty to detect automatically. The SITE_URL environment variable overrides this.' },
+  { key: 'site_url', label: 'Website address (optional, e.g. https://sbreliance.com)', hint: 'Your own domain exactly as visitors type it, with https://. Used for Google, WhatsApp link previews and the sitemap. Leave empty to detect automatically. The SITE_URL environment variable overrides this.' },
   { key: 'seo_title', label: 'Google title for the home page', hint: 'About 50–60 characters: company name plus what you do.' },
   { key: 'seo_description', label: 'Google description for the home page', area: true, hint: 'About 140–160 characters. Shown under the title in Google results.' },
   { key: 'uen', label: 'UEN (company registration number, shown on site)' },

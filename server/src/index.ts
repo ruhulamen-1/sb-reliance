@@ -977,9 +977,22 @@ for (const [table, cols] of Object.entries(CONTENT)) {
 
 // ---------- SEO files + built client (client/dist) ----------
 // Public base URL: SITE_URL env, else Admin > Settings "Website address", else the request's own host.
+// A fixed address for a different domain than the one being visited is ignored: canonical links and the
+// sitemap pointing at another (or non-existent) domain make Google drop every page of this site.
+let warnedBase = '';
 function baseUrl(req: Request, S: Record<string, string>) {
+  const own = `${req.protocol}://${req.get('host')}`;
   const fixed = (env.SITE_URL || S.site_url || '').trim().replace(/\/+$/, '');
-  return /^https?:\/\//i.test(fixed) ? fixed : `${req.protocol}://${req.get('host')}`;
+  if (!/^https?:\/\/[^/]+$/i.test(fixed)) return own;
+  const bare = (h: string) => h.toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '');
+  const visited = bare(req.hostname || '');
+  // behind some proxies the visited host is localhost or an IP; then trust the fixed address
+  if (!visited || visited === 'localhost' || /^[\d.]+$|:/.test(visited) || bare(new URL(fixed).host) === visited) return fixed;
+  if (warnedBase !== fixed) {
+    warnedBase = fixed;
+    console.warn(`WARNING: website address "${fixed}" does not match the visited domain "${req.hostname}"; using ${own} instead. Fix SITE_URL or Admin > Settings > Website address.`);
+  }
+  return own;
 }
 app.get('/robots.txt', wrap(async (req, res) => {
   res.type('text/plain').send(robotsTxt(baseUrl(req, await getSettings())));
