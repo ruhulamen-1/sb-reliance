@@ -43,7 +43,7 @@ const STATUSES = ['new', 'contacted', 'scheduled', 'completed', 'cancelled'] as 
 const CONTENT: Record<string, string[]> = {
   services: ['title', 'slug', 'description', 'content', 'faq', 'seo_title', 'seo_description', 'sort_order', 'image_url'],
   posts: ['title', 'slug', 'excerpt', 'content', 'image_url'],
-  testimonials: ['name', 'location', 'text', 'rating', 'status'],
+  testimonials: ['name', 'location', 'text', 'rating', 'status', 'source', 'review_date'],
   gallery: ['title', 'slug', 'category', 'image_url', 'before_image_url', 'photo_2', 'photo_3', 'photo_4', 'location', 'duration', 'description'],
   team: ['name', 'role', 'bio', 'image_url', 'sort_order'],
 };
@@ -185,6 +185,9 @@ async function initDb() {
   await ensureColumn('testimonials', 'status', "status VARCHAR(10) NOT NULL DEFAULT 'approved'");
   await ensureColumn('testimonials', 'whatsapp', 'whatsapp VARCHAR(40) NULL');
   await ensureColumn('testimonials', 'created_at', 'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+  // reviews copied from the company's Google profile are marked 'google' and keep their own date
+  await ensureColumn('testimonials', 'source', "source VARCHAR(10) NOT NULL DEFAULT 'website'");
+  await ensureColumn('testimonials', 'review_date', 'review_date DATE NULL');
   await ensureColumn('posts', 'image_url', 'image_url VARCHAR(255) NULL');
   await ensureColumn('gallery', 'category', "category VARCHAR(80) NOT NULL DEFAULT ''");
   // project case studies (Portfolio)
@@ -403,7 +406,7 @@ app.get('/api/public/team', wrap(async (_req, res) => {
 // Also put into the first HTML response, so pages render without waiting for a second request.
 async function homeData() {
   const [services] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
-  const [testimonials] = await pool.query<RowDataPacket[]>("SELECT id, name, location, text, rating FROM testimonials WHERE status = 'approved' ORDER BY id DESC LIMIT 6");
+  const [testimonials] = await pool.query<RowDataPacket[]>("SELECT id, name, location, text, rating, source, DATE_FORMAT(COALESCE(review_date, created_at), '%Y-%m-%d') AS date FROM testimonials WHERE status = 'approved' ORDER BY COALESCE(review_date, created_at) DESC, id DESC LIMIT 12");
   const [posts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 3');
   const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, image_url FROM gallery ORDER BY id DESC LIMIT 12');
   return { services, testimonials, posts, gallery, settings: await getSettings() };
@@ -945,6 +948,8 @@ for (const [table, cols] of Object.entries(CONTENT)) {
     if (c === 'status') return ['approved', 'pending', 'hidden'].includes(String(b.status)) ? b.status : 'approved';
     if (c === 'rating') { const n = Math.round(Number(b.rating)); return n >= 1 && n <= 5 ? n : null; }
     if (table === 'gallery' && c === 'category') return b.category ?? ''; // NOT NULL column
+    if (c === 'source') return b.source === 'google' ? 'google' : 'website';
+    if (c === 'review_date') return /^\d{4}-\d{2}-\d{2}/.test(String(b.review_date ?? '')) ? String(b.review_date).slice(0, 10) : null;
     return b[c] ?? null;
   });
   // services, posts and projects get a clean, unique slug (from the title, and a project's location, when left empty)
@@ -954,7 +959,9 @@ for (const [table, cols] of Object.entries(CONTENT)) {
     return { ...b, slug: await uniqueSlug(table, from, id) };
   };
   app.get(base, auth, wrap(async (_req, res) => {
-    const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM ?? ORDER BY id DESC', [table]);
+    // a review's date as plain YYYY-MM-DD (a DATE would come back shifted by the time zone)
+    const extra = table === 'testimonials' ? ", DATE_FORMAT(review_date, '%Y-%m-%d') AS review_date" : '';
+    const [rows] = await pool.query<RowDataPacket[]>(`SELECT *${extra} FROM ?? ORDER BY id DESC`, [table]);
     res.json(rows);
   }));
   app.post(base, auth, wrap(async (req, res) => {

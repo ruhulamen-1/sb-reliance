@@ -428,6 +428,8 @@ export default function Admin() {
         { key: 'text', label: 'Review', area: true },
         { key: 'location', label: 'Area (optional)', optional: true },
         { key: 'rating', label: 'Stars (1–5, optional)', num: true, optional: true },
+        { key: 'source', label: 'Where is this review from?', options: [['website', 'Website / WhatsApp'], ['google', 'Google (copied from our Google Business Profile)']], hint: 'Choose Google only for reviews that are really on your Google profile. They show with the Google "G" mark.' },
+        { key: 'review_date', label: 'Review date (optional)', date: true, optional: true, hint: 'The date shown on Google, so the site can say e.g. "3 months ago". Empty = the day it was added here.' },
         { key: 'status', label: 'Show on website?', options: [['approved', 'Yes, show it'], ['pending', 'Waiting for approval'], ['hidden', 'No, hide it']] },
       ]} />}
       </main>

@@ -507,16 +507,11 @@ html,body{overflow-x:clip}
   .gallery,.home-work{grid-template-columns:1fr 1fr;gap:8px}
   .shot figcaption{font-size:.85rem}
   .home-work .shot figcaption{padding:20px 8px 6px;font-size:.8rem}
-  /* reviews: swipe sideways instead of a long column */
-  .reviews .grid3{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin:0 -20px;padding:2px 20px 10px;scroll-padding:0 20px;scrollbar-width:none}
-  .reviews .grid3::-webkit-scrollbar{display:none}
-  .reviews .grid3>figure{flex:0 0 84%;scroll-snap-align:center;margin:0}
   /* forms: larger checkboxes and touch rows */
   .check{min-height:40px}.check input{width:20px;height:20px}
   fieldset{gap:0 16px}
   .btn{min-height:46px}
 }
-@media(max-width:480px){.reviews .grid3{margin:0 -16px;padding:2px 16px 10px;scroll-padding:0 16px}}
 /* the footer starts below the screen while a page's content is still loading, so it does not jump (PageSpeed CLS) */
 main.page{min-height:100vh}
 
@@ -533,3 +528,34 @@ a.shot,.proj{display:block;text-decoration:none;color:inherit}
 .projmore img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;display:block}
 .projsvc{margin-top:18px;font-weight:600}
 .projlink span{display:block;padding-top:6px;font-weight:600}
+
+/* ---------- customer / Google reviews (components/GoogleReviews.tsx) ---------- */
+.greviews h2{text-align:center;margin-bottom:28px}
+.grv{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:center}
+.grv:not(:has(.grv-sum)){grid-template-columns:minmax(0,1fr)}
+.grv-sumlink{text-decoration:none;color:inherit}
+.grv-sum{text-align:center;display:grid;justify-items:center;gap:6px;padding:10px}
+.grv-label{font:800 1.35rem 'Bricolage Grotesque',sans-serif;text-transform:uppercase;letter-spacing:.02em}
+.grv-sum p{margin:0;font-size:.98rem}
+.grv-word{font:600 2rem/1 'Source Sans 3',Arial,sans-serif;letter-spacing:-.5px}
+.grv-stars{display:inline-flex;gap:1px;vertical-align:middle}
+.grv-rail{position:relative}
+.grv-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:4px 2px 8px}
+.grv-track::-webkit-scrollbar{display:none}
+.grv-card{flex:0 0 calc((100% - 48px)/4);scroll-snap-align:start;margin:0;background:#f4f4f4;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;min-height:220px}
+.grv-card header{display:flex;align-items:center;gap:12px}
+.grv-card figcaption{display:grid;min-width:0;flex:1}
+.grv-card figcaption strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grv-card figcaption small{color:var(--muted);font-size:.85rem}
+.grv-avatar{flex:none;width:40px;height:40px;border-radius:50%;color:#fff;display:grid;place-items:center;font-weight:700;font-size:1.1rem}
+.grv-g{flex:none;align-self:flex-start}
+.grv-card blockquote{margin:0;font-size:.98rem;line-height:1.5}
+.grv-card blockquote.clamp{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.grv-more{align-self:flex-start;background:none;border:0;padding:0;color:var(--muted);font:inherit;font-size:.9rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.grv-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:1;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:1.6rem;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(16,52,58,.15);display:grid;place-items:center;padding:0 0 3px}
+.grv-nav.prev{left:-14px}.grv-nav.next{right:-14px}
+@media(max-width:1100px){.grv-card{flex-basis:calc((100% - 16px)/2)}}
+@media(max-width:800px){.grv{grid-template-columns:minmax(0,1fr)}.grv-sum{grid-template-columns:auto auto;align-items:center;justify-content:center;gap:4px 12px}.grv-sum .grv-label,.grv-sum .grv-word{grid-column:1/-1}}
+@media(max-width:700px){.grv-card{flex-basis:84%;min-height:0}.grv-nav{display:none}.grv-track{margin:0 -20px;padding:4px 20px 8px;scroll-padding:0 20px}}
+@media(max-width:480px){.grv-track{margin:0 -16px;padding:4px 16px 8px;scroll-padding:0 16px}}
+.greviews .reviews-cta{text-align:center;margin-top:18px}

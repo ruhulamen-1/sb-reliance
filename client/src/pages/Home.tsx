@@ -7,15 +7,15 @@ import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
 import { api, initialHome } from '../api';
 import { serviceHeading } from '../components/content';
-import { Guarantee, ReviewsButton, Stats, TrustBar } from '../components/Trust';
+import { Guarantee, Stats, TrustBar } from '../components/Trust';
+import GoogleReviews, { Review } from '../components/GoogleReviews';
 import { HIGH, photo, SIZES } from '../img';
 
 interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
-interface Testimonial { id: number; name: string; location: string; text: string; rating?: number | null }
 interface Post { id: number; title: string; slug: string; excerpt: string; image_url?: string | null; created_at: string }
 interface GalleryItem { id: number; title: string; slug?: string | null; image_url: string }
 type Settings = Record<string, string>;
-interface HomeData { services: Service[]; testimonials: Testimonial[]; posts: Post[]; gallery: GalleryItem[]; settings: Settings }
+interface HomeData { services: Service[]; testimonials: Review[]; posts: Post[]; gallery: GalleryItem[]; settings: Settings }
 
 const CHIPS = ['#7FA6D6', '#9CC5B8', '#F2D16B', '#E8A598', '#C9C3E6', '#F4EFE6', '#A7D3C4', '#F0B88A'];
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
@@ -184,21 +184,7 @@ export default function Home() {
         </section>
       )}
 
-      {(data.testimonials.length > 0 || S.google_reviews_url) && (
-        <section className="wrap block reviews">
-          <h2>What customers say</h2>
-          <div className="grid3">
-            {data.testimonials.map((t) => (
-              <figure key={t.id} className="card quote">
-                {t.rating ? <p className="qstars" aria-label={`${t.rating} out of 5 stars`}>{'★'.repeat(t.rating)}</p> : null}
-                <blockquote>{t.text}</blockquote>
-                <figcaption>{t.location ? `${t.name}, ${t.location}` : t.name}</figcaption>
-              </figure>
-            ))}
-          </div>
-          <ReviewsButton S={S} />
-        </section>
-      )}
+      <GoogleReviews S={S} reviews={data.testimonials} />
 
       {data.posts.length > 0 && (
         <section id="blog" className="wrap block">
