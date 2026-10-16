@@ -5,7 +5,7 @@ import Shell, { Settings } from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
-import { Guarantee, Offer, TrustBar } from '../components/Trust';
+import { Guarantee, TrustBar } from '../components/Trust';
 import { faqPairs, serviceHeading, TextBlocks, Service } from '../components/content';
 import { HIGH, photo, SIZES } from '../img';
 
@@ -57,7 +57,6 @@ export default function ServicePage() {
                   <a className="btn" href="#quote">Get a free quote</a>
                   <a className="btn ghost" href={wa}>WhatsApp {S.phone}</a>
                 </div>
-                <Offer S={S} />
               </div>
               {service.image_url && <img className="heroimg" {...photo(service.image_url, SIZES.hero)} alt={serviceHeading(service)} {...HIGH} />}
             </div>

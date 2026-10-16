@@ -257,7 +257,6 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'stats', label: 'Numbers to show (optional)', area: true, hint: 'One per line: Number | Label, e.g. 120+ | Projects completed. Only real figures. Empty hides the section.' },
   { key: 'warranty_title', label: 'Guarantee section title (optional)', hint: 'e.g. Our guarantee' },
   { key: 'warranty_text', label: 'Guarantee / warranty points (optional)', area: true, hint: 'One per line, only what you really offer, e.g. 12 months workmanship warranty. Empty hides the section.' },
-  { key: 'offer_text', label: 'Offer badge (optional)', area: true, hint: 'Shown next to the main buttons on the home and service pages, e.g. Attractive Pricing & Complimentary Site Review. One per line for separate badges. Empty hides it.' },
   { key: 'quote_reply_time', label: 'Message after a quote is sent (optional)', hint: 'e.g. We reply on WhatsApp within 2 hours during opening hours.' },
   { key: 'notify_email', label: 'Email new quote requests to (optional)', hint: 'Needs the SMTP settings on the server (see DEPLOY.md). Requests are always saved in Admin > Quotes.' },
   { key: 'price_range', label: 'Price range for Google (optional)', hint: 'Shown to Google only, e.g. $$ or From $300. Leave empty if you prefer not to say.' },
