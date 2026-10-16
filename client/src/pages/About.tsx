@@ -29,7 +29,6 @@ export default function About() {
   const steps = pairs(S.steps);
   const values = pairs(S.about_values);
   const why = lines(S.why_list);
-  const brands = lines(S.brands);
   const work = gallery.slice(0, 6);
 
   return (
@@ -105,13 +104,6 @@ export default function About() {
             ))}
           </div>
           <p><Link className="btn ghost" to="/portfolio">View all projects</Link></p>
-        </section>
-      )}
-
-      {brands.length > 0 && (
-        <section className="wrap block" aria-labelledby="about-brands">
-          <h2 id="about-brands">Brands we work with</h2>
-          <ul className="brand-list">{brands.map((b) => <li key={b}>{b}</li>)}</ul>
         </section>
       )}
 
