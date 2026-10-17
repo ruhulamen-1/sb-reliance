@@ -428,12 +428,12 @@ app.get('/api/public/team', wrap(async (_req, res) => {
   res.json(rows);
 }));
 
-// Everything the public pages share (settings, services, latest posts, reviews and photos).
+// Everything the public pages share (settings, services, latest five posts, reviews and photos).
 // Also put into the first HTML response, so pages render without waiting for a second request.
 async function homeData() {
   const [services] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
   const [testimonials] = await pool.query<RowDataPacket[]>("SELECT id, name, location, text, rating, source, DATE_FORMAT(COALESCE(review_date, created_at), '%Y-%m-%d') AS date FROM testimonials WHERE status = 'approved' ORDER BY COALESCE(review_date, created_at) DESC, id DESC LIMIT 12");
-  const [posts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 3');
+  const [posts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 5');
   const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, image_url FROM gallery ORDER BY id DESC LIMIT 12');
   return { services, testimonials, posts, gallery, settings: await getSettings() };
 }
@@ -471,7 +471,7 @@ app.get('/api/public/services/:slug', wrap(async (req, res) => {
   res.json({ service, services: rows, gallery, settings: await getSettings() });
 }));
 
-// every post, newest first (the home page only shows the latest three)
+// every post, newest first (the home page only shows the latest five)
 app.get('/api/public/posts', wrap(async (_req, res) => {
   const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 200');
   res.json(rows);

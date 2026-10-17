@@ -649,3 +649,5 @@ a.shot,.proj{display:block;text-decoration:none;color:inherit}
 .home-hack-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .home-hack .btn-outline{background:transparent}
 @media(max-width:800px){.home-hack{padding:44px 0}.home-hack-grid{grid-template-columns:minmax(0,1fr);gap:24px}.home-hack-img{aspect-ratio:16/10}.home-hack .row.gap{display:grid;grid-template-columns:1fr;gap:10px}.home-hack .row.gap .btn{text-align:center}}
+/* home blog: five posts read best as 3 + 2 on wide screens (not 4 + 1) */
+@media(min-width:1000px){#blog .grid3{grid-template-columns:repeat(3,minmax(0,1fr))}}

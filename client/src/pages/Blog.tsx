@@ -7,7 +7,7 @@ import { photo, SIZES } from '../img';
 
 interface Post { id: number; title: string; slug: string; excerpt: string; image_url?: string | null; created_at: string }
 
-/** Every blog post, newest first. The home page shows only the latest three. */
+/** Every blog post, newest first. The home page shows only the latest five. */
 export default function Blog() {
   const [S] = useState<Settings>(() => initialHome()?.settings ?? {});
   const [posts, setPosts] = useState<Post[]>(() => initialHome()?.allPosts ?? []);
