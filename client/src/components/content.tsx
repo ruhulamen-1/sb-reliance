@@ -14,7 +14,7 @@ export interface Service {
   image_url?: string | null;
 }
 
-const lines = (v?: string | null) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
+export const lines = (v?: string | null) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
 export const serviceHeading = (s: { title: string }) => (/singapore/i.test(s.title) ? s.title : `${s.title} in Singapore`);
 

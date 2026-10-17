@@ -6,9 +6,9 @@ import QuoteForm from '../components/QuoteForm';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
 import { Guarantee, TrustBar } from '../components/Trust';
-import { faqPairs, serviceHeading, TextBlocks, Service } from '../components/content';
+import { faqPairs, lines, serviceHeading, TextBlocks, Service } from '../components/content';
 import { HIGH, photo, SIZES } from '../img';
-import { PriceTable } from '../components/PriceGuide';
+import { PriceTable, priceRows } from '../components/PriceGuide';
 
 interface GalleryItem { id: number; title: string; slug?: string | null; image_url: string }
 
@@ -39,6 +39,8 @@ export default function ServicePage() {
   if (state === 'missing') return <NotFound />;
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
   const faq = faqPairs(service?.faq);
+  const intro = lines(service?.content).find((l) => !l.startsWith('# '));
+  const rows = priceRows(service?.prices).slice(0, 4);
   const others = services.filter((s) => s.id !== service?.id && s.slug);
 
   return (
@@ -54,6 +56,12 @@ export default function ServicePage() {
                 </nav>
                 <h1 className="h1m">{serviceHeading(service)}</h1>
                 <p className="lead">{service.description}</p>
+                {intro && <p className="svc-intro">{intro}</p>}
+                {rows.length > 0 && (
+                  <ul className="ticks svc-prices" aria-label="Typical starting prices">
+                    {rows.map((r) => <li key={r.item}><span>{r.item}</span> <strong>{r.price}</strong></li>)}
+                  </ul>
+                )}
                 <div className="row gap">
                   <a className="btn" href="#quote">Get a free quote</a>
                   <a className="btn ghost" href={wa}>WhatsApp {S.phone}</a>
