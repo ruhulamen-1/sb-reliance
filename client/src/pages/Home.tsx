@@ -37,7 +37,7 @@ export default function Home() {
   const S = data.settings;
   const { pathname } = useLocation();
   useEffect(() => {
-    const id = ({ '/services': 'services', '/why-us': 'included', '/blog': 'blog' } as Record<string, string>)[pathname];
+    const id = ({ '/services': 'services', '/why-us': 'included' } as Record<string, string>)[pathname];
     const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const el = id ? document.getElementById(id) : null;
     if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
@@ -76,7 +76,7 @@ export default function Home() {
     return [t.trim(), d.join('|').trim()];
   });
 
-  const alias = ({ '/services': 'Services', '/why-us': 'Why choose us', '/blog': 'Blog' } as Record<string, string>)[pathname];
+  const alias = ({ '/services': 'Services', '/why-us': 'Why choose us' } as Record<string, string>)[pathname];
   useSeo({
     title: !S.company_name ? '' : alias ? `${alias} – ${S.company_name}` : S.seo_title || S.company_name,
     description: S.seo_description,
@@ -236,6 +236,7 @@ export default function Home() {
               </article>
             ))}
           </div>
+          <p><Link className="btn ghost" to="/blog">View all posts</Link></p>
         </section>
       )}
 

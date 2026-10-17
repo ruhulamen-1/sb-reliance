@@ -42,7 +42,7 @@ export interface SeoProject {
   image_url?: string | null;
   before_image_url?: string | null;
 }
-export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null }
+export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null; posts?: SeoPost[] }
 
 const lines = (v?: string | null) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 const clip = (v: string, max = 160) => {
@@ -119,9 +119,9 @@ export function projectService<T extends SeoService>(project: object, services: 
   return undefined;
 }
 
-/** Pages that should be in the sitemap. /services, /why-us and /blog show the home page, so they are not listed. */
-export const INDEXABLE = ['/', '/portfolio', '/team', '/contact', '/about', '/privacy-policy'];
-const HOME_ALIASES: Record<string, string> = { '/services': 'Services', '/why-us': 'Why choose us', '/blog': 'Blog' };
+/** Pages that should be in the sitemap. /services and /why-us show the home page, so they are not listed. */
+export const INDEXABLE = ['/', '/blog', '/portfolio', '/team', '/contact', '/about', '/privacy-policy'];
+const HOME_ALIASES: Record<string, string> = { '/services': 'Services', '/why-us': 'Why choose us' };
 
 interface PageMeta {
   title: string;
@@ -175,7 +175,7 @@ export function pageMeta(path: string, S: Settings, data: SeoData = { services: 
     case '/services':
     case '/why-us':
     case '/blog':
-      return { title: `${HOME_ALIASES[path]} – ${co}`, description: homeDesc, canonical: '/', status: 200 };
+      return { title: `Blog – ${co}`, description: clip(`Guides from ${co} on hacking, renovation, air-conditioning, electrical, CCTV, painting and tiling in Singapore.`), canonical: path, status: 200 };
     case '/portfolio':
       return { title: `Portfolio – ${co}`, description: clip(`Completed projects by ${co}: air-conditioning, electrical, CCTV, ceiling, painting, tiles and building works.`), canonical: path, status: 200 };
     case '/team':
@@ -429,6 +429,8 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
       + (svcList ? `<h2>${esc(S.services_title || 'Services')}</h2><ul>${svcList}</ul>` : '')
       + (faqPairs(S.home_faq).length ? `<h2>${esc(S.home_faq_title || 'Common questions')}</h2>${faqPairs(S.home_faq).map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}` : '')
       + contact;
+  } else if (path === '/blog') {
+    main = `<h1>Blog</h1><ul>${(data.posts || []).map((p) => `<li><a href="/blog/${esc(encodeURIComponent(p.slug))}">${esc(p.title)}</a></li>`).join('')}</ul>`;
   } else if (path === '/about') {
     main = `<h1>About ${esc(S.brand || co)}</h1>${lines(S.about_intro).map((p) => `<p>${esc(p)}</p>`).join('')}${svcList ? `<ul>${svcList}</ul>` : ''}`;
   } else if (path === '/contact') {

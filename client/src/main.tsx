@@ -10,6 +10,7 @@ import Privacy from './pages/Privacy';
 import NotFound from './pages/NotFound';
 import ServicePage from './pages/ServicePage';
 import PostPage from './pages/PostPage';
+import Blog from './pages/Blog';
 import ProjectPage from './pages/ProjectPage';
 import './styles.css';
 
@@ -23,10 +24,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Suspense fallback={null}>
         <Routes>
-          {["/", "/services", "/why-us", "/blog"].map((path) => (
+          {["/", "/services", "/why-us"].map((path) => (
             <Route key={path} path={path} element={<Home />} />
           ))}
           <Route path="/services/:slug" element={<ServicePage />} />
+          <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<PostPage />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/portfolio/:slug" element={<ProjectPage />} />

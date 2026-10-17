@@ -471,6 +471,12 @@ app.get('/api/public/services/:slug', wrap(async (req, res) => {
   res.json({ service, services: rows, gallery, settings: await getSettings() });
 }));
 
+// every post, newest first (the home page only shows the latest three)
+app.get('/api/public/posts', wrap(async (_req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 200');
+  res.json(rows);
+}));
+
 app.get('/api/public/posts/:slug', wrap(async (req, res) => {
   const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM posts WHERE slug = ? LIMIT 1', [req.params.slug]);
   if (!rows[0]) return res.status(404).json({ error: 'Post not found' });
@@ -1066,9 +1072,13 @@ if (existsSync(clientDist)) {
         try { slug = decodeURIComponent(projSlug); } catch { /* keep as is */ }
         project = await projectData(slug);
       }
-      const data = { services: services as SeoService[], post, project: (project?.project as SeoProject) || null };
+      let allPosts: RowDataPacket[] | undefined;
+      if (/^\/blog\/?$/.test(req.path)) {
+        [allPosts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 200');
+      }
+      const data = { services: services as SeoService[], post, project: (project?.project as SeoProject) || null, posts: allPosts as SeoPost[] | undefined };
       // a project page gets its own data too, so it shows without a second request
-      const { html, status } = renderHtml(template, req.path, S, data, baseUrl(req, S), project ? { ...home, project } : home);
+      const { html, status } = renderHtml(template, req.path, S, data, baseUrl(req, S), project ? { ...home, project } : allPosts ? { ...home, allPosts } : home);
       res.status(status).type('html').setHeader('Cache-Control', 'no-cache').send(html);
     } catch (e) {
       console.error('SEO render failed, sending plain index.html:', (e as Error).message);
