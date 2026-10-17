@@ -140,8 +140,15 @@ export default function ServicePage() {
           {others.length > 0 && (
             <section className="wrap block">
               <h2>Other services</h2>
-              <ul className="svc-links">
-                {others.map((s) => <li key={s.id}><Link to={`/services/${s.slug}`}>{serviceHeading(s)}</Link></li>)}
+              <ul className="svc-minis">
+                {others.map((s) => (
+                  <li key={s.id}>
+                    <Link to={`/services/${s.slug}`}>
+                      {s.image_url && <img {...photo(s.image_url, SIZES.card)} alt="" loading="lazy" />}
+                      <span>{s.title}</span>
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </section>
           )}

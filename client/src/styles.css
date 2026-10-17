@@ -594,7 +594,7 @@ a.shot,.proj{display:block;text-decoration:none;color:inherit}
 .price-row small{display:block;color:var(--muted);font-size:.9rem}
 .price{font:800 1.25rem 'Bricolage Grotesque',sans-serif;color:var(--ink);white-space:nowrap}
 .price-note{color:var(--muted);font-size:.9rem;max-width:70ch;margin-top:12px}
-.price-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.price-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .price-card{display:flex;flex-direction:column;gap:4px;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--sun);border-radius:10px;padding:18px;text-decoration:none;color:var(--ink)}
 .price-card-title{font-weight:700}
 .price-card small{color:var(--muted)}
@@ -663,3 +663,17 @@ a.shot,.proj{display:block;text-decoration:none;color:inherit}
 .guarantee>div:last-child{flex:1}
 .band .wrap.narrow{max-width:960px;margin-left:0;margin-right:auto}
 .home-faq{max-width:960px;margin-left:0;margin-right:auto}
+
+/* numbers: one strip instead of separate boxes */
+.statgrid{display:flex;flex-wrap:wrap;gap:0;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.statgrid div{flex:1 1 170px;align-items:center;text-align:center;background:none;border:0;border-radius:0;padding:18px 12px;border-right:1px solid var(--line)}
+.statgrid div:last-child{border-right:0}
+@media(max-width:600px){.statgrid div{flex-basis:50%;border-bottom:1px solid var(--line)}.statgrid div:nth-child(2n){border-right:0}}
+/* other services: photo cards */
+.svc-minis{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.svc-minis a{display:block;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--ink)}
+.svc-minis a:hover{box-shadow:0 6px 18px rgba(16,52,58,.12)}
+.svc-minis img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover}
+.svc-minis span{display:block;padding:10px 12px;font-weight:700}
+@media(max-width:600px){.svc-minis{grid-template-columns:1fr 1fr;gap:10px}}
+.svc-minis a{height:100%}
