@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, initialHome } from '../api';
+import { api, homeData, initialHome } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import QuoteForm from '../components/QuoteForm';
 import useSeo from '../components/useSeo';
@@ -8,6 +8,7 @@ import NotFound from './NotFound';
 import { Guarantee, TrustBar } from '../components/Trust';
 import { faqPairs, lines, serviceHeading, TextBlocks, Service } from '../components/content';
 import { HIGH, photo, SIZES } from '../img';
+import GoogleReviews, { Review } from '../components/GoogleReviews';
 import { PriceTable, priceRows } from '../components/PriceGuide';
 
 interface GalleryItem { id: number; title: string; slug?: string | null; image_url: string }
@@ -19,8 +20,14 @@ export default function ServicePage() {
   const [services, setServices] = useState<Service[]>(() => initialHome()?.services ?? []);
   const [service, setService] = useState<Service | null>(() => services.find((x) => x.slug === slug) ?? null);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [reviews, setReviews] = useState<Review[]>(() => initialHome()?.testimonials ?? []);
   const [state, setState] = useState<'loading' | 'ok' | 'missing' | 'err'>('loading');
   const [err, setErr] = useState('');
+
+  useEffect(() => {
+    if (!reviews.length) homeData().then((d) => setReviews(d.testimonials ?? [])).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setState('loading');
@@ -41,6 +48,8 @@ export default function ServicePage() {
   const faq = faqPairs(service?.faq);
   const intro = lines(service?.content).find((l) => !l.startsWith('# '));
   const rows = priceRows(service?.prices).slice(0, 4);
+  const steps = lines(S.steps).map((l) => { const [t, ...d] = l.split('|'); return [t.trim(), d.join('|').trim()]; });
+  const hasBody = !!(service?.content || faq.length);
   const others = services.filter((s) => s.id !== service?.id && s.slug);
 
   return (
@@ -73,7 +82,7 @@ export default function ServicePage() {
 
           <TrustBar S={S} />
 
-          <section className="wrap block svc-body">
+          {hasBody && <section className="wrap block svc-body">
             <div className="prose"><TextBlocks text={service.content} /></div>
             {faq.length > 0 && (
               <div className="faq">
@@ -86,9 +95,22 @@ export default function ServicePage() {
                 ))}
               </div>
             )}
-          </section>
+          </section>}
 
           <PriceTable service={service} />
+
+          {steps.length > 0 && (
+            <section className="band light" aria-labelledby="svc-steps">
+              <div className="wrap">
+                <h2 id="svc-steps">{S.process_title || 'How we work'}</h2>
+                <ol className="step-cards">
+                  {steps.map(([t, d], i) => <li key={t}><span className="step-no" aria-hidden="true">{i + 1}</span><strong>{t}</strong>{d && <p>{d}</p>}</li>)}
+                </ol>
+              </div>
+            </section>
+          )}
+
+          <GoogleReviews S={S} reviews={reviews} />
 
           <Guarantee S={S} />
 
