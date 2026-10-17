@@ -45,6 +45,8 @@ export default function Home() {
   }, [pathname, data]);
   const slides = [S.hero_image, S.hero_image_2, S.hero_image_3].filter(Boolean) as string[];
   const homeFaq = faqPairs(S.home_faq);
+  const hacking = data.services.find((s) => s.slug === 'hacking' || /hacking/i.test(s.title));
+  const hackPoints = lines(S.hacking_points);
   const aboutLines = lines(S.about_intro || S.about_text).slice(0, 2);
   const headlines = (S.hero_headlines || '').split('\n').map((x) => x.trim());
   const slideCount = Math.max(slides.length, headlines.filter(Boolean).length, 1);
@@ -152,6 +154,24 @@ export default function Home() {
       </section>
 
       {/* short company introduction; the full story is on /about (text and photo from Admin > Settings > About page) */}
+      {hacking && (
+        <section className="home-hack" aria-labelledby="home-hack-title">
+          <div className="wrap home-hack-grid">
+            <div>
+              <p className="home-hack-kicker">Hacking works</p>
+              <h2 id="home-hack-title">Hacking works in Singapore</h2>
+              {hacking.description && <p className="home-hack-lead">{hacking.description}</p>}
+              {hackPoints.length > 0 && <ul className="home-hack-points">{hackPoints.map((t) => <li key={t}>{t}</li>)}</ul>}
+              <div className="row gap">
+                <a className="btn" href={`https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${S.brand || S.company_name || ''}, I would like a quotation for hacking works.`)}`}>Get a hacking quote</a>
+                {hacking.slug && <Link className="btn btn-outline" to={`/services/${hacking.slug}`}>More about hacking</Link>}
+              </div>
+            </div>
+            {hacking.image_url && <img className="home-hack-img" {...photo(hacking.image_url, SIZES.hero)} alt="Hacking works" loading="lazy" />}
+          </div>
+        </section>
+      )}
+
       {aboutLines.length > 0 && (
         <section className="wrap block home-about" aria-labelledby="home-about-title">
           {S.about_image && <img className="home-about-img" {...photo(S.about_image, SIZES.hero)} alt={S.company_name || ''} loading="lazy" />}

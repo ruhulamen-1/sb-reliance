@@ -635,3 +635,17 @@ a.shot,.proj{display:block;text-decoration:none;color:inherit}
   .fab.wa .fab-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 }
 @media(max-width:700px){.fab-ico{width:20px;height:20px}}
+
+/* home: Hacking block (dark band) */
+.home-hack{background:var(--ink);color:#fff;padding:64px 0}
+.home-hack-grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:40px;align-items:center}
+.home-hack-grid:not(:has(.home-hack-img)){grid-template-columns:minmax(0,1fr);max-width:900px}
+.home-hack h2{color:#fff;font-size:clamp(1.8rem,3.4vw,2.6rem);margin-bottom:12px}
+.home-hack-kicker{margin:0 0 8px;color:var(--sun);font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:.85rem}
+.home-hack-lead{color:#d5e1df;font-size:1.1rem;max-width:56ch}
+.home-hack-points{list-style:none;padding:0;margin:18px 0 24px;display:grid;gap:10px}
+.home-hack-points li{position:relative;padding-left:30px;color:#fff}
+.home-hack-points li:before{content:'';position:absolute;left:2px;top:.55em;width:12px;height:6px;border-left:3px solid var(--sun);border-bottom:3px solid var(--sun);transform:rotate(-45deg)}
+.home-hack-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.home-hack .btn-outline{background:transparent}
+@media(max-width:800px){.home-hack{padding:44px 0}.home-hack-grid{grid-template-columns:minmax(0,1fr);gap:24px}.home-hack-img{aspect-ratio:16/10}.home-hack .row.gap{display:grid;grid-template-columns:1fr;gap:10px}.home-hack .row.gap .btn{text-align:center}}

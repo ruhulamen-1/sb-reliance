@@ -84,6 +84,13 @@ const DEFAULTS: Record<string, string> = {
     'To deliver air-conditioning, electrical, security and building works that are clearly scoped, fairly priced and properly finished.',
   // About page: vision and values ("Title | text" per line); empty hides each block
   about_vision: '',
+  // home page block for the Hacking service (only shown while a service named Hacking exists)
+  hacking_points: [
+    'Non-structural walls, old floor and wall tiles, kitchen and bathroom fittings and built-in carpentry',
+    'Debris removal included in the quotation',
+    'We check the HDB or condo rules for your unit with you before any work starts',
+    'Plastering, tiling, electrical and painting afterwards, by the same team',
+  ].join('\n'),
   // home page questions, one per line "Question | Answer"; empty hides the section
   home_faq_title: 'Common questions',
   home_faq: [

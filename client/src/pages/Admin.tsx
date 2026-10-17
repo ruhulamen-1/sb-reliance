@@ -279,6 +279,7 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'about_image', label: 'About page image (optional)', image: true },
   { key: 'about_mission', label: 'About page mission', area: true },
   { key: 'wa_greeting', label: 'WhatsApp chat greeting', area: true, hint: 'Shown in the chat window that opens from the WhatsApp button. One line per paragraph, e.g. Hi there 👋 / How can we help you today?' },
+  { key: 'hacking_points', label: 'Home page Hacking block: points (optional)', area: true, hint: 'One per line, shown as ticks in the Hacking block on the home page. The block uses the Hacking service\'s photo and short description (Admin > Services > Hacking). Only true points about your hacking work. Hidden if there is no Hacking service.' },
   { key: 'home_faq_title', label: 'Home page questions: title' },
   { key: 'home_faq', label: 'Home page questions (optional)', area: true, hint: 'One per line: Question | Answer. Only answers that are true for your company (e.g. add warranty or payment methods such as PayNow if you offer them). Empty hides the section.' },
   { key: 'about_vision', label: 'About page vision (optional)', area: true, hint: 'Where you want the company to be. Empty hides it.' },
