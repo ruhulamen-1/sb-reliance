@@ -41,7 +41,7 @@ const STATUSES = ['new', 'contacted', 'scheduled', 'completed', 'cancelled'] as 
 
 // Editable content tables -> whitelisted columns
 const CONTENT: Record<string, string[]> = {
-  services: ['title', 'slug', 'description', 'content', 'faq', 'seo_title', 'seo_description', 'sort_order', 'image_url'],
+  services: ['title', 'slug', 'description', 'content', 'faq', 'prices', 'seo_title', 'seo_description', 'sort_order', 'image_url'],
   posts: ['title', 'slug', 'excerpt', 'content', 'image_url'],
   testimonials: ['name', 'location', 'text', 'rating', 'status', 'source', 'review_date'],
   gallery: ['title', 'slug', 'category', 'image_url', 'before_image_url', 'photo_2', 'photo_3', 'photo_4', 'location', 'duration', 'description'],
@@ -84,6 +84,15 @@ const DEFAULTS: Record<string, string> = {
     'To deliver air-conditioning, electrical, security and building works that are clearly scoped, fairly priced and properly finished.',
   // About page: vision and values ("Title | text" per line); empty hides each block
   about_vision: '',
+  // home page questions, one per line "Question | Answer"; empty hides the section
+  home_faq_title: 'Common questions',
+  home_faq: [
+    'How do I get a quotation? | Send us a WhatsApp message or the quote form with your address and the work you need. We arrange a site visit and then send a written quotation for your exact scope.',
+    'Do you visit the site before quoting? | Yes. We check the site and agree the scope with you first, so the quotation matches the real work.',
+    'Which properties do you work on? | HDB flats, condos, landed homes, offices, shops and commercial and industrial buildings across Singapore.',
+    'Can you handle several trades in one job? | Yes. Air-con, electrical, CCTV, ceiling, painting and tiling can be done by one team, so you have one point of contact from site visit to handover.',
+    'Is the price fixed before work starts? | Yes. The scope, timeline and price are agreed in writing before any work starts.',
+  ].join('\n'),
   about_values: [
     'Clear pricing | A written quotation for your exact scope before any work starts, with no surprise charges.',
     'Quality workmanship | Work done to the agreed specification and checked with you at handover.',
@@ -212,6 +221,8 @@ async function initDb() {
   await ensureColumn('services', 'slug', 'slug VARCHAR(190) NULL');
   await ensureColumn('services', 'content', 'content MEDIUMTEXT NULL');
   await ensureColumn('services', 'faq', 'faq TEXT NULL');
+  // price guide: one per line, "Item | from $X | note"
+  await ensureColumn('services', 'prices', 'prices TEXT NULL');
   await ensureColumn('services', 'seo_title', 'seo_title VARCHAR(190) NULL');
   await ensureColumn('services', 'seo_description', 'seo_description VARCHAR(320) NULL');
   // payroll: unpaid days taken from attendance

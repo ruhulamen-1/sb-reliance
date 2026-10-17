@@ -8,6 +8,7 @@ export interface Service {
   slug?: string | null;
   content?: string | null;
   faq?: string | null;
+  prices?: string | null;
   seo_title?: string | null;
   seo_description?: string | null;
   image_url?: string | null;

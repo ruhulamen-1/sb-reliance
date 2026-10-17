@@ -19,6 +19,7 @@ export interface SeoService {
   slug?: string | null;
   content?: string | null;
   faq?: string | null;
+  prices?: string | null;
   seo_title?: string | null;
   seo_description?: string | null;
   image_url?: string | null;
@@ -331,7 +332,12 @@ export function pageJsonLd(path: string, S: Settings, data: SeoData, base: strin
       breadcrumbs(base, [['Home', '/'], ['Blog', '/blog'], [p.title, path]]),
     ];
   }
-  return m.schema ? [businessJsonLd(S, data.services, base)] : [];
+  const out: Record<string, unknown>[] = m.schema ? [businessJsonLd(S, data.services, base)] : [];
+  if (path === '/') {
+    const pairs = faqPairs(S.home_faq);
+    if (pairs.length) out.push(faqJsonLd(pairs));
+  }
+  return out;
 }
 
 export function headTags(path: string, S: Settings, data: SeoData, base: string): { tags: string; status: number } {
@@ -421,6 +427,7 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
   } else if (path === '/' || path in HOME_ALIASES) {
     main = `<h1>${esc(S.hero_title || co)}</h1><p>${esc(S.hero_lead || '')}</p>`
       + (svcList ? `<h2>${esc(S.services_title || 'Services')}</h2><ul>${svcList}</ul>` : '')
+      + (faqPairs(S.home_faq).length ? `<h2>${esc(S.home_faq_title || 'Common questions')}</h2>${faqPairs(S.home_faq).map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}` : '')
       + contact;
   } else if (path === '/about') {
     main = `<h1>About ${esc(S.brand || co)}</h1>${lines(S.about_intro).map((p) => `<p>${esc(p)}</p>`).join('')}${svcList ? `<ul>${svcList}</ul>` : ''}`;

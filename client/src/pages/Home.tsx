@@ -6,12 +6,13 @@ import QuickQuote from '../components/QuickQuote';
 import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
 import { api, initialHome } from '../api';
-import { serviceHeading } from '../components/content';
+import { faqPairs, serviceHeading } from '../components/content';
+import { PriceCards } from '../components/PriceGuide';
 import { Guarantee, Stats, TrustBar } from '../components/Trust';
 import GoogleReviews, { Review } from '../components/GoogleReviews';
 import { HIGH, photo, SIZES } from '../img';
 
-interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null }
+interface Service { id: number; title: string; slug?: string | null; description: string; image_url?: string | null; prices?: string | null }
 interface Post { id: number; title: string; slug: string; excerpt: string; image_url?: string | null; created_at: string }
 interface GalleryItem { id: number; title: string; slug?: string | null; image_url: string }
 type Settings = Record<string, string>;
@@ -43,6 +44,7 @@ export default function Home() {
     else if (!id) window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
   }, [pathname, data]);
   const slides = [S.hero_image, S.hero_image_2, S.hero_image_3].filter(Boolean) as string[];
+  const homeFaq = faqPairs(S.home_faq);
   const aboutLines = lines(S.about_intro || S.about_text).slice(0, 2);
   const headlines = (S.hero_headlines || '').split('\n').map((x) => x.trim());
   const slideCount = Math.max(slides.length, headlines.filter(Boolean).length, 1);
@@ -163,6 +165,8 @@ export default function Home() {
 
       <Stats S={S} />
 
+      <PriceCards services={data.services} />
+
       <section id="included" className="band">
         <div className="wrap two">
           <div>
@@ -212,6 +216,18 @@ export default function Home() {
               </article>
             ))}
           </div>
+        </section>
+      )}
+
+      {homeFaq.length > 0 && (
+        <section className="wrap block faq home-faq" aria-labelledby="home-faq-title">
+          <h2 id="home-faq-title">{S.home_faq_title || 'Common questions'}</h2>
+          {homeFaq.map(([q, a]) => (
+            <details key={q}>
+              <summary>{q}</summary>
+              <p>{a}</p>
+            </details>
+          ))}
         </section>
       )}
 

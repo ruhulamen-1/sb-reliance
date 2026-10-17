@@ -8,6 +8,7 @@ import NotFound from './NotFound';
 import { Guarantee, TrustBar } from '../components/Trust';
 import { faqPairs, serviceHeading, TextBlocks, Service } from '../components/content';
 import { HIGH, photo, SIZES } from '../img';
+import { PriceTable } from '../components/PriceGuide';
 
 interface GalleryItem { id: number; title: string; slug?: string | null; image_url: string }
 
@@ -78,6 +79,8 @@ export default function ServicePage() {
               </div>
             )}
           </section>
+
+          <PriceTable service={service} />
 
           <Guarantee S={S} />
 
