@@ -5,8 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { Settings } from './Shell';
 import { closesAt } from './OpenStatus';
 
-const TEASER_KEY = 'wa-teaser-seen';
-
 export default function WaChat({ S, services, open, onClose }: {
   S: Settings; services: { title: string }[]; open: boolean; onClose: () => void;
 }) {
@@ -63,27 +61,6 @@ export default function WaChat({ S, services, open, onClose }: {
         </button>
       </form>
       <p className="wachat-foot">Opens WhatsApp with your message</p>
-    </div>
-  );
-}
-
-/** Small greeting next to the WhatsApp button, once per visit, on larger screens only. */
-export function WaTeaser({ S, onOpen }: { S: Settings; onOpen: () => void }) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    let seen = false;
-    try { seen = sessionStorage.getItem(TEASER_KEY) === '1'; } catch { /* storage blocked */ }
-    if (seen || !window.matchMedia('(min-width: 701px)').matches) return;
-    const t = setTimeout(() => setShow(true), 8000);
-    return () => clearTimeout(t);
-  }, []);
-  const hide = () => { setShow(false); try { sessionStorage.setItem(TEASER_KEY, '1'); } catch { /* ignore */ } };
-  if (!show) return null;
-  const first = (S.wa_greeting || 'Hi there 👋\nHow can we help you today?').split('\n')[0];
-  return (
-    <div className="wateaser" role="status">
-      <button type="button" className="wateaser-text" onClick={() => { hide(); onOpen(); }}>{first}</button>
-      <button type="button" className="wateaser-x" onClick={hide} aria-label="Dismiss">×</button>
     </div>
   );
 }
