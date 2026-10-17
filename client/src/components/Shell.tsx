@@ -1,5 +1,6 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState, useCallback } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import WaChat, { WaTeaser } from './WaChat';
 import useReveal from './useReveal';
 import { serviceHeading } from './content';
 
@@ -56,6 +57,8 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
   }, []);
   // phone menu (the three-line button): closes on navigation, Escape or a tap outside the header
   const [menu, setMenu] = useState(false);
+  const [chat, setChat] = useState(false);
+  const closeChat = useCallback(() => setChat(false), []);
   const header = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
   useEffect(() => setMenu(false), [pathname]);
@@ -98,8 +101,12 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
         </div>
       </header>
       <main className="page">{children}</main>
+      <WaChat S={S} services={services} open={chat} onClose={closeChat} />
       <div className="floaters">
-        <a className="fab wa" href={wa} aria-label="Chat on WhatsApp">WhatsApp</a>
+        {!chat && <WaTeaser S={S} onOpen={() => setChat(true)} />}
+        {/* opens the chat window; the link still works if scripts fail */}
+        <a className="fab wa" href={wa} aria-label="Chat on WhatsApp" aria-expanded={chat}
+          onClick={(e) => { if (!(S.whatsapp || '').replace(/\D/g, '')) return; e.preventDefault(); setChat((c) => !c); }}>WhatsApp</a>
         {tel && <a className="fab call" href={`tel:${tel}`} aria-label={`Call ${S.phone}`}>Call</a>}
       </div>
 

@@ -10,7 +10,7 @@ function nowInSingapore() {
 }
 
 // Returns the closing time ("18:00") if open right now, '' if closed, null if no valid hours are set.
-function closesAt(hours: string): string | '' | null {
+export function closesAt(hours: string): string | '' | null {
   const rules = hours.split('\n').map((l) => l.trim().match(RULE)).filter(Boolean) as RegExpMatchArray[];
   if (!rules.length) return null;
   const { day, minutes } = nowInSingapore();
