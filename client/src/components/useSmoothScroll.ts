@@ -18,7 +18,7 @@ export default function useSmoothScroll() {
         const { default: LenisLib } = await import('lenis');
         loading = false;
         if (lenis || !document.querySelector('main.page')) return; // left for another page (e.g. Admin) while loading
-        lenis = new LenisLib({ lerp: 0.1, smoothWheel: true, allowNestedScroll: true, anchors: { offset: -70 }, autoRaf: true });
+        lenis = new LenisLib({ lerp: 0.18, smoothWheel: true, allowNestedScroll: true, anchors: { offset: -70 }, autoRaf: true });
       };
       const id = window.setTimeout(() => { void start(); }, 700); // after the page has settled
       cancel = () => window.clearTimeout(id);

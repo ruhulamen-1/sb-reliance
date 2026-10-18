@@ -120,6 +120,7 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
 
       <footer className="foot" style={S.footer_bg ? { backgroundImage: `url("${S.footer_bg}")` } : undefined}>
         <div className="foot-shade">
+          <img className="foot-watermark" src={S.logo || '/logo.svg'} alt="" aria-hidden="true" loading="lazy" />
           <div className="wrap">
             <div className="foot-grid">
               <div className="foot-brand">
@@ -169,8 +170,6 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
                 )}
               </div>
             </div>
-
-            {S.brand && <div className="foot-mark" aria-hidden="true">{S.brand}</div>}
 
             <div className="foot-bottom">
               <span>© {new Date().getFullYear()} {S.company_name}. All rights reserved.</span>

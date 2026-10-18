@@ -124,7 +124,7 @@ fieldset{border:1px solid var(--line);border-radius:6px;display:flex;flex-wrap:w
 .chip{transition:transform .25s}
 .chip:hover{transform:translateY(-4px) rotate(0deg)!important}
 /* scroll reveal (added by useReveal) */
-.reveal{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .35s ease,transform .35s ease}
 .reveal.in{opacity:1;transform:none}
 /* hover feedback */
 .btn,.btn-outline,.fab{transition:transform .15s,box-shadow .15s,background-color .2s,color .2s}
@@ -712,9 +712,10 @@ html.lenis,html.lenis body{height:auto}
 .lenis.lenis-stopped{overflow:hidden}
 .lenis.lenis-smooth iframe{pointer-events:none}
 
-/* ---------- footer wordmark ---------- */
-.foot-mark{font:800 clamp(3rem,13vw,11rem)/.9 'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;text-align:center;white-space:nowrap;overflow:hidden;margin:34px 0 10px;user-select:none;
-  background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0) 85%);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* ---------- footer: the logo as a faint watermark in the bottom-left corner ---------- */
+.foot-shade{position:relative;overflow:hidden}
+.foot-watermark{position:absolute;left:-40px;bottom:-60px;width:clamp(200px,24vw,340px);height:auto;opacity:.09;filter:grayscale(1) brightness(1.8);transform:rotate(-8deg);pointer-events:none;user-select:none}
+.foot-shade>.wrap{position:relative}
 
 /* ---------- scroll-linked motion ----------
    Elements move, grow and fade in as you scroll (like the reference video). Uses CSS scroll-driven animations
@@ -738,19 +739,16 @@ html.lenis,html.lenis body{height:auto}
     .hero .airflow{animation:sd-wave linear both;animation-timeline:view();animation-range:exit 0% exit 100%}
 
     /* section titles rise into place */
-    .page h2{animation:sd-up linear both;animation-timeline:view();animation-range:entry 0% entry 50%}
+    .page h2{animation:sd-up linear both;animation-timeline:view();animation-range:entry 0% entry 32%}
 
     /* photos settle from a zoom as their card scrolls in; the big photos in the dark and About blocks grow */
-    #services .cardimg,.home-work .shot img,.gallery .shot img,.svc-minis img{animation:sd-zoom linear both;animation-timeline:view();animation-range:entry 0% cover 55%}
-    .home-hack-img,.home-about-img,.projmain,.heroimg.projmain{animation:sd-grow linear both;animation-timeline:view();animation-range:entry 0% cover 35%}
+    #services .cardimg,.home-work .shot img,.gallery .shot img,.svc-minis img{animation:sd-zoom linear both;animation-timeline:view();animation-range:entry 0% cover 30%}
+    .home-hack-img,.home-about-img,.projmain,.heroimg.projmain{animation:sd-grow linear both;animation-timeline:view();animation-range:entry 0% cover 22%}
 
     /* groups of cards come in one after the other */
-    .step-cards li,.why-cards li,.price-card,.statgrid>div,.svc-minis li{animation:sd-pop linear both;animation-timeline:view();animation-range:entry 0% entry 55%}
-    .step-cards li:nth-child(2),.why-cards li:nth-child(2),.price-card:nth-child(2),.statgrid>div:nth-child(2),.svc-minis li:nth-child(2){animation-range:entry 10% entry 65%}
-    .step-cards li:nth-child(3),.why-cards li:nth-child(3),.price-card:nth-child(3),.statgrid>div:nth-child(3),.svc-minis li:nth-child(3){animation-range:entry 20% entry 75%}
-    .step-cards li:nth-child(n+4),.why-cards li:nth-child(n+4),.price-card:nth-child(n+4),.statgrid>div:nth-child(n+4),.svc-minis li:nth-child(n+4){animation-range:entry 30% entry 85%}
-
-    /* the big footer name slides up */
-    .foot-mark{animation:sd-up linear both;animation-timeline:view();animation-range:entry 0% entry 80%}
+    .step-cards li,.why-cards li,.price-card,.statgrid>div,.svc-minis li{animation:sd-pop linear both;animation-timeline:view();animation-range:entry 0% entry 35%}
+    .step-cards li:nth-child(2),.why-cards li:nth-child(2),.price-card:nth-child(2),.statgrid>div:nth-child(2),.svc-minis li:nth-child(2){animation-range:entry 6% entry 41%}
+    .step-cards li:nth-child(3),.why-cards li:nth-child(3),.price-card:nth-child(3),.statgrid>div:nth-child(3),.svc-minis li:nth-child(3){animation-range:entry 12% entry 47%}
+    .step-cards li:nth-child(n+4),.why-cards li:nth-child(n+4),.price-card:nth-child(n+4),.statgrid>div:nth-child(n+4),.svc-minis li:nth-child(n+4){animation-range:entry 18% entry 53%}
   }
 }
