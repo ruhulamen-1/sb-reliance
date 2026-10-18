@@ -1,7 +1,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import Payroll from './Payroll';
-import { clearDraft, DraftNote, loadDraft, TextBox, useAutoDraft } from './adminTools';
+import { clearDraft, DraftNote, loadDraft, Redirects, SnippetPreview, TextBox, useAutoDraft, VersionList } from './adminTools';
 
 type Row = Record<string, any>;
 const STATUSES = ['new', 'contacted', 'scheduled', 'completed', 'cancelled'];
@@ -177,6 +177,10 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
   const editSaved = useAutoDraft(editKey, editForm, editBase);
   const [addErr, setAddErr] = useState('');
   const [editErr, setEditErr] = useState('');
+  const [q, setQ] = useState('');
+  const [histId, setHistId] = useState<number | null>(null);
+  const [delOpen, setDelOpen] = useState(false);
+  const hist = useRef<HTMLDialogElement>(null);
   const dlg = useRef<HTMLDialogElement>(null);
   const load = useCallback(() => api<Row[]>(`/admin/${table}`, { auth: true }).then(setRows), [table]);
   useEffect(() => { load().catch(() => undefined); }, [load]);
@@ -217,6 +221,12 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
                 : <input required={!f.optional} type={f.num ? 'number' : f.date ? 'date' : 'text'} step={f.num ? 'any' : undefined} min={f.num ? 0 : undefined} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: f.num ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value })} />}
           </label>
         ))}
+        {(table === 'services' || table === 'posts') && (
+          <SnippetPreview
+            title={String(form.seo_title || form.title || '')}
+            description={String(form.seo_description || (table === 'services' ? form.description : form.excerpt) || '')}
+            path={`${table === 'services' ? '/services/' : '/blog/'}${form.slug || '…'}`} />
+        )}
         {err && <p className="err full">{err}</p>}
         <div className="row gap full">
           <button className="btn">{isEdit ? 'Save changes' : 'Add'}</button>
@@ -233,19 +243,36 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
         onClick={(e) => { if (e.target === dlg.current) dlg.current?.close(); }}>
         {editId !== null && renderForm(true)}
       </dialog>
-      {rows.map((r) => (
+      {rows.length > 6 && <input className="listsearch" type="search" placeholder="Search…" aria-label="Search the list" value={q} onChange={(e) => setQ(e.target.value)} />}
+      {rows.filter((r) => !q.trim() || JSON.stringify(r).toLowerCase().includes(q.trim().toLowerCase())).map((r) => (
         <div key={r.id} className="card row between">
-          <div className="row gap crud-main">{r.image_url && <img src={r.image_url} alt="" className="thumb" />}<div><strong>{r[fields[0].key]}</strong>{r.status && r.status !== 'approved' && <span className={`tag ${r.status}`}>{r.status === 'pending' ? 'Waiting for approval' : 'Hidden'}</span>}{textKey && <p>{String(r[textKey] ?? '').slice(0, 120)}</p>}</div></div>
+          <div className="row gap crud-main">{r.image_url && <img src={r.image_url} alt="" className="thumb" />}<div><strong>{r[fields[0].key]}</strong>{table === 'testimonials' && r.status && r.status !== 'approved' && <span className={`tag ${r.status}`}>{r.status === 'pending' ? 'Waiting for approval' : 'Hidden'}</span>}{table === 'posts' && r.status === 'draft' && <span className="tag pending">Draft</span>}{textKey && <p>{String(r[textKey] ?? '').slice(0, 120)}</p>}</div></div>
           <div className="row gap crud-actions">
             <button className="btn ghost" onClick={() => {
               const base = Object.fromEntries(fields.map((f) => [f.key, r[f.key]]));
               const d = loadDraft<Row>(`sbdraft:${table}:${r.id}`);
               setEditId(r.id); setEditBase(base); setEditForm({ ...base, ...d }); setEditRestored(!!d); dlg.current?.showModal();
             }}>Edit</button>
+            {table !== 'employees' && <button className="btn ghost" onClick={() => { setHistId(r.id); hist.current?.showModal(); }}>History</button>}
             <button className="btn ghost" onClick={async () => { if (confirm(table === 'employees' ? 'Delete this employee? Their attendance and unpaid payroll lines are deleted too.' : 'Delete?')) { try { await api(`/admin/${table}/${r.id}`, { method: 'DELETE', auth: true }); load(); } catch (x) { alert((x as Error).message); } } }}>Delete</button>
           </div>
         </div>
       ))}
+      <dialog ref={hist} className="modal" aria-label="History" onClose={() => setHistId(null)} onClick={(e) => { if (e.target === hist.current) hist.current?.close(); }}>
+        {histId !== null && (
+          <div className="card">
+            <h3>History</h3>
+            <VersionList listPath={`/admin/${table}/${histId}/versions`} restorePath={(v) => `/admin/${table}/versions/${v}/restore`} onRestored={() => { hist.current?.close(); load(); }} />
+            <button type="button" className="btn ghost" onClick={() => hist.current?.close()}>Close</button>
+          </div>
+        )}
+      </dialog>
+      {table !== 'employees' && (
+        <details className="deleted" onToggle={(e) => setDelOpen((e.target as HTMLDetailsElement).open)}>
+          <summary>Recently deleted</summary>
+          {delOpen && <VersionList key={rows.length} listPath={`/admin/${table}-deleted`} restorePath={(v) => `/admin/${table}/versions/${v}/restore`} onRestored={load} empty="Nothing deleted recently." />}
+        </details>
+      )}
     </>
   );
 }
@@ -341,6 +368,10 @@ function Settings() {
             : <input value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
         </label>
       ))}
+      <details className="deleted full">
+        <summary>History of settings</summary>
+        <VersionList listPath="/admin/settings/versions" restorePath={(v) => `/admin/settings/versions/${v}/restore`} onRestored={() => location.reload()} />
+      </details>
       <button className="btn full">Save settings</button>
       {msg && <p className={`full ${msg.startsWith('Saved') ? 'ok' : 'err'}`}>{msg}</p>}
     </form>
@@ -370,7 +401,7 @@ function StandardServices({ onDone }: { onDone: () => void }) {
   );
 }
 
-const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Payroll', 'Settings'] as const;
+const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Payroll', 'Redirects', 'Settings'] as const;
 const INTRO: Record<(typeof TABS)[number], string> = {
   Overview: 'Quote requests by status and revenue from completed jobs.',
   Quotes: 'Requests sent from the website. Update the status, amount and notes as the job moves on.',
@@ -379,6 +410,7 @@ const INTRO: Record<(typeof TABS)[number], string> = {
   Gallery: 'Finished projects shown in Portfolio and on the home page. The project name is also the photo description for Google.',
   Team: 'People shown on the About page.',
   Testimonials: 'Reviews from real customers. Send the review link after a job and approve new reviews before they show.',
+  Redirects: 'When a page address changes, the old address sends visitors and Google to the new one, so no ranking is lost.',
   Payroll: 'Employees, daily attendance and the monthly salary run with payslips.',
   Settings: 'Company details, contact, Google and trust information used across the site.',
 };
@@ -436,7 +468,7 @@ export default function Admin() {
         { key: 'seo_description', label: 'Google description (optional)', area: true, optional: true, hint: 'About 140–160 characters. Shown under the title in Google results.' },
         { key: 'image_url', label: 'Image', image: true },
       ]} />}
-      {tab === 'Blog' && <Crud table="posts" fields={[{ key: 'title', label: 'Title' }, { key: 'slug', label: 'Page address (optional)', optional: true, hint: 'e.g. aircon-servicing-tips → /blog/aircon-servicing-tips. Empty = made from the title.' }, { key: 'excerpt', label: 'Excerpt', area: true }, { key: 'content', label: 'Content', area: true, hint: 'One paragraph per line. A line starting with "# " becomes a heading.' }, { key: 'image_url', label: 'Cover image', image: true }]} />}
+      {tab === 'Blog' && <Crud table="posts" fields={[{ key: 'title', label: 'Title' }, { key: 'slug', label: 'Page address (optional)', optional: true, hint: 'e.g. aircon-servicing-tips → /blog/aircon-servicing-tips. Empty = made from the title.' }, { key: 'excerpt', label: 'Excerpt', area: true }, { key: 'content', label: 'Content', area: true, hint: 'One paragraph per line. A line starting with "# " becomes a heading.' }, { key: 'status', label: 'Status', options: [['published', 'Published (shown on the site)'], ['draft', 'Draft (not shown yet)']], hint: 'Keep a post as Draft while you write it. Only Published posts appear on the site, in the blog list and in Google.' }, { key: 'image_url', label: 'Cover image', image: true }]} />}
       {tab === 'Gallery' && <Crud table="gallery" fields={[
         { key: 'title', label: 'Project name', hint: 'Say the work and the place type, e.g. Office ACMV installation, HDB 4-room aircon replacement' },
         { key: 'category', label: 'Category (optional, e.g. Aircon, ACMV, CCTV, Electrical)', optional: true, hint: 'Use a service name so the project links to that service page and shows there first.' },
@@ -452,6 +484,7 @@ export default function Admin() {
       ]} />}
       {tab === 'Team' && <Crud table="team" fields={[{ key: 'name', label: 'Name' }, { key: 'role', label: 'Role / title' }, { key: 'bio', label: 'Short bio (optional)', area: true, optional: true }, { key: 'sort_order', label: 'Order (smaller shows first)', num: true }, { key: 'image_url', label: 'Photo (optional)', image: true }]} />}
       {tab === 'Payroll' && <Payroll />}
+      {tab === 'Redirects' && <Redirects />}
       {tab === 'Settings' && <Settings />}
       {tab === 'Testimonials' && <ReviewLink />}
       {tab === 'Testimonials' && <Crud table="testimonials" fields={[

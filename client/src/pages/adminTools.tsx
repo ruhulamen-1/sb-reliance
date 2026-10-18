@@ -1,5 +1,6 @@
 // Helpers for the Admin pages: a text box with a small writing toolbar and live preview, and automatic drafts.
-import { useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { api } from '../api';
 
 // ---- drafts: what you type is kept in this browser until it is saved, so a refresh or closed tab loses nothing ----
 const store = {
@@ -99,5 +100,83 @@ export function TextBox({ value, onChange, rows = 4, required, max }: {
         ? <Preview text={value} />
         : <textarea ref={ref} rows={rows} required={required} value={value} onChange={(e) => onChange(e.target.value)} />}
     </span>
+  );
+}
+
+// ---- version history ----
+type Version = { id: number; created_at: string; label: string; changed: string[] };
+const when = (iso: string) => new Intl.DateTimeFormat('en-SG', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Singapore' }).format(new Date(iso));
+
+/** List of earlier saved versions with a Restore button. `listPath` and `restorePath(id)` are admin API paths. */
+export function VersionList({ listPath, restorePath, onRestored, empty = 'No earlier versions yet. One is kept each time you save a change.' }: {
+  listPath: string; restorePath: (id: number) => string; onRestored: () => void; empty?: string;
+}) {
+  const [rows, setRows] = useState<Version[] | null>(null);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(0);
+  useEffect(() => { api<Version[]>(listPath, { auth: true }).then(setRows).catch((e: Error) => setErr(e.message)); }, [listPath]);
+  async function restore(v: Version) {
+    if (!confirm(`Restore the version from ${when(v.created_at)}? The current text is kept in the history, so you can undo this.`)) return;
+    setBusy(v.id); setErr('');
+    try { await api(restorePath(v.id), { method: 'POST', auth: true, body: {} }); onRestored(); } catch (e) { setErr((e as Error).message); } finally { setBusy(0); }
+  }
+  if (err) return <p className="err">{err}</p>;
+  if (!rows) return <p>Loading…</p>;
+  if (!rows.length) return <p className="prev-empty">{empty}</p>;
+  return (
+    <ul className="versions">
+      {rows.map((v) => (
+        <li key={v.id}>
+          <div><strong>{when(v.created_at)}</strong><small>{v.label}{v.changed.length ? ` · differs in: ${v.changed.join(', ')}` : ''}</small></div>
+          <button type="button" className="btn ghost" disabled={busy === v.id} onClick={() => restore(v)}>Restore</button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ---- how the page will look in Google ----
+export function SnippetPreview({ title, description, path }: { title: string; description: string; path: string }) {
+  const t = (title || 'Page title').trim();
+  const d = (description || '').trim();
+  return (
+    <div className="snippet full" aria-label="Preview in Google">
+      <small>Preview in Google (approximate)</small>
+      <div className="snip-url">{location.host}{path}</div>
+      <div className="snip-title">{t.length > 60 ? `${t.slice(0, 58)}…` : t}</div>
+      <div className="snip-desc">{d ? (d.length > 160 ? `${d.slice(0, 158)}…` : d) : 'No description: Google picks text from the page.'}</div>
+    </div>
+  );
+}
+
+// ---- redirects ----
+type Redirect = { id: number; from_path: string; to_path: string };
+export function Redirects() {
+  const [rows, setRows] = useState<Redirect[]>([]);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [err, setErr] = useState('');
+  const load = () => api<Redirect[]>('/admin/redirects', { auth: true }).then(setRows).catch((e: Error) => setErr(e.message));
+  useEffect(() => { load(); }, []);
+  async function add(e: FormEvent) {
+    e.preventDefault(); setErr('');
+    try { await api('/admin/redirects', { method: 'POST', auth: true, body: { from_path: from, to_path: to } }); setFrom(''); setTo(''); load(); } catch (x) { setErr((x as Error).message); }
+  }
+  return (
+    <>
+      <form className="form card" onSubmit={add}>
+        <label>Old address<small>e.g. /services/aircon-installation-singapore-2</small><input required value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+        <label>Send visitors and Google to<small>e.g. /services/aircon-installation-singapore</small><input required value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        {err && <p className="err full">{err}</p>}
+        <div className="full"><button className="btn">Add redirect</button></div>
+      </form>
+      {!rows.length && <p className="prev-empty">No redirects yet. When you change a page address in Services, Blog or Gallery, the old address is added here automatically.</p>}
+      {rows.map((r) => (
+        <div key={r.id} className="card row between">
+          <div><code>{r.from_path}</code> → <code>{r.to_path}</code></div>
+          <button className="btn ghost" onClick={async () => { await api(`/admin/redirects/${r.id}`, { method: 'DELETE', auth: true }); load(); }}>Delete</button>
+        </div>
+      ))}
+    </>
   );
 }

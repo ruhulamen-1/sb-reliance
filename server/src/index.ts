@@ -42,7 +42,7 @@ const STATUSES = ['new', 'contacted', 'scheduled', 'completed', 'cancelled'] as 
 // Editable content tables -> whitelisted columns
 const CONTENT: Record<string, string[]> = {
   services: ['title', 'slug', 'description', 'content', 'faq', 'prices', 'seo_title', 'seo_description', 'sort_order', 'image_url'],
-  posts: ['title', 'slug', 'excerpt', 'content', 'image_url'],
+  posts: ['title', 'slug', 'excerpt', 'content', 'image_url', 'status'],
   testimonials: ['name', 'location', 'text', 'rating', 'status', 'source', 'review_date'],
   gallery: ['title', 'slug', 'category', 'image_url', 'before_image_url', 'photo_2', 'photo_3', 'photo_4', 'location', 'duration', 'description'],
   team: ['name', 'role', 'bio', 'image_url', 'sort_order'],
@@ -213,6 +213,10 @@ async function initDb() {
   await ensureColumn('testimonials', 'source', "source VARCHAR(10) NOT NULL DEFAULT 'website'");
   await ensureColumn('testimonials', 'review_date', 'review_date DATE NULL');
   await ensureColumn('posts', 'image_url', 'image_url VARCHAR(255) NULL');
+  // published / draft (a draft is not shown on the site), version history and redirects
+  await ensureColumn('posts', 'status', "status VARCHAR(12) NOT NULL DEFAULT 'published'");
+  await pool.query('CREATE TABLE IF NOT EXISTS content_versions (id INT AUTO_INCREMENT PRIMARY KEY, tbl VARCHAR(40) NOT NULL, row_id INT NOT NULL, data MEDIUMTEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (tbl, row_id)) CHARACTER SET utf8mb4');
+  await pool.query('CREATE TABLE IF NOT EXISTS redirects (id INT AUTO_INCREMENT PRIMARY KEY, from_path VARCHAR(255) NOT NULL UNIQUE, to_path VARCHAR(255) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) CHARACTER SET utf8mb4');
   await ensureColumn('gallery', 'category', "category VARCHAR(80) NOT NULL DEFAULT ''");
   // project case studies (Portfolio)
   await ensureColumn('gallery', 'before_image_url', 'before_image_url VARCHAR(255) NULL');
@@ -433,7 +437,7 @@ app.get('/api/public/team', wrap(async (_req, res) => {
 async function homeData() {
   const [services] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
   const [testimonials] = await pool.query<RowDataPacket[]>("SELECT id, name, location, text, rating, source, DATE_FORMAT(COALESCE(review_date, created_at), '%Y-%m-%d') AS date FROM testimonials WHERE status = 'approved' ORDER BY COALESCE(review_date, created_at) DESC, id DESC LIMIT 12");
-  const [posts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 5');
+  const [posts] = await pool.query<RowDataPacket[]>("SELECT id, title, slug, excerpt, image_url, created_at FROM posts WHERE status = 'published' ORDER BY id DESC LIMIT 5");
   const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, image_url FROM gallery ORDER BY id DESC LIMIT 12');
   return { services, testimonials, posts, gallery, settings: await getSettings() };
 }
@@ -473,12 +477,12 @@ app.get('/api/public/services/:slug', wrap(async (req, res) => {
 
 // every post, newest first (the home page only shows the latest five)
 app.get('/api/public/posts', wrap(async (_req, res) => {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 200');
+  const [rows] = await pool.query<RowDataPacket[]>("SELECT id, title, slug, excerpt, image_url, created_at FROM posts WHERE status = 'published' ORDER BY id DESC LIMIT 200");
   res.json(rows);
 }));
 
 app.get('/api/public/posts/:slug', wrap(async (req, res) => {
-  const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM posts WHERE slug = ? LIMIT 1', [req.params.slug]);
+  const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM posts WHERE slug = ? AND status = 'published' LIMIT 1", [req.params.slug]);
   if (!rows[0]) return res.status(404).json({ error: 'Post not found' });
   const [services] = await pool.query<RowDataPacket[]>('SELECT id, title, slug FROM services ORDER BY sort_order, id');
   res.json({ post: rows[0], services, settings: await getSettings() });
@@ -542,6 +546,8 @@ app.put('/api/admin/settings', auth, wrap(async (req, res) => {
   const b = req.body as Record<string, unknown>;
   const next: Record<string, string> = {};
   for (const k of Object.keys(DEFAULTS)) if (typeof b[k] === 'string') next[k] = b[k] as string;
+  const [oldS] = await pool.query<RowDataPacket[]>('SELECT data FROM settings WHERE id = 1');
+  if (oldS[0]) await saveVersion('settings', 1, typeof oldS[0].data === 'string' ? JSON.parse(oldS[0].data) : oldS[0].data);
   await pool.query(
     'INSERT INTO settings (id, data) VALUES (1, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
     [JSON.stringify(next)],
@@ -973,10 +979,78 @@ app.get('/api/admin/payroll/export', auth, wrap(async (req, res) => {
   res.type('text/csv').send('\ufeff' + csv);
 }));
 
+// ---------- version history, recently deleted and redirects ----------
+const KEEP_VERSIONS = 30;
+async function saveVersion(table: string, id: number | string, data: unknown) {
+  const json = JSON.stringify(data);
+  const [last] = await pool.query<RowDataPacket[]>('SELECT data FROM content_versions WHERE tbl = ? AND row_id = ? ORDER BY id DESC LIMIT 1', [table, id]);
+  if (last[0]?.data === json) return;
+  await pool.query('INSERT INTO content_versions (tbl, row_id, data) VALUES (?,?,?)', [table, id, json]);
+  await pool.query(
+    'DELETE FROM content_versions WHERE tbl = ? AND row_id = ? AND id NOT IN (SELECT id FROM (SELECT id FROM content_versions WHERE tbl = ? AND row_id = ? ORDER BY id DESC LIMIT ?) keep)',
+    [table, id, table, id, KEEP_VERSIONS],
+  );
+}
+const pick = (row: Record<string, unknown>, cols: string[]) => Object.fromEntries(cols.map((c) => [c, row[c] ?? null]));
+const labelOf = (d: Record<string, unknown>) => String(d.title ?? d.name ?? d.brand ?? 'Settings');
+const changedFields = (old: Record<string, unknown>, cur: Record<string, unknown>) =>
+  Object.keys(old).filter((k) => JSON.stringify(old[k] ?? null) !== JSON.stringify(cur[k] ?? null) && !(old[k] == null && (cur[k] ?? '') === ''));
+
+let redirectMap = new Map<string, string>();
+async function loadRedirects() {
+  const [r] = await pool.query<RowDataPacket[]>('SELECT from_path, to_path FROM redirects');
+  redirectMap = new Map(r.map((x) => [String(x.from_path), String(x.to_path)]));
+}
+const cleanPath = (v: unknown) => {
+  let p = String(v ?? '').trim().replace(/^https?:\/\/[^/]+/i, '').split(/[?#]/)[0];
+  if (!p.startsWith('/')) p = `/${p}`;
+  return p.length > 1 ? p.replace(/\/+$/, '') : p;
+};
+async function addRedirect(from: string, to: string) {
+  if (!from || !to || from === to || from.startsWith('/api')) return;
+  await pool.query('DELETE FROM redirects WHERE from_path = ?', [to]); // never redirect the live page itself
+  await pool.query('UPDATE redirects SET to_path = ? WHERE to_path = ?', [to, from]); // older addresses follow to the newest one
+  await pool.query('INSERT INTO redirects (from_path, to_path) VALUES (?, ?) ON DUPLICATE KEY UPDATE to_path = VALUES(to_path)', [from, to]);
+  await loadRedirects();
+}
+const PAGE_PREFIX: Record<string, string> = { services: '/services/', posts: '/blog/', gallery: '/portfolio/' };
+
+app.get('/api/admin/redirects', auth, wrap(async (_req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, from_path, to_path FROM redirects ORDER BY id DESC');
+  res.json(rows);
+}));
+app.post('/api/admin/redirects', auth, wrap(async (req, res) => {
+  const from = cleanPath(req.body?.from_path), to = cleanPath(req.body?.to_path);
+  if (from === to || from === '/') return res.status(400).json({ error: 'Choose two different addresses (the old one cannot be the home page).' });
+  await addRedirect(from, to);
+  res.status(201).json({ ok: true });
+}));
+app.delete('/api/admin/redirects/:id', auth, wrap(async (req, res) => {
+  await pool.query('DELETE FROM redirects WHERE id = ?', [req.params.id]);
+  await loadRedirects();
+  res.json({ ok: true });
+}));
+
+// settings history
+app.get('/api/admin/settings/versions', auth, wrap(async (_req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>("SELECT id, data, created_at FROM content_versions WHERE tbl = 'settings' ORDER BY id DESC");
+  const cur = await getSettings();
+  res.json(rows.map((v) => { const d = JSON.parse(v.data); return { id: v.id, created_at: v.created_at, label: 'Settings', changed: changedFields(d, cur) }; }));
+}));
+app.post('/api/admin/settings/versions/:vid/restore', auth, wrap(async (req, res) => {
+  const [v] = await pool.query<RowDataPacket[]>("SELECT data FROM content_versions WHERE id = ? AND tbl = 'settings'", [req.params.vid]);
+  if (!v[0]) return res.status(404).json({ error: 'Version not found' });
+  const [cur] = await pool.query<RowDataPacket[]>('SELECT data FROM settings WHERE id = 1');
+  if (cur[0]) await saveVersion('settings', 1, typeof cur[0].data === 'string' ? JSON.parse(cur[0].data) : cur[0].data);
+  await pool.query('INSERT INTO settings (id, data) VALUES (1, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)', [v[0].data]);
+  res.json({ ok: true });
+}));
+
 for (const [table, cols] of Object.entries(CONTENT)) {
   const base = `/api/admin/${table}`;
   const values = (b: Record<string, unknown>) => cols.map((c) => {
     // testimonials: review status and an optional 1-5 star rating
+    if (c === 'status' && table === 'posts') return b.status === 'draft' ? 'draft' : 'published';
     if (c === 'status') return ['approved', 'pending', 'hidden'].includes(String(b.status)) ? b.status : 'approved';
     if (c === 'rating') { const n = Math.round(Number(b.rating)); return n >= 1 && n <= 5 ? n : null; }
     if (table === 'gallery' && c === 'category') return b.category ?? ''; // NOT NULL column
@@ -1003,13 +1077,54 @@ for (const [table, cols] of Object.entries(CONTENT)) {
   }));
   app.put(`${base}/:id`, auth, wrap(async (req, res) => {
     const sql = `UPDATE ?? SET ${cols.map(() => '?? = ?').join(',')} WHERE id = ?`;
+    const [old] = await pool.query<RowDataPacket[]>('SELECT * FROM ?? WHERE id = ?', [table, req.params.id]);
+    if (old[0]) await saveVersion(table, req.params.id, pick(old[0], cols));
     const v = values(await withSlug(req.body, req.params.id));
     const params = [table, ...cols.flatMap((c, i) => [c, v[i]]), req.params.id];
     await pool.query(sql, params);
+    // a page whose address changed keeps working: the old address redirects (301) to the new one
+    const prefix = PAGE_PREFIX[table];
+    const newSlug = v[cols.indexOf('slug')];
+    if (prefix && old[0]?.slug && newSlug && old[0].slug !== newSlug) await addRedirect(prefix + old[0].slug, prefix + String(newSlug));
     res.json({ ok: true });
   }));
   app.delete(`${base}/:id`, auth, wrap(async (req, res) => {
+    const [old] = await pool.query<RowDataPacket[]>('SELECT * FROM ?? WHERE id = ?', [table, req.params.id]);
+    if (old[0]) await saveVersion(table, req.params.id, pick(old[0], cols));
     await pool.query('DELETE FROM ?? WHERE id = ?', [table, req.params.id]);
+    res.json({ ok: true });
+  }));
+  // history of one row, and what was deleted recently
+  app.get(`${base}/:id/versions`, auth, wrap(async (req, res) => {
+    const [rows] = await pool.query<RowDataPacket[]>('SELECT id, data, created_at FROM content_versions WHERE tbl = ? AND row_id = ? ORDER BY id DESC', [table, req.params.id]);
+    const [cur] = await pool.query<RowDataPacket[]>('SELECT * FROM ?? WHERE id = ?', [table, req.params.id]);
+    res.json(rows.map((v) => { const d = JSON.parse(v.data); return { id: v.id, created_at: v.created_at, label: labelOf(d), changed: cur[0] ? changedFields(d, cur[0]) : [] }; }));
+  }));
+  app.get(`${base}-deleted`, auth, wrap(async (_req, res) => {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT v.id, v.data, v.created_at FROM content_versions v WHERE v.tbl = ? AND v.id = (SELECT MAX(id) FROM content_versions WHERE tbl = v.tbl AND row_id = v.row_id) AND NOT EXISTS (SELECT 1 FROM ?? t WHERE t.id = v.row_id) ORDER BY v.id DESC LIMIT 20',
+      [table, table],
+    );
+    res.json(rows.map((v) => ({ id: v.id, created_at: v.created_at, label: labelOf(JSON.parse(v.data)), changed: [] })));
+  }));
+  app.post(`${base}/versions/:vid/restore`, auth, wrap(async (req, res) => {
+    const [vr] = await pool.query<RowDataPacket[]>('SELECT row_id, data FROM content_versions WHERE id = ? AND tbl = ?', [req.params.vid, table]);
+    if (!vr[0]) return res.status(404).json({ error: 'Version not found' });
+    const data = JSON.parse(vr[0].data) as Record<string, unknown>;
+    const [cur] = await pool.query<RowDataPacket[]>('SELECT * FROM ?? WHERE id = ?', [table, vr[0].row_id]);
+    if (cur[0]) {
+      await saveVersion(table, vr[0].row_id, pick(cur[0], cols)); // so the restore itself can be undone
+      const v = values(await withSlug(data, String(vr[0].row_id)));
+      await pool.query(`UPDATE ?? SET ${cols.map(() => '?? = ?').join(',')} WHERE id = ?`, [table, ...cols.flatMap((c, i) => [c, v[i]]), vr[0].row_id]);
+      const prefix = PAGE_PREFIX[table];
+      const newSlug = v[cols.indexOf('slug')];
+      if (prefix && cur[0].slug && newSlug && cur[0].slug !== newSlug) await addRedirect(prefix + cur[0].slug, prefix + String(newSlug));
+    } else {
+      const v = values(await withSlug(data));
+      const [r] = await pool.query<ResultSetHeader>(`INSERT INTO ?? (${cols.map(() => '??').join(',')}) VALUES (${cols.map(() => '?').join(',')})`, [table, ...cols, ...v]);
+      await pool.query('DELETE FROM content_versions WHERE tbl = ? AND row_id = ?', [table, vr[0].row_id]);
+      return res.json({ ok: true, id: r.insertId });
+    }
     res.json({ ok: true });
   }));
 }
@@ -1038,7 +1153,7 @@ app.get('/robots.txt', wrap(async (req, res) => {
 }));
 app.get('/sitemap.xml', wrap(async (req, res) => {
   const [services] = await pool.query<RowDataPacket[]>('SELECT title, description, slug FROM services ORDER BY sort_order, id');
-  const [posts] = await pool.query<RowDataPacket[]>('SELECT title, slug, excerpt, created_at FROM posts ORDER BY id DESC');
+  const [posts] = await pool.query<RowDataPacket[]>("SELECT title, slug, excerpt, created_at FROM posts WHERE status = 'published' ORDER BY id DESC");
   const [projects] = await pool.query<RowDataPacket[]>('SELECT title, slug, description FROM gallery ORDER BY id DESC');
   res.type('application/xml').send(sitemapXml(baseUrl(req, await getSettings()), services as SeoService[], posts as SeoPost[], projects as SeoProject[]));
 }));
@@ -1047,6 +1162,12 @@ const clientDist = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'cl
 if (existsSync(clientDist)) {
   const indexFile = join(clientDist, 'index.html');
   const template = readFileSync(indexFile, 'utf8');
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
+    const to = redirectMap.get(cleanPath(decodeURI(req.path)));
+    if (!to || to === req.path) return next();
+    res.redirect(301, to + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
+  });
   app.use(express.static(clientDist, {
     index: false,
     // build files in /assets have a content hash in their name, and /fonts never change: cache them for a year
@@ -1062,7 +1183,7 @@ if (existsSync(clientDist)) {
       if (postSlug) {
         let slug = postSlug;
         try { slug = decodeURIComponent(postSlug); } catch { /* keep as is */ }
-        const [p] = await pool.query<RowDataPacket[]>('SELECT title, slug, excerpt, content, image_url, created_at FROM posts WHERE slug = ? LIMIT 1', [slug]);
+        const [p] = await pool.query<RowDataPacket[]>("SELECT title, slug, excerpt, content, image_url, created_at FROM posts WHERE slug = ? AND status = 'published' LIMIT 1", [slug]);
         post = (p[0] as SeoPost) || null;
       }
       const projSlug = /^\/portfolio\/([^/]+)\/?$/.exec(req.path)?.[1];
@@ -1074,7 +1195,7 @@ if (existsSync(clientDist)) {
       }
       let allPosts: RowDataPacket[] | undefined;
       if (/^\/blog\/?$/.test(req.path)) {
-        [allPosts] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, excerpt, image_url, created_at FROM posts ORDER BY id DESC LIMIT 200');
+        [allPosts] = await pool.query<RowDataPacket[]>("SELECT id, title, slug, excerpt, image_url, created_at FROM posts WHERE status = 'published' ORDER BY id DESC LIMIT 200");
       }
       const data = { services: services as SeoService[], post, project: (project?.project as SeoProject) || null, posts: allPosts as SeoPost[] | undefined };
       // a project page gets its own data too, so it shows without a second request
@@ -1106,6 +1227,7 @@ function listen(port: number, tries = 0) {
 }
 
 initDb()
+  .then(() => loadRedirects())
   .then(() => listen(Number(env.PORT || 3000)))
   .catch((e) => {
     console.error('DB init failed:', e.message);
