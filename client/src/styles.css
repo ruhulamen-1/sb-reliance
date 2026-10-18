@@ -759,3 +759,4 @@ html.lenis,html.lenis body{height:auto}
 .foot-logo .logo-wide{height:50px}
 @media(max-width:700px){.logo-wide{height:36px}.foot-logo .logo-wide{height:42px}}
 .foot-watermark{filter:none;opacity:.07}
+.foot-watermark{opacity:.1}
