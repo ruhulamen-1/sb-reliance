@@ -34,7 +34,7 @@ export default function ServicePage() {
     api<{ service: Service; services: Service[]; gallery: GalleryItem[]; settings: Settings }>(`/public/services/${encodeURIComponent(slug)}`)
       .then((d) => { setService(d.service); setServices(d.services ?? []); setGallery(d.gallery ?? []); setS(d.settings ?? {}); setState('ok'); })
       .catch((e: Error) => { setErr(e.message); setState(/not found/i.test(e.message) ? 'missing' : 'err'); });
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [slug]);
 
   useSeo({

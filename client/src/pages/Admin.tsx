@@ -454,7 +454,7 @@ export default function Admin() {
             </div>
           </div>
           <nav className="tabs admin-tabs" aria-label="Management sections">
-            {TABS.map((t) => <button key={t} className={t === tab ? 'on' : ''} aria-current={t === tab ? 'page' : undefined} onClick={() => { setTab(t); window.scrollTo({ top: 0 }); }}>{t}</button>)}
+            {TABS.map((t) => <button key={t} className={t === tab ? 'on' : ''} aria-current={t === tab ? 'page' : undefined} onClick={() => { setTab(t); window.scrollTo({ top: 0, behavior: 'instant' }); }}>{t}</button>)}
           </nav>
         </div>
       </header>

@@ -22,7 +22,7 @@ export default function PostPage() {
     api<{ post: Post; services: Service[]; settings: Settings }>(`/public/posts/${encodeURIComponent(slug)}`)
       .then((d) => { setPost(d.post); setServices(d.services ?? []); setS(d.settings ?? {}); setState('ok'); })
       .catch((e: Error) => { setErr(e.message); setState(/not found/i.test(e.message) ? 'missing' : 'err'); });
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [slug]);
 
   useSeo({ title: post && S.company_name ? `${post.title} – ${S.company_name}` : '', description: post?.excerpt, canonical: `/blog/${slug}` });

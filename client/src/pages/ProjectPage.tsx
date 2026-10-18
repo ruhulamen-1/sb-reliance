@@ -37,7 +37,7 @@ export default function ProjectPage() {
     api<ProjectData>(`/public/projects/${encodeURIComponent(slug)}`)
       .then((d) => { setData(d); setState('ok'); })
       .catch((e: Error) => { setErr(e.message); setState(/not found/i.test(e.message) ? 'missing' : 'err'); });
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: 'instant' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
