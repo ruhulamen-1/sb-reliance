@@ -774,3 +774,34 @@ html.lenis,html.lenis body{height:auto}
     .admin-bar{animation:bar-shadow linear both;animation-timeline:scroll(root);animation-range:0 90px}
   }
 }
+
+/* ---------- liquid glass (minimal) ----------
+   Frosted, translucent surfaces only on the layers that float above the page: the header, the floating
+   WhatsApp / Call buttons (and the phone bottom bar), the WhatsApp chat window and the hero slide dots.
+   Cards, forms and text blocks stay solid so everything remains easy to read. */
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))) {
+  .topbar,.admin-bar{
+    background:linear-gradient(180deg,rgba(255,255,255,.78),rgba(255,255,255,.56));
+    -webkit-backdrop-filter:blur(18px) saturate(1.7);backdrop-filter:blur(18px) saturate(1.7);
+    border-bottom:1px solid rgba(255,255,255,.7);
+    box-shadow:inset 0 -1px 0 rgba(16,52,58,.07),0 6px 24px rgba(16,52,58,.06)}
+  .fab{-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(255,255,255,.12),0 8px 24px rgba(16,52,58,.25)}
+  .fab.call{background:linear-gradient(180deg,rgba(26,70,78,.78),rgba(16,52,58,.7));border:1px solid rgba(255,255,255,.28)}
+  .fab.wa{background:linear-gradient(180deg,rgba(52,214,120,.92),rgba(31,157,85,.85));border:1px solid rgba(255,255,255,.4)}
+  .wachat{background:rgba(239,234,226,.78);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);
+    border:1px solid rgba(255,255,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 16px 48px rgba(0,0,0,.22)}
+  .wachat header{background:rgba(7,94,84,.9)}
+  .dots{width:max-content;margin:0 auto;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.34);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.5)}
+  @media(max-width:700px){
+    .floaters{background:rgba(255,255,255,.4);-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);
+      border-top:1px solid rgba(255,255,255,.6);box-shadow:0 -6px 24px rgba(16,52,58,.12)}
+    .fab{border:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+    .fab.wa{background:linear-gradient(180deg,rgba(31,157,85,.92),rgba(22,130,63,.9))}
+  }
+}
+@media(prefers-reduced-transparency:reduce){
+  .topbar,.admin-bar{background:var(--card);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .wachat{background:#efeae2;-webkit-backdrop-filter:none;backdrop-filter:none}
+}
