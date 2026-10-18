@@ -38,7 +38,7 @@ export function TrustBar({ S }: { S: Settings }) {
 
 /** "120+ | Projects completed" lines -> big numbers. */
 /** "150+" counts up from 0 the first time it scrolls into view. Without JavaScript the real number is in the page. */
-function CountUp({ value }: { value: string }) {
+export function CountUp({ value }: { value: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const el = ref.current;

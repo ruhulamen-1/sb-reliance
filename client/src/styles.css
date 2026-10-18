@@ -760,3 +760,17 @@ html.lenis,html.lenis body{height:auto}
 @media(max-width:700px){.logo-wide{height:36px}.foot-logo .logo-wide{height:42px}}
 .foot-watermark{filter:none;opacity:.07}
 .foot-watermark{opacity:.1}
+
+/* ---------- Admin panel motion ---------- */
+.tabview{animation:rise .35s cubic-bezier(.2,.7,.2,1) both}
+.admin-tabs button{transition:background-color .2s,color .2s,border-color .2s,transform .15s}
+.admin-tabs button:not(.on):hover{transform:translateY(-1px);border-color:var(--ink)}
+.modal[open]{animation:pop .25s both}
+.modal[open]::backdrop{animation:fade .25s both}
+@media(prefers-reduced-motion:reduce){.tabview,.modal[open],.modal[open]::backdrop{animation:none!important}.admin-tabs button:hover{transform:none!important}}
+@supports (animation-timeline: scroll()){
+  @media(prefers-reduced-motion:no-preference){
+    @keyframes bar-shadow{from{box-shadow:0 0 0 rgba(16,52,58,0)}to{box-shadow:0 8px 20px rgba(16,52,58,.14)}}
+    .admin-bar{animation:bar-shadow linear both;animation-timeline:scroll(root);animation-range:0 90px}
+  }
+}

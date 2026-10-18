@@ -6,18 +6,19 @@ import type Lenis from 'lenis';
 let lenis: Lenis | null = null;
 let loading = false;
 
+const PAGE = 'main.page, main.admin-body'; // the public pages and the Admin panel
 const wanted = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export default function useSmoothScroll() {
+export default function useSmoothScroll(active = true) {
   useEffect(() => {
-    if (!wanted()) return;
+    if (!active || !wanted()) return;
     let cancel: () => void = () => undefined;
     if (!lenis && !loading) {
       const start = async () => {
         loading = true;
         const { default: LenisLib } = await import('lenis');
         loading = false;
-        if (lenis || !document.querySelector('main.page')) return; // left for another page (e.g. Admin) while loading
+        if (lenis || !document.querySelector(PAGE)) return; // left for another page (e.g. Admin) while loading
         lenis = new LenisLib({ lerp: 0.18, smoothWheel: true, allowNestedScroll: true, anchors: { offset: -70 }, autoRaf: true });
       };
       const id = window.setTimeout(() => { void start(); }, 700); // after the page has settled
@@ -27,8 +28,8 @@ export default function useSmoothScroll() {
       cancel();
       // pages mount their own Shell: only stop smoothing when no public page is left (e.g. moving to Admin)
       window.setTimeout(() => {
-        if (lenis && !document.querySelector('main.page')) { lenis.destroy(); lenis = null; }
+        if (lenis && !document.querySelector(PAGE)) { lenis.destroy(); lenis = null; }
       }, 150);
     };
-  }, []);
+  }, [active]);
 }

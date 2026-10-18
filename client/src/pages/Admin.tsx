@@ -1,6 +1,9 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import Payroll from './Payroll';
+import { CountUp } from '../components/Trust';
+import useReveal from '../components/useReveal';
+import useSmoothScroll from '../components/useSmoothScroll';
 import { clearDraft, DraftNote, loadDraft, Redirects, SnippetPreview, TextBox, useAutoDraft, VersionList } from './adminTools';
 
 type Row = Record<string, any>;
@@ -90,8 +93,8 @@ function Overview() {
   const n = (st: string) => s.byStatus.find((x) => x.status === st)?.count ?? 0;
   return (
     <div className="grid3 stats">
-      {STATUSES.map((st) => (<div key={st} className="card"><small>{st}</small><strong>{n(st)}</strong></div>))}
-      <div className="card"><small>Completed revenue (SGD)</small><strong>{s.revenue.toLocaleString()}</strong></div>
+      {STATUSES.map((st) => (<div key={st} className="card"><small>{st}</small><strong><CountUp value={String(n(st))} /></strong></div>))}
+      <div className="card"><small>Completed revenue (SGD)</small><strong><CountUp value={s.revenue.toLocaleString()} /></strong></div>
     </div>
   );
 }
@@ -441,6 +444,8 @@ export default function Admin() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   const [stdKey, setStdKey] = useState(0);
+  useReveal();
+  useSmoothScroll(authed);
   if (!authed) return <div className="wrap narrow"><Login onDone={() => setAuthed(true)} /></div>;
   return (
     <div className="admin">
@@ -463,6 +468,7 @@ export default function Admin() {
         <h1>{tab}</h1>
         <p>{INTRO[tab]}</p>
       </div>
+      <div key={tab} className="tabview">
       {tab === 'Overview' && <Overview />}
       {tab === 'Quotes' && <Quotes />}
       {tab === 'Services' && <StandardServices onDone={() => setStdKey((k) => k + 1)} />}
@@ -506,6 +512,7 @@ export default function Admin() {
         { key: 'review_date', label: 'Review date (optional)', date: true, optional: true, hint: 'The date shown on Google, so the site can say e.g. "3 months ago". Empty = the day it was added here.' },
         { key: 'status', label: 'Show on website?', options: [['approved', 'Yes, show it'], ['pending', 'Waiting for approval'], ['hidden', 'No, hide it']] },
       ]} />}
+      </div>
       </main>
     </div>
   );
