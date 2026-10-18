@@ -9,10 +9,15 @@ const store = {
   del: (k: string) => { try { localStorage.removeItem(k); } catch { /* ignore */ } },
 };
 
-export function loadDraft<T extends object>(key: string): Partial<T> | null {
+/** A saved draft. `stale` means the item was changed (here or on another device) after the draft was started. */
+export function loadDraft<T extends object>(key: string, base: object): { value: Partial<T>; stale: boolean } | null {
   const raw = store.get(key);
   if (!raw) return null;
-  try { const v = JSON.parse(raw); return v && typeof v === 'object' ? v : null; } catch { return null; }
+  try {
+    const d = JSON.parse(raw);
+    if (!d || typeof d !== 'object' || !d.value || typeof d.value !== 'object') return null;
+    return { value: d.value, stale: JSON.stringify(d.base) !== JSON.stringify(base) };
+  } catch { return null; }
 }
 export const clearDraft = (key: string) => store.del(key);
 
@@ -23,7 +28,7 @@ export function useAutoDraft(key: string | null, value: object | null, base: obj
     if (!key || !value || !base) return;
     const t = setTimeout(() => {
       if (JSON.stringify(value) === JSON.stringify(base)) { store.del(key); setAt(''); return; }
-      store.set(key, JSON.stringify(value));
+      store.set(key, JSON.stringify({ base, value }));
       setAt(new Intl.DateTimeFormat('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Singapore' }).format(new Date()));
     }, 700);
     return () => clearTimeout(t);
@@ -31,7 +36,18 @@ export function useAutoDraft(key: string | null, value: object | null, base: obj
   return at;
 }
 
-export function DraftNote({ restored, savedAt, onDiscard }: { restored: boolean; savedAt: string; onDiscard: () => void }) {
+export function DraftNote({ restored, savedAt, onDiscard, stale, onLoadStale }: {
+  restored: boolean; savedAt: string; onDiscard: () => void; stale?: boolean; onLoadStale?: () => void;
+}) {
+  if (stale) {
+    return (
+      <p className="draftnote full" role="status">
+        An older unsaved draft exists, but this was saved again after you started it, so the draft was <strong>not</strong> applied (it would overwrite the newer text).{' '}
+        <button type="button" className="linklike" onClick={onLoadStale}>Load the old draft anyway</button>{' · '}
+        <button type="button" className="linklike" onClick={onDiscard}>Discard it</button>
+      </p>
+    );
+  }
   if (!restored && !savedAt) return null;
   return (
     <p className="draftnote full" role="status">

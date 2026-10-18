@@ -1013,6 +1013,11 @@ async function addRedirect(from: string, to: string) {
   await pool.query('INSERT INTO redirects (from_path, to_path) VALUES (?, ?) ON DUPLICATE KEY UPDATE to_path = VALUES(to_path)', [from, to]);
   await loadRedirects();
 }
+// a page that takes an address over must not be sent somewhere else by an old redirect
+async function freePath(path: string) {
+  const [r] = await pool.query<ResultSetHeader>('DELETE FROM redirects WHERE from_path = ?', [path]);
+  if (r.affectedRows) await loadRedirects();
+}
 const PAGE_PREFIX: Record<string, string> = { services: '/services/', posts: '/blog/', gallery: '/portfolio/' };
 
 app.get('/api/admin/redirects', auth, wrap(async (_req, res) => {
@@ -1072,7 +1077,9 @@ for (const [table, cols] of Object.entries(CONTENT)) {
   }));
   app.post(base, auth, wrap(async (req, res) => {
     const sql = `INSERT INTO ?? (${cols.map(() => '??').join(',')}) VALUES (${cols.map(() => '?').join(',')})`;
-    const [r] = await pool.query<ResultSetHeader>(sql, [table, ...cols, ...values(await withSlug(req.body))]);
+    const b = await withSlug(req.body);
+    const [r] = await pool.query<ResultSetHeader>(sql, [table, ...cols, ...values(b)]);
+    if (PAGE_PREFIX[table] && b.slug) await freePath(PAGE_PREFIX[table] + String(b.slug));
     res.status(201).json({ id: r.insertId });
   }));
   app.put(`${base}/:id`, auth, wrap(async (req, res) => {
@@ -1122,6 +1129,8 @@ for (const [table, cols] of Object.entries(CONTENT)) {
     } else {
       const v = values(await withSlug(data));
       const [r] = await pool.query<ResultSetHeader>(`INSERT INTO ?? (${cols.map(() => '??').join(',')}) VALUES (${cols.map(() => '?').join(',')})`, [table, ...cols, ...v]);
+      const newSlug = v[cols.indexOf('slug')];
+      if (PAGE_PREFIX[table] && newSlug) await freePath(PAGE_PREFIX[table] + String(newSlug));
       await pool.query('DELETE FROM content_versions WHERE tbl = ? AND row_id = ?', [table, vr[0].row_id]);
       return res.json({ ok: true, id: r.insertId });
     }

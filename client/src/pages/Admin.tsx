@@ -166,15 +166,16 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
   const textKey = fields.find((f, i) => i > 0 && !f.image)?.key;
   const [rows, setRows] = useState<Row[]>([]);
   const addKey = `sbdraft:${table}:new`;
-  const [addForm, setAddForm] = useState<Row>(() => ({ ...blank, ...loadDraft<Row>(addKey) }));
-  const [addRestored, setAddRestored] = useState(() => !!loadDraft(addKey));
+  const [addForm, setAddForm] = useState<Row>(() => { const d = loadDraft<Row>(addKey, blank); return d && !d.stale ? { ...blank, ...d.value } : blank; });
+  const [addRestored, setAddRestored] = useState(() => { const d = loadDraft(addKey, blank); return !!d && !d.stale; });
   const [editForm, setEditForm] = useState<Row>(blank);
   const [editBase, setEditBase] = useState<Row | null>(null);
   const [editRestored, setEditRestored] = useState(false);
+  const [editStale, setEditStale] = useState<Row | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const editKey = editId !== null ? `sbdraft:${table}:${editId}` : null;
   const addSaved = useAutoDraft(addKey, addForm, blank);
-  const editSaved = useAutoDraft(editKey, editForm, editBase);
+  const editSaved = useAutoDraft(editStale ? null : editKey, editForm, editBase);
   const [addErr, setAddErr] = useState('');
   const [editErr, setEditErr] = useState('');
   const [q, setQ] = useState('');
@@ -207,8 +208,9 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
     return (
       <form className="form card" onSubmit={(e) => save(e, isEdit)}>
         {isEdit && <h3 className="full">Edit</h3>}
-        <DraftNote restored={isEdit ? editRestored : addRestored} savedAt={isEdit ? editSaved : addSaved}
-          onDiscard={() => { if (isEdit) { if (editKey) clearDraft(editKey); setEditForm(editBase ?? blank); setEditRestored(false); } else { clearDraft(addKey); setAddForm(blank); setAddRestored(false); } }} />
+        <DraftNote restored={isEdit ? editRestored : addRestored} savedAt={isEdit ? editSaved : addSaved} stale={isEdit && !!editStale}
+          onLoadStale={() => { setEditForm({ ...(editBase ?? blank), ...editStale }); setEditStale(null); setEditRestored(true); }}
+          onDiscard={() => { if (isEdit) { if (editKey) clearDraft(editKey); setEditForm(editBase ?? blank); setEditRestored(false); setEditStale(null); } else { clearDraft(addKey); setAddForm(blank); setAddRestored(false); } }} />
         {fields.map((f) => f.image ? (
           <ImageField key={f.key} label={f.label} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
         ) : (
@@ -239,7 +241,7 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
   return (
     <>
       {renderForm(false)}
-      <dialog ref={dlg} className="modal" aria-label="Edit" onClose={() => { setEditId(null); setEditForm(blank); setEditErr(''); }}
+      <dialog ref={dlg} className="modal" aria-label="Edit" onClose={() => { setEditId(null); setEditForm(blank); setEditErr(''); setEditStale(null); }}
         onClick={(e) => { if (e.target === dlg.current) dlg.current?.close(); }}>
         {editId !== null && renderForm(true)}
       </dialog>
@@ -250,8 +252,9 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
           <div className="row gap crud-actions">
             <button className="btn ghost" onClick={() => {
               const base = Object.fromEntries(fields.map((f) => [f.key, r[f.key]]));
-              const d = loadDraft<Row>(`sbdraft:${table}:${r.id}`);
-              setEditId(r.id); setEditBase(base); setEditForm({ ...base, ...d }); setEditRestored(!!d); dlg.current?.showModal();
+              const d = loadDraft<Row>(`sbdraft:${table}:${r.id}`, base);
+              setEditId(r.id); setEditBase(base); setEditForm(d && !d.stale ? { ...base, ...d.value } : base);
+              setEditRestored(!!d && !d.stale); setEditStale(d?.stale ? d.value : null); dlg.current?.showModal();
             }}>Edit</button>
             {table !== 'employees' && <button className="btn ghost" onClick={() => { setHistId(r.id); hist.current?.showModal(); }}>History</button>}
             <button className="btn ghost" onClick={async () => { if (confirm(table === 'employees' ? 'Delete this employee? Their attendance and unpaid payroll lines are deleted too.' : 'Delete?')) { try { await api(`/admin/${table}/${r.id}`, { method: 'DELETE', auth: true }); load(); } catch (x) { alert((x as Error).message); } } }}>Delete</button>
@@ -337,13 +340,18 @@ function Settings() {
   const [form, setForm] = useState<Record<string, string> | null>(null);
   const [base, setBase] = useState<Record<string, string> | null>(null);
   const [restored, setRestored] = useState(false);
+  const [stale, setStale] = useState<Record<string, string> | null>(null);
   const [msg, setMsg] = useState('');
   useEffect(() => {
     api<Record<string, string>>('/admin/settings', { auth: true })
-      .then((d) => { const draft = loadDraft<Record<string, string>>('sbdraft:settings'); setBase(d); setForm({ ...d, ...(draft as Record<string, string>) }); setRestored(!!draft); })
+      .then((d) => {
+        const draft = loadDraft<Record<string, string>>('sbdraft:settings', d);
+        setBase(d); setForm(draft && !draft.stale ? { ...d, ...(draft.value as Record<string, string>) } : d);
+        setRestored(!!draft && !draft.stale); setStale(draft?.stale ? (draft.value as Record<string, string>) : null);
+      })
       .catch((e: Error) => setMsg(e.message));
   }, []);
-  const saved = useAutoDraft(form ? 'sbdraft:settings' : null, form, base);
+  const saved = useAutoDraft(form && !stale ? 'sbdraft:settings' : null, form, base);
   if (!form) return <p className={msg ? 'err' : ''}>{msg || 'Loading…'}</p>;
 
   async function submit(e: FormEvent) {
@@ -357,7 +365,9 @@ function Settings() {
   }
   return (
     <form className="form card" onSubmit={submit}>
-      <DraftNote restored={restored} savedAt={saved} onDiscard={() => { clearDraft('sbdraft:settings'); setForm(base); setRestored(false); }} />
+      <DraftNote restored={restored} savedAt={saved} stale={!!stale}
+        onLoadStale={() => { setForm({ ...base, ...stale }); setStale(null); setRestored(true); }}
+        onDiscard={() => { clearDraft('sbdraft:settings'); setForm(base); setRestored(false); setStale(null); }} />
       {SETTING_FIELDS.map((f) => f.image ? (
         <ImageField key={f.key} label={f.label} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
       ) : (
