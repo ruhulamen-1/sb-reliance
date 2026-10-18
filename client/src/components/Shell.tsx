@@ -89,7 +89,7 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
     <>
       <header className={menu ? 'topbar menu-open' : 'topbar'} ref={header}>
         <div className="wrap row between">
-          <Link className="brand brandrow" to="/"><img className="logo" src={S.logo || '/logo.svg'} alt="" />{S.brand}</Link>
+          <Link className="brand brandrow" to="/" aria-label={S.brand || 'Home'}><img className="logo-wide" src={S.logo || '/logo-green.svg'} alt={S.brand || ''} width="211" height="44" /></Link>
           <button type="button" className="menu-btn" aria-expanded={menu} aria-controls="site-nav" aria-label={menu ? 'Close menu' : 'Open menu'} onClick={() => setMenu(!menu)}>
             <span aria-hidden="true" />
           </button>
@@ -120,11 +120,11 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
 
       <footer className="foot" style={S.footer_bg ? { backgroundImage: `url("${S.footer_bg}")` } : undefined}>
         <div className="foot-shade">
-          <img className="foot-watermark" src={S.logo || '/logo.svg'} alt="" aria-hidden="true" loading="lazy" />
+          <img className="foot-watermark" src="/logo-mark-white.svg" alt="" aria-hidden="true" loading="lazy" />
           <div className="wrap">
             <div className="foot-grid">
               <div className="foot-brand">
-                <Link className="foot-logo" to="/"><img className="logo" src={S.logo || '/logo.svg'} alt="" /><span>{S.brand}</span></Link>
+                <Link className="foot-logo" to="/" aria-label={S.brand || 'Home'}><img className="logo-wide" src={S.logo || '/logo-white.svg'} alt={S.brand || ''} width="240" height="50" loading="lazy" /></Link>
                 <p>{S.about_text}</p>
                 <Link className="btn-outline" to="/contact">Request a quote</Link>
                 {socials.length > 0 && (

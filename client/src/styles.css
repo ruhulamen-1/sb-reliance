@@ -752,3 +752,10 @@ html.lenis,html.lenis body{height:auto}
     .step-cards li:nth-child(n+4),.why-cards li:nth-child(n+4),.price-card:nth-child(n+4),.statgrid>div:nth-child(n+4),.svc-minis li:nth-child(n+4){animation-range:entry 18% entry 53%}
   }
 }
+
+/* wide logo files (icon + name) in the header and footer */
+.logo-wide{height:44px;width:auto;display:block}
+.brandrow{gap:0}
+.foot-logo .logo-wide{height:50px}
+@media(max-width:700px){.logo-wide{height:36px}.foot-logo .logo-wide{height:42px}}
+.foot-watermark{filter:none;opacity:.07}
