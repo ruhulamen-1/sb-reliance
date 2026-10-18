@@ -195,9 +195,9 @@ export default function Home() {
           </div>
           <div>
             <h2>{S.process_title}</h2>
-            <ol className="steps">
-              {steps.map(([t, d]) => (
-                <li key={t}><strong>{t}</strong><span>{d}</span></li>
+            <ol className="step-cards">
+              {steps.map(([t, d], i) => (
+                <li key={t}><span className="step-no" aria-hidden="true">{i + 1}</span><strong>{t}</strong>{d && <p>{d}</p>}</li>
               ))}
             </ol>
           </div>

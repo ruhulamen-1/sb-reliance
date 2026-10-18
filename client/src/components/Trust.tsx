@@ -1,5 +1,6 @@
 // Trust signals built only from what the company enters in Admin > Settings.
 // Every block hides itself while its fields are empty, so nothing made-up is ever shown.
+import { useEffect, useRef } from 'react';
 import type { Settings } from './Shell';
 
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
@@ -36,6 +37,39 @@ export function TrustBar({ S }: { S: Settings }) {
 }
 
 /** "120+ | Projects completed" lines -> big numbers. */
+/** "150+" counts up from 0 the first time it scrolls into view. Without JavaScript the real number is in the page. */
+function CountUp({ value }: { value: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    const m = /^(\D*)(\d[\d,]*(?:\.\d+)?)(.*)$/.exec(value);
+    if (!el || !m || typeof IntersectionObserver === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const [, pre, num, post] = m;
+    const target = parseFloat(num.replace(/,/g, ''));
+    const decimals = (num.split('.')[1] || '').length;
+    const show = (v: number) => {
+      const t = v.toFixed(decimals);
+      el.textContent = pre + (num.includes(',') ? Number(t).toLocaleString('en-US', { minimumFractionDigits: decimals }) : t) + post;
+    };
+    show(0);
+    let raf = 0;
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      const t0 = performance.now();
+      const tick = (t: number) => {
+        const p = Math.min(1, (t - t0) / 1400);
+        show(target * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) raf = requestAnimationFrame(tick); else el.textContent = value;
+      };
+      raf = requestAnimationFrame(tick);
+    }, { threshold: 0.6 });
+    io.observe(el);
+    return () => { io.disconnect(); cancelAnimationFrame(raf); el.textContent = value; };
+  }, [value]);
+  return <span ref={ref}>{value}</span>;
+}
+
 export function Stats({ S }: { S: Settings }) {
   const stats = lines(S.stats)
     .map((l) => { const [n, ...t] = l.split('|'); return [n.trim(), t.join('|').trim()]; })
@@ -44,7 +78,7 @@ export function Stats({ S }: { S: Settings }) {
   return (
     <section className="wrap block stats-band" aria-label="In numbers">
       <dl className="statgrid">
-        {stats.map(([n, t]) => <div key={t}><dt>{t}</dt><dd>{n}</dd></div>)}
+        {stats.map(([n, t]) => <div key={t}><dt>{t}</dt><dd><CountUp value={n} /></dd></div>)}
       </dl>
     </section>
   );

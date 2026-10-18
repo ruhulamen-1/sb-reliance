@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState, useCallback } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import WaChat from './WaChat';
 import useReveal from './useReveal';
+import useSmoothScroll from './useSmoothScroll';
 import { serviceHeading } from './content';
 
 export type Settings = Record<string, string>;
@@ -48,6 +49,7 @@ const WaIcon = () => (
 
 export default function Shell({ S, services = [], children }: { S: Settings; services?: { id: number; title: string; slug?: string | null }[]; children: ReactNode }) {
   useReveal();
+  useSmoothScroll();
   useEffect(() => {
     let raf = 0;
     const update = () => {
@@ -167,6 +169,8 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
                 )}
               </div>
             </div>
+
+            {S.brand && <div className="foot-mark" aria-hidden="true">{S.brand}</div>}
 
             <div className="foot-bottom">
               <span>© {new Date().getFullYear()} {S.company_name}. All rights reserved.</span>
