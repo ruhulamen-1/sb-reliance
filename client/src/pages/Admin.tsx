@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import Payroll from './Payroll';
+import { clearDraft, DraftNote, loadDraft, TextBox, useAutoDraft } from './adminTools';
 
 type Row = Record<string, any>;
 const STATUSES = ['new', 'contacted', 'scheduled', 'completed', 'cancelled'];
@@ -43,13 +44,14 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
     }
   }
   return (
-    <div className="full imgfield">
+    <div className="full imgfield" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files?.[0]); }}>
       <span>{label}</span>
       {value && <img src={value} alt="" className="thumb" />}
       <div className="row gap">
         <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => pick(e.target.files?.[0])} />
         {value && <button type="button" className="btn ghost" onClick={() => onChange('')}>Remove image</button>}
       </div>
+      {!value && !busy && <small>Choose a photo or drop it here.</small>}
       {busy && <small>Uploading…</small>}
       {err && <p className="err">{err}</p>}
     </div>
@@ -163,9 +165,16 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
   const blank = Object.fromEntries(fields.map((f) => [f.key, f.options ? f.options[0][0] : f.num ? 0 : '']));
   const textKey = fields.find((f, i) => i > 0 && !f.image)?.key;
   const [rows, setRows] = useState<Row[]>([]);
-  const [addForm, setAddForm] = useState<Row>(blank);
+  const addKey = `sbdraft:${table}:new`;
+  const [addForm, setAddForm] = useState<Row>(() => ({ ...blank, ...loadDraft<Row>(addKey) }));
+  const [addRestored, setAddRestored] = useState(() => !!loadDraft(addKey));
   const [editForm, setEditForm] = useState<Row>(blank);
+  const [editBase, setEditBase] = useState<Row | null>(null);
+  const [editRestored, setEditRestored] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const editKey = editId !== null ? `sbdraft:${table}:${editId}` : null;
+  const addSaved = useAutoDraft(addKey, addForm, blank);
+  const editSaved = useAutoDraft(editKey, editForm, editBase);
   const [addErr, setAddErr] = useState('');
   const [editErr, setEditErr] = useState('');
   const dlg = useRef<HTMLDialogElement>(null);
@@ -181,7 +190,7 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
     if (missing) return setErr(`Please upload: ${missing.label}`);
     try {
       await api(isEdit ? `/admin/${table}/${editId}` : `/admin/${table}`, { method: isEdit ? 'PUT' : 'POST', auth: true, body: form });
-      if (isEdit) dlg.current?.close(); else setAddForm(blank);
+      if (isEdit) { if (editKey) clearDraft(editKey); dlg.current?.close(); } else { clearDraft(addKey); setAddForm(blank); }
       load();
     } catch (x) { setErr((x as Error).message); }
   }
@@ -194,13 +203,15 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
     return (
       <form className="form card" onSubmit={(e) => save(e, isEdit)}>
         {isEdit && <h3 className="full">Edit</h3>}
+        <DraftNote restored={isEdit ? editRestored : addRestored} savedAt={isEdit ? editSaved : addSaved}
+          onDiscard={() => { if (isEdit) { if (editKey) clearDraft(editKey); setEditForm(editBase ?? blank); setEditRestored(false); } else { clearDraft(addKey); setAddForm(blank); setAddRestored(false); } }} />
         {fields.map((f) => f.image ? (
           <ImageField key={f.key} label={f.label} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
         ) : (
           <label key={f.key} className={f.area ? 'full' : ''}>{f.label}
             {f.hint && <small>{f.hint}</small>}
             {f.area
-              ? <textarea rows={4} required={!f.optional} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+              ? <TextBox rows={4} required={!f.optional} max={f.key === 'seo_description' ? 160 : f.key === 'seo_title' ? 60 : undefined} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
               : f.options
                 ? <select value={String(form[f.key] ?? f.options[0][0])} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
                 : <input required={!f.optional} type={f.num ? 'number' : f.date ? 'date' : 'text'} step={f.num ? 'any' : undefined} min={f.num ? 0 : undefined} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: f.num ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value })} />}
@@ -226,7 +237,11 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
         <div key={r.id} className="card row between">
           <div className="row gap crud-main">{r.image_url && <img src={r.image_url} alt="" className="thumb" />}<div><strong>{r[fields[0].key]}</strong>{r.status && r.status !== 'approved' && <span className={`tag ${r.status}`}>{r.status === 'pending' ? 'Waiting for approval' : 'Hidden'}</span>}{textKey && <p>{String(r[textKey] ?? '').slice(0, 120)}</p>}</div></div>
           <div className="row gap crud-actions">
-            <button className="btn ghost" onClick={() => { setEditId(r.id); setEditForm(Object.fromEntries(fields.map((f) => [f.key, r[f.key]]))); dlg.current?.showModal(); }}>Edit</button>
+            <button className="btn ghost" onClick={() => {
+              const base = Object.fromEntries(fields.map((f) => [f.key, r[f.key]]));
+              const d = loadDraft<Row>(`sbdraft:${table}:${r.id}`);
+              setEditId(r.id); setEditBase(base); setEditForm({ ...base, ...d }); setEditRestored(!!d); dlg.current?.showModal();
+            }}>Edit</button>
             <button className="btn ghost" onClick={async () => { if (confirm(table === 'employees' ? 'Delete this employee? Their attendance and unpaid payroll lines are deleted too.' : 'Delete?')) { try { await api(`/admin/${table}/${r.id}`, { method: 'DELETE', auth: true }); load(); } catch (x) { alert((x as Error).message); } } }}>Delete</button>
           </div>
         </div>
@@ -293,8 +308,15 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
 
 function Settings() {
   const [form, setForm] = useState<Record<string, string> | null>(null);
+  const [base, setBase] = useState<Record<string, string> | null>(null);
+  const [restored, setRestored] = useState(false);
   const [msg, setMsg] = useState('');
-  useEffect(() => { api<Record<string, string>>('/admin/settings', { auth: true }).then(setForm).catch((e: Error) => setMsg(e.message)); }, []);
+  useEffect(() => {
+    api<Record<string, string>>('/admin/settings', { auth: true })
+      .then((d) => { const draft = loadDraft<Record<string, string>>('sbdraft:settings'); setBase(d); setForm({ ...d, ...(draft as Record<string, string>) }); setRestored(!!draft); })
+      .catch((e: Error) => setMsg(e.message));
+  }, []);
+  const saved = useAutoDraft(form ? 'sbdraft:settings' : null, form, base);
   if (!form) return <p className={msg ? 'err' : ''}>{msg || 'Loading…'}</p>;
 
   async function submit(e: FormEvent) {
@@ -302,18 +324,20 @@ function Settings() {
     setMsg('');
     try {
       await api('/admin/settings', { method: 'PUT', auth: true, body: form });
+      clearDraft('sbdraft:settings'); setBase(form); setRestored(false);
       setMsg('Saved. Refresh the site to see the changes.');
     } catch (x) { setMsg((x as Error).message); }
   }
   return (
     <form className="form card" onSubmit={submit}>
+      <DraftNote restored={restored} savedAt={saved} onDiscard={() => { clearDraft('sbdraft:settings'); setForm(base); setRestored(false); }} />
       {SETTING_FIELDS.map((f) => f.image ? (
         <ImageField key={f.key} label={f.label} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
       ) : (
         <label key={f.key} className={f.area ? 'full' : ''}>{f.label}
           {f.hint && <small>{f.hint}</small>}
           {f.area
-            ? <textarea rows={['hero_lead', 'quote_intro', 'seo_description'].includes(f.key) ? 3 : 6} value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+            ? <TextBox rows={['hero_lead', 'quote_intro', 'seo_description'].includes(f.key) ? 3 : 6} max={f.key === 'seo_description' ? 160 : undefined} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
             : <input value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
         </label>
       ))}

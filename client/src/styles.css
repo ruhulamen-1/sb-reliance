@@ -677,3 +677,17 @@ a.shot,.proj{display:block;text-decoration:none;color:inherit}
 .svc-minis span{display:block;padding:10px 12px;font-weight:700}
 @media(max-width:600px){.svc-minis{grid-template-columns:1fr 1fr;gap:10px}}
 .svc-minis a{height:100%}
+
+/* admin: writing toolbar, preview, draft note */
+.tbox{display:block;margin-top:4px}
+.tbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:6px}
+.tbar button{font:inherit;font-size:.85rem;padding:4px 10px;border:1px solid #b9c8c6;background:#fff;border-radius:6px;cursor:pointer}
+.tbar button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tbar small{margin-left:auto;color:var(--muted)}.tbar small.over{color:#b3261e;font-weight:700}
+.prev{border:1px dashed #b9c8c6;border-radius:6px;padding:12px 14px;background:#fff;font-weight:400}
+.prev h4{margin:10px 0 4px;font-size:1.05rem}.prev p{margin:0 0 8px}
+.prev-row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:6px 0}
+.prev-empty{color:var(--muted);margin:0}
+.draftnote{margin:0;padding:8px 12px;background:#fff8e1;border:1px solid #f0d98a;border-radius:6px;font-size:.9rem;font-weight:400}
+.linklike{background:none;border:0;padding:0;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit}
+.imgfield:has(input:focus-visible),.imgfield:hover{outline:2px dashed #b9c8c6;outline-offset:4px}
