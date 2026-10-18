@@ -1,18 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" role="img" aria-label="SB Reliance logo">
   <defs>
-    <clipPath id="c"><circle cx="100" cy="100" r="80"/></clipPath>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4dc8f"/>
+      <stop offset="0.45" stop-color="#d4ae55"/>
+      <stop offset="1" stop-color="#9c7425"/>
+    </linearGradient>
+    <linearGradient id="d" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b38a35"/>
+      <stop offset="1" stop-color="#7d5b1c"/>
+    </linearGradient>
+    <clipPath id="c"><circle cx="100" cy="100" r="81"/></clipPath>
   </defs>
-  <g fill="none" stroke="#b8932f">
-    <circle cx="100" cy="100" r="95" stroke-width="5"/>
-    <circle cx="100" cy="100" r="86" stroke-width="2.5"/>
-  </g>
+  <circle cx="100" cy="100" r="91" fill="none" stroke="url(#g)" stroke-width="9"/>
   <g clip-path="url(#c)">
-    <path d="M56 162V100l28-10v72" fill="none" stroke="#b8932f" stroke-width="5"/>
-    <path d="M67 162v-54l10-3.5" fill="none" stroke="#b8932f" stroke-width="2.5"/>
-    <path d="M88 162V66l28-12v108z" fill="#b8932f"/>
-    <path d="M120 162V96l26 12v54z" fill="#b8932f"/>
-    <path d="M128 162v-44" stroke="#fff" stroke-width="3" fill="none"/>
-    <path d="M118 162V58" stroke="#fff" stroke-width="2.5" fill="none"/>
-    <path d="M46 160h108" stroke="#b8932f" stroke-width="5" fill="none"/>
+    <path d="M50 190V100l24-9v99z" fill="url(#g)"/>
+    <path d="M74 91l10 5v94H74z" fill="url(#d)"/>
+    <path d="M89 190V57l27-13v146z" fill="url(#g)"/>
+    <path d="M116 44l12 7v139h-12z" fill="url(#d)"/>
+    <path d="M133 190V88l20-8v110z" fill="url(#g)"/>
+    <path d="M153 80l8 4v106h-8z" fill="url(#d)"/>
+    <g stroke="#8a6420" stroke-width="1.6" opacity="0.55">
+      <path d="M62 104v86M102 58v132M143 92v98"/>
+    </g>
   </g>
 </svg>
