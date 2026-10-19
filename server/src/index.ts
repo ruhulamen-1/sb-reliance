@@ -265,7 +265,7 @@ async function initDb() {
   if (!s.length) {
     const seed: [string, string][] = [
       ['ACMV System Installation', 'Design-aligned installation of air-conditioning and mechanical ventilation systems for commercial and industrial buildings.'],
-      ['Air-Condition Installation', 'Supply and installation of split and multi-split air-conditioners for homes, shops and offices.'],
+      ['Aircon Ducting', 'Aircon ducting for offices, shops and homes: supply and return air ducts, insulation, fan coil units and access panels.'],
       ['Electrical', 'Electrical wiring, distribution boards, lighting and power works for new fit-outs and renovations.'],
       ['CCTV', 'CCTV camera supply, installation and cabling for homes, offices and commercial premises.'],
       ['Ceiling Partition', 'Partitions and false ceilings that reshape the layout of offices, shops and homes.'],

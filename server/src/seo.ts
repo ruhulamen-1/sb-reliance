@@ -96,7 +96,7 @@ export const projectIndexable = (p: SeoProject) => (p.description || '').replace
 
 // words that say which service a project belongs to (besides the service's own name)
 const ALIASES: [RegExp, string[]][] = [
-  [/air.?con/i, ['aircon', 'air-con', 'air con', 'air-condition', 'air condition', 'split unit']],
+  [/air.?con|duct/i, ['aircon', 'air-con', 'air con', 'air-condition', 'air condition', 'split unit', 'duct', 'ducting', 'ducted', 'fan coil']],
   [/acmv/i, ['acmv', 'ventilation', 'ducting']],
   [/tile/i, ['tile', 'tiling']],
   [/paint/i, ['paint']],
