@@ -133,6 +133,7 @@ const DEFAULTS: Record<string, string> = {
   google_rating: '',
   google_review_count: '',
   google_reviews_url: '',
+  google_review_write_url: '',
   stats: '',
   warranty_title: '',
   warranty_text: '',

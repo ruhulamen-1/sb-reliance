@@ -103,12 +103,17 @@ export function Guarantee({ S }: { S: Settings }) {
 
 /** Button to the company's Google reviews. */
 export function ReviewsButton({ S }: { S: Settings }) {
-  if (!isUrl(S.google_reviews_url)) return null;
+  const read = isUrl(S.google_reviews_url);
+  const write = isUrl(S.google_review_write_url);
+  if (!read && !write) return null;
   return (
-    <p className="reviews-cta">
-      <a className="btn ghost" href={S.google_reviews_url} target="_blank" rel="noopener noreferrer">
-        {S.google_rating ? <>Read all reviews on Google (★ {S.google_rating})</> : 'Read our reviews on Google'}
-      </a>
+    <p className="reviews-cta row gap">
+      {read && (
+        <a className="btn ghost" href={S.google_reviews_url} target="_blank" rel="noopener noreferrer">
+          {S.google_rating ? <>Read all reviews on Google (★ {S.google_rating})</> : 'Read our reviews on Google'}
+        </a>
+      )}
+      {write && <a className="btn ghost" href={S.google_review_write_url} target="_blank" rel="noopener noreferrer">Write a Google review</a>}
     </p>
   );
 }

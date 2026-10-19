@@ -111,6 +111,20 @@ function Quotes() {
     load();
   }
   const edit = (id: number, patch: Row) => setRows(rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const [S, setS] = useState<Record<string, string>>({});
+  const [asked, setAsked] = useState<Record<number, boolean>>({});
+  useEffect(() => { api<Record<string, string>>('/admin/settings', { auth: true }).then(setS).catch(() => undefined); }, []);
+  const askedKey = (id: number) => `sbreview:${id}`;
+  const wasAsked = (id: number) => asked[id] || (() => { try { return !!localStorage.getItem(askedKey(id)); } catch { return false; } })();
+  /** WhatsApp message to the customer with the link to write a review (Google when set in Settings). */
+  function askReview(r: Row) {
+    const link = /^https?:\/\/\S+$/i.test((S.google_review_write_url || '').trim()) ? S.google_review_write_url.trim() : `${location.origin}/review`;
+    const first = String(r.name || '').trim().split(/\s+/)[0] || 'there';
+    const msg = `Hi ${first}, thank you for choosing ${S.brand || 'us'}. If you are happy with our work, could you spare a minute to leave us a review? ${link}\nThank you!`;
+    window.open(`https://wa.me/${String(r.whatsapp).replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+    try { localStorage.setItem(askedKey(r.id), '1'); } catch { /* ignore */ }
+    setAsked((a) => ({ ...a, [r.id]: true }));
+  }
 
   return (
     <>
@@ -134,6 +148,7 @@ function Quotes() {
             </div>
             <div className="qctl">
               <select value={r.status} onChange={(e) => save(r, { status: e.target.value })}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
+              {r.status === 'completed' && <button type="button" className="btn" onClick={() => askReview(r)}>{wasAsked(r.id) ? 'Review asked ✓ (ask again)' : 'Ask for a review on WhatsApp'}</button>}
               <input type="number" placeholder="Quoted amount" value={r.quoted_amount ?? ''} onChange={(e) => edit(r.id, { quoted_amount: e.target.value })} onBlur={() => save(r, {})} />
               <textarea rows={2} placeholder="Internal notes" value={r.notes ?? ''} onChange={(e) => edit(r.id, { notes: e.target.value })} onBlur={() => save(r, {})} />
               <button className="btn ghost" onClick={async () => { if (confirm('Delete this request?')) { try { await api(`/admin/quotes/${r.id}`, { method: 'DELETE', auth: true }); load(); } catch (x) { alert((x as Error).message); } } }}>Delete</button>
@@ -148,13 +163,15 @@ function Quotes() {
 type CrudField = { key: string; label: string; area?: boolean; num?: boolean; image?: boolean; required?: boolean; optional?: boolean; hint?: string; options?: [string, string][]; date?: boolean };
 // Testimonials: the /review link to send customers after a job
 function ReviewLink() {
-  const url = `${location.origin}/review`;
+  const [google, setGoogle] = useState('');
+  useEffect(() => { api<Record<string, string>>('/admin/settings', { auth: true }).then((s) => setGoogle(/^https?:\/\/\S+$/i.test((s.google_review_write_url || '').trim()) ? s.google_review_write_url.trim() : '')).catch(() => undefined); }, []);
+  const url = google || `${location.origin}/review`;
   const [copied, setCopied] = useState(false);
   const msg = `Hi, thank you for choosing us. Could you take a minute to tell us how the job went? ${url}`;
   return (
     <div className="card review-link">
       <strong>Ask a customer for a review</strong>
-      <p>Send this link after a job. New reviews arrive here as "Waiting for approval"; edit one and choose "Yes, show it" to put it on the website.</p>
+      <p>{google ? 'This is your Google review link, so new reviews go straight to Google. ' : 'Send this link after a job. New reviews arrive here as "Waiting for approval"; edit one and choose "Yes, show it" to put it on the website. '}Set the Google link in Settings to collect reviews on Google instead.</p>
       <code>{url}</code>
       <div className="row gap">
         <button type="button" className="btn" onClick={() => { navigator.clipboard?.writeText(msg).then(() => setCopied(true)).catch(() => undefined); }}>{copied ? 'Copied' : 'Copy message'}</button>
@@ -301,6 +318,7 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'open_hours', label: 'Opening hours (Singapore time, optional)', area: true, hint: 'One per line, e.g. Mon-Fri 09:00-18:00 and Sat 09:00-13:00. Shows a live "Open now" badge. Leave empty to hide it.' },
   { key: 'google_rating', label: 'Google rating (optional)', hint: 'Your real rating from Google Business Profile, e.g. 4.9. Shown under the hero and next to reviews. Empty hides it.' },
   { key: 'google_review_count', label: 'Number of Google reviews (optional)', hint: 'e.g. 37' },
+  { key: 'google_review_write_url', label: 'Link where customers WRITE a Google review (optional)', hint: 'In Google Business Profile: Get more reviews > Share review form. It looks like https://g.page/r/xxxx/review. Used by the "Ask for a review" button in Quotes and shown as "Write a Google review" on the website. Empty = the website\'s own review page.' },
   { key: 'google_reviews_url', label: 'Google reviews link (optional)', hint: 'The link to your Google Business Profile reviews (https://...). Adds a "Read all reviews on Google" button.' },
   { key: 'stats', label: 'Numbers to show (optional)', area: true, hint: 'One per line: Number | Label, e.g. 120+ | Projects completed. Only real figures. Empty hides the section.' },
   { key: 'warranty_title', label: 'Guarantee section title (optional)', hint: 'e.g. Our guarantee' },
