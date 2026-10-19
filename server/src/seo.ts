@@ -42,7 +42,7 @@ export interface SeoProject {
   image_url?: string | null;
   before_image_url?: string | null;
 }
-export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null; posts?: SeoPost[] }
+export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null; posts?: SeoPost[]; projects?: SeoProject[] }
 
 const lines = (v?: string | null) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 const clip = (v: string, max = 160) => {
@@ -431,6 +431,9 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
       + contact;
   } else if (path === '/blog') {
     main = `<h1>Blog</h1><ul>${(data.posts || []).map((p) => `<li><a href="/blog/${esc(encodeURIComponent(p.slug))}">${esc(p.title)}</a></li>`).join('')}</ul>`;
+  } else if (path === '/portfolio') {
+    const list = (data.projects || []).filter((p) => p.slug && projectIndexable(p)).map((p) => `<li><a href="/portfolio/${esc(encodeURIComponent(p.slug))}">${esc(projectHeading(p))}</a></li>`).join('');
+    main = `<h1>Portfolio</h1><p>Completed projects by ${esc(co)}.</p>${list ? `<ul>${list}</ul>` : ''}`;
   } else if (path === '/about') {
     main = `<h1>About ${esc(S.brand || co)}</h1>${lines(S.about_intro).map((p) => `<p>${esc(p)}</p>`).join('')}${svcList ? `<ul>${svcList}</ul>` : ''}`;
   } else if (path === '/contact') {

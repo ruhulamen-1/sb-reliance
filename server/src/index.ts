@@ -1206,7 +1206,11 @@ if (existsSync(clientDist)) {
       if (/^\/blog\/?$/.test(req.path)) {
         [allPosts] = await pool.query<RowDataPacket[]>("SELECT id, title, slug, excerpt, image_url, created_at FROM posts WHERE status = 'published' ORDER BY id DESC LIMIT 200");
       }
-      const data = { services: services as SeoService[], post, project: (project?.project as SeoProject) || null, posts: allPosts as SeoPost[] | undefined };
+      let projects: RowDataPacket[] | undefined;
+      if (/^\/portfolio\/?$/.test(req.path)) {
+        [projects] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, category, location, description, image_url FROM gallery ORDER BY id DESC LIMIT 200');
+      }
+      const data = { services: services as SeoService[], post, project: (project?.project as SeoProject) || null, posts: allPosts as SeoPost[] | undefined, projects: projects as SeoProject[] | undefined };
       // a project page gets its own data too, so it shows without a second request
       const { html, status } = renderHtml(template, req.path, S, data, baseUrl(req, S), project ? { ...home, project } : allPosts ? { ...home, allPosts } : home);
       res.status(status).type('html').setHeader('Cache-Control', 'no-cache').send(html);
