@@ -455,7 +455,20 @@ app.use(compression());
 // FORCE_HTTPS=true sends http:// visitors to https://. Opt-in, because a host that does not pass
 // X-Forwarded-Proto would otherwise redirect forever (most panels also have their own "Force HTTPS" switch).
 const forceHttps = /^(1|true|yes)$/i.test(env.FORCE_HTTPS || '');
+// the one address the site is shown at (SITE_URL, else Admin > Settings "Website address"); www and non-www
+// of that same domain redirect (301) to it, so Google does not see two copies of every page
+let siteAddress = '';
+async function loadSiteAddress() {
+  const v = (env.SITE_URL || (await getSettings()).site_url || '').trim().replace(/\/+$/, '');
+  siteAddress = /^https?:\/\/[^/]+$/i.test(v) ? v : '';
+}
+const noWww = (h: string) => h.toLowerCase().replace(/^www\./, '');
 app.use((req, res, next) => {
+  const host = (req.get('host') || '').toLowerCase();
+  if (siteAddress && req.method === 'GET' && !req.path.startsWith('/api')) {
+    const want = new URL(siteAddress);
+    if (host !== want.host && noWww(host) === noWww(want.host)) return res.redirect(301, `${want.origin}${req.originalUrl}`);
+  }
   if (forceHttps && !req.secure && req.method === 'GET' && !/^(localhost|127\.)/.test(req.hostname)) {
     return res.redirect(301, `https://${req.get('host')}${req.originalUrl}`);
   }
@@ -653,6 +666,7 @@ app.put('/api/admin/settings', auth, wrap(async (req, res) => {
     'INSERT INTO settings (id, data) VALUES (1, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
     [JSON.stringify(next)],
   );
+  await loadSiteAddress();
   res.json({ ok: true });
 }));
 
@@ -1342,6 +1356,7 @@ function listen(port: number, tries = 0) {
 
 initDb()
   .then(() => loadRedirects())
+  .then(() => loadSiteAddress())
   .then(() => listen(Number(env.PORT || 3000)))
   .catch((e) => {
     console.error('DB init failed:', e.message);
