@@ -357,6 +357,70 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'property_types', label: 'Property types in quote form', area: true, hint: 'One per line' },
 ];
 
+// Settings > Lead alerts on Telegram: token, chat ID (found automatically), what the message shows, test button
+function TelegramBox({ form, setForm }: { form: Record<string, string>; setForm: (f: Record<string, string>) => void }) {
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState('');
+  const [chats, setChats] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [show, setShow] = useState(false);
+  const set = (k: string, v: string) => setForm({ ...form, [k]: v });
+  async function findChat() {
+    setBusy('find'); setMsg(null); setChats([]);
+    try {
+      const { chats: found } = await api<{ chats: { id: string; name: string; type: string }[] }>('/admin/telegram/chat-id', { method: 'POST', auth: true, body: { token: form.telegram_bot_token || '' } });
+      if (!found.length) setMsg({ ok: false, text: 'No chat found yet. In Telegram open your bot, press Start and send it any message (or add it to your group and send a message there), then press this button again.' });
+      else if (found.length === 1) { set('telegram_chat_id', found[0].id); setMsg({ ok: true, text: `Found: ${found[0].name}. Press "Send test message", then "Save settings".` }); }
+      else setChats(found);
+    } catch (e) { setMsg({ ok: false, text: (e as Error).message }); } finally { setBusy(''); }
+  }
+  async function test() {
+    setBusy('test'); setMsg(null);
+    try {
+      await api('/admin/telegram/test', { method: 'POST', auth: true, body: { token: form.telegram_bot_token || '', chat_id: form.telegram_chat_id || '', detail: form.telegram_detail || 'full' } });
+      setMsg({ ok: true, text: 'Test message sent. Check Telegram, then press "Save settings".' });
+    } catch (e) { setMsg({ ok: false, text: (e as Error).message }); } finally { setBusy(''); }
+  }
+  const detail = form.telegram_detail === 'minimal' ? 'minimal' : 'full';
+  return (
+    <fieldset className="full tgbox">
+      <legend>Lead alerts on Telegram <small>(optional)</small></legend>
+      <p className="tg-intro">Get a Telegram message on your phone the moment someone sends a quote request on the website.</p>
+      <label>Bot token<small>From @BotFather in Telegram (step 1 below). Kept private: it is never shown on the website.</small>
+        <span className="row gap tg-token">
+          <input type={show ? 'text' : 'password'} autoComplete="off" value={form.telegram_bot_token ?? ''} onChange={(e) => set('telegram_bot_token', e.target.value.trim())} placeholder="1234567890:AA..." />
+          <button type="button" className="btn ghost" onClick={() => setShow(!show)}>{show ? 'Hide' : 'Show'}</button>
+        </span>
+      </label>
+      <label>Your chat ID<small>Open your bot in Telegram, press Start and send it any message, then press "Find my chat ID".</small>
+        <span className="row gap tg-token">
+          <input value={form.telegram_chat_id ?? ''} onChange={(e) => set('telegram_chat_id', e.target.value.trim())} placeholder="e.g. 582104477" />
+          <button type="button" className="btn ghost" disabled={busy === 'find'} onClick={findChat}>{busy === 'find' ? 'Looking…' : 'Find my chat ID'}</button>
+        </span>
+      </label>
+      {chats.length > 1 && (
+        <div className="tg-chats">Choose where the alerts go:
+          {chats.map((c) => <button key={c.id} type="button" className="btn ghost" onClick={() => { set('telegram_chat_id', c.id); setChats([]); setMsg({ ok: true, text: `Chosen: ${c.name}. Press "Send test message", then "Save settings".` }); }}>{c.name} <small>({c.type})</small></button>)}
+        </div>
+      )}
+      <div className="tg-detail" role="radiogroup" aria-label="What the message shows">
+        <span className="tg-label">What the message shows</span>
+        <label className="tg-radio"><input type="radio" name="tgdetail" checked={detail === 'full'} onChange={() => set('telegram_detail', 'full')} /> <span><b>Full details</b>: name, WhatsApp, service, address, message</span></label>
+        <label className="tg-radio"><input type="radio" name="tgdetail" checked={detail === 'minimal'} onChange={() => set('telegram_detail', 'minimal')} /> <span><b>Only "New quote request"</b>: no customer details in Telegram (open Admin to see them)</span></label>
+      </div>
+      <div className="row gap"><button type="button" className="btn ghost" disabled={busy === 'test'} onClick={test}>{busy === 'test' ? 'Sending…' : 'Send test message'}</button></div>
+      {msg && <p className={msg.ok ? 'ok' : 'err'}>{msg.text}</p>}
+      <details className="tg-steps"><summary>How to set it up (5 minutes)</summary>
+        <ol>
+          <li>In Telegram, open <b>@BotFather</b>, send <code>/newbot</code>, name it e.g. "SB Reliance Leads" and copy the token it gives you.</li>
+          <li>Paste the token above. Open your new bot in Telegram and press <b>Start</b>, then send it any message.</li>
+          <li>Press <b>Find my chat ID</b>, then <b>Send test message</b>, then <b>Save settings</b>.</li>
+          <li>For several people: create a Telegram group, add the bot, send a message in the group, then press Find my chat ID and choose the group.</li>
+        </ol>
+      </details>
+    </fieldset>
+  );
+}
+
 function Settings() {
   const [form, setForm] = useState<Record<string, string> | null>(null);
   const [base, setBase] = useState<Record<string, string> | null>(null);
@@ -399,6 +463,7 @@ function Settings() {
             : <input value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
         </label>
       ))}
+      <TelegramBox form={form} setForm={setForm} />
       <details className="deleted full">
         <summary>History of settings</summary>
         <VersionList listPath="/admin/settings/versions" restorePath={(v) => `/admin/settings/versions/${v}/restore`} onRestored={() => location.reload()} />

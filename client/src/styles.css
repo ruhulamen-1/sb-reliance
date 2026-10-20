@@ -820,3 +820,14 @@ html.lenis,html.lenis body{height:auto}
 .admin.wide .pay-table td:nth-child(2){min-width:90px}
 .admin.wide .pay-actions{flex-wrap:wrap;gap:4px}.admin.wide .pay-actions .btn{padding:4px 8px;font-size:.8rem}
 @media(min-width:1700px){.admin.wide .pay-table input,.admin.wide .pay-table input[type=number]{width:84px}.admin.wide .pay-table{font-size:.92rem}}
+
+/* Admin > Settings > Lead alerts on Telegram */
+.tgbox{border:1px solid var(--line);border-radius:10px;padding:16px 18px;background:#f7fbfd;display:grid;gap:12px}
+.tgbox legend{font-weight:800;padding:0 6px}.tgbox legend small{font-weight:400;color:var(--muted)}
+.tg-intro{margin:0;color:var(--muted)}
+.tg-token{flex-wrap:nowrap}.tg-token input{flex:1}.tg-token .btn{white-space:nowrap}
+.tg-detail{display:grid;gap:6px}.tg-label{font-weight:600}
+.tg-radio{display:flex;gap:8px;align-items:flex-start;font-weight:400}.tg-radio input{width:auto;margin-top:4px}
+.tg-chats{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tg-steps summary{cursor:pointer;font-weight:600}.tg-steps ol{margin:8px 0 0;padding-left:20px}.tg-steps li{margin:4px 0}
+.form .tgbox label.tg-radio{display:flex;flex-direction:row;align-items:flex-start;gap:8px;grid-column:auto}.form .tgbox label.tg-radio input{width:auto;flex:none;margin-top:5px}

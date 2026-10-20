@@ -73,6 +73,15 @@ Web App এর **Environment Variables** এ এগুলো দিন:
 - "Payslip" থেকে প্রিন্ট বা PDF, "Download Excel (CSV)" থেকে পুরো মাস।
 - CPF: Singaporean ও PR (৩য় বছর থেকে) এর জন্য 1 Jan 2026 এর CPF Board rate দিয়ে নিজে হিসাব হয়। PR ১ম/২য় বছরের CPF হাতে লিখতে হয়। Bonus থাকলে CPF Board calculator দিয়ে মিলিয়ে নিন।
 
+## নতুন quote এলে Telegram-এ বার্তা (Admin → Settings → Lead alerts on Telegram)
+
+1. Telegram-এ **@BotFather** খুলে `/newbot` পাঠান, নাম দিন (যেমন "SB Reliance Leads"), যে token দেয় সেটা কপি করুন।
+2. Admin → Settings → **Lead alerts on Telegram**-এ token বসান। নিজের নতুন bot খুলে **Start** চাপুন আর যেকোনো একটা বার্তা পাঠান।
+3. **Find my chat ID** → **Send test message** → **Save settings**।
+4. কয়েকজন মিলে পেতে: একটা Telegram group বানিয়ে bot-কে যোগ করুন, group-এ একটা বার্তা দিন, তারপর Find my chat ID চেপে group বেছে নিন।
+
+Token আর chat ID website-এর কোনো public পাতায় যায় না। "Only New quote request" বেছে নিলে customer-এর নাম-নম্বর Telegram-এ যায় না।
+
 ## সমস্যা হলে
 - Deploy log এ `Refusing to start in production` দেখালে `JWT_SECRET`/`ADMIN_PASSWORD` ঠিক করুন।
 - `DB init failed` দেখালে `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` আবার মিলিয়ে দেখুন।

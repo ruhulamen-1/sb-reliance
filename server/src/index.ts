@@ -134,6 +134,10 @@ const DEFAULTS: Record<string, string> = {
   google_review_count: '',
   google_reviews_url: '',
   google_review_write_url: '',
+  // lead alerts on Telegram (kept out of every public response)
+  telegram_bot_token: '',
+  telegram_chat_id: '',
+  telegram_detail: 'full',
   stats: '',
   warranty_title: '',
   warranty_text: '',
@@ -155,6 +159,13 @@ async function getSettings(): Promise<Record<string, string>> {
     }
   }
   return { ...DEFAULTS, ...saved };
+}
+// settings that must never reach visitors (they are only for Admin and the server)
+const PRIVATE_SETTINGS = ['notify_email', 'telegram_bot_token', 'telegram_chat_id', 'telegram_detail'];
+async function getPublicSettings(): Promise<Record<string, string>> {
+  const S = await getSettings();
+  for (const k of PRIVATE_SETTINGS) delete S[k];
+  return S;
 }
 
 const wrap =
@@ -377,6 +388,57 @@ async function notifyQuote(q: Record<string, unknown>) {
   await mailer.sendMail({ from: env.SMTP_FROM || env.SMTP_USER, to, subject: `New quote request: ${q.service_type} – ${q.name}`, text });
 }
 
+// ---------- lead alerts on Telegram ----------
+const TELEGRAM_API = (env.TELEGRAM_API || 'https://api.telegram.org').replace(/\/+$/, '');
+const tgOk = (token: string) => /^\d+:[\w-]{20,}$/.test(token);
+const tgEsc = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+type TgButton = { text: string; url: string };
+async function tgCall(token: string, method: string, body?: object) {
+  const r = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
+    method: body ? 'POST' : 'GET',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(10_000),
+  });
+  const j = (await r.json().catch(() => ({}))) as { ok?: boolean; description?: string; result?: unknown };
+  if (!j.ok) throw new Error(j.description || `Telegram answered ${r.status}`);
+  return j.result;
+}
+async function tgSend(token: string, chatId: string, text: string, buttons: TgButton[]) {
+  const msg = { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true };
+  try {
+    await tgCall(token, 'sendMessage', buttons.length ? { ...msg, reply_markup: { inline_keyboard: [buttons] } } : msg);
+  } catch (e) {
+    // Telegram refuses some button links (e.g. a localhost address); the message itself matters more
+    if (!buttons.length || !/button|url/i.test((e as Error).message)) throw e;
+    await tgCall(token, 'sendMessage', msg);
+  }
+}
+/** The Telegram message for a quote request: everything, or only that one arrived (setting "telegram_detail"). */
+function quoteAlert(q: Record<string, unknown>, base: string, detail: string, test = false) {
+  const admin: TgButton = { text: '📋 Open in Admin', url: `${base}/admin#quotes` };
+  const wa = String(q.whatsapp ?? '').replace(/\D/g, '');
+  const head = `${test ? '🧪 <b>Test</b> · ' : ''}🔔 <b>New quote request</b>`;
+  if (detail === 'minimal') return { text: `${head}\nOpen Admin to see the details.`, buttons: [admin] };
+  const addons = Array.isArray(q.addons) && q.addons.length ? (q.addons as string[]).join(', ') : '';
+  const line = (label: string, v: unknown) => (String(v ?? '').trim() && String(v).trim() !== '-' ? `${label}: ${tgEsc(v)}` : '');
+  const text = [
+    head,
+    line('Name', q.name), line('WhatsApp', q.whatsapp), line('Email', q.email), line('Service', q.service_type),
+    line('Other services', addons), line('Property', q.house_type), line('Address', q.address),
+    line('Preferred date', q.preferred_date), q.message ? `Message: “${tgEsc(q.message)}”` : '',
+  ].filter(Boolean).join('\n');
+  return { text, buttons: wa ? [{ text: '💬 Reply on WhatsApp', url: `https://wa.me/${wa}` }, admin] : [admin] };
+}
+async function notifyTelegram(q: Record<string, unknown>, base: string) {
+  const S = await getSettings();
+  const token = (S.telegram_bot_token || '').trim();
+  const chat = (S.telegram_chat_id || '').trim();
+  if (!tgOk(token) || !chat) return;
+  const { text, buttons } = quoteAlert(q, base, S.telegram_detail);
+  await tgSend(token, chat, text, buttons);
+}
+
 async function notifyReview(name: string, rating: number, reviewText: string) {
   if (!mailer) return;
   const S = await getSettings();
@@ -440,7 +502,7 @@ async function homeData() {
   const [testimonials] = await pool.query<RowDataPacket[]>("SELECT id, name, location, text, rating, source, DATE_FORMAT(COALESCE(review_date, created_at), '%Y-%m-%d') AS date FROM testimonials WHERE status = 'approved' ORDER BY COALESCE(review_date, created_at) DESC, id DESC LIMIT 12");
   const [posts] = await pool.query<RowDataPacket[]>("SELECT id, title, slug, excerpt, image_url, created_at FROM posts WHERE status = 'published' ORDER BY id DESC LIMIT 5");
   const [gallery] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, image_url FROM gallery ORDER BY id DESC LIMIT 12');
-  return { services, testimonials, posts, gallery, settings: await getSettings() };
+  return { services, testimonials, posts, gallery, settings: await getPublicSettings() };
 }
 
 app.get('/api/public/home', wrap(async (_req, res) => {
@@ -473,7 +535,7 @@ app.get('/api/public/services/:slug', wrap(async (req, res) => {
   const [all] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, category, image_url FROM gallery ORDER BY id DESC LIMIT 100');
   const mine = all.filter((g) => projectService(g, rows as SeoService[])?.id === service.id);
   const gallery = [...mine, ...all.filter((g) => !mine.includes(g))].slice(0, 8);
-  res.json({ service, services: rows, gallery, settings: await getSettings() });
+  res.json({ service, services: rows, gallery, settings: await getPublicSettings() });
 }));
 
 // every post, newest first (the home page only shows the latest five)
@@ -486,7 +548,7 @@ app.get('/api/public/posts/:slug', wrap(async (req, res) => {
   const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM posts WHERE slug = ? AND status = 'published' LIMIT 1", [req.params.slug]);
   if (!rows[0]) return res.status(404).json({ error: 'Post not found' });
   const [services] = await pool.query<RowDataPacket[]>('SELECT id, title, slug FROM services ORDER BY sort_order, id');
-  res.json({ post: rows[0], services, settings: await getSettings() });
+  res.json({ post: rows[0], services, settings: await getPublicSettings() });
 }));
 
 app.post('/api/quotes', wrap(async (req, res) => {
@@ -504,6 +566,41 @@ app.post('/api/quotes', wrap(async (req, res) => {
   );
   res.status(201).json({ id: r.insertId });
   notifyQuote(b).catch((e) => console.error('Quote email failed:', (e as Error).message));
+  getSettings().then((S) => notifyTelegram(b, baseUrl(req, S))).catch((e) => console.error('Quote Telegram alert failed:', (e as Error).message));
+}));
+
+// Admin > Settings > Lead alerts on Telegram: find the chat ID and send a test message
+app.post('/api/admin/telegram/chat-id', auth, wrap(async (req, res) => {
+  const token = String(req.body?.token || '').trim();
+  if (!tgOk(token)) return res.status(400).json({ error: 'Paste the bot token from @BotFather first.' });
+  try {
+    const updates = (await tgCall(token, 'getUpdates')) as { message?: { chat?: { id: number; type: string; title?: string; first_name?: string; last_name?: string; username?: string } }; my_chat_member?: { chat?: { id: number; type: string; title?: string } } }[];
+    const seen = new Map<string, { id: string; name: string; type: string }>();
+    for (const u of updates.reverse()) {
+      const c = u.message?.chat || u.my_chat_member?.chat;
+      if (!c) continue;
+      const name = 'title' in c && c.title ? c.title : [(c as { first_name?: string }).first_name, (c as { last_name?: string }).last_name].filter(Boolean).join(' ') || (c as { username?: string }).username || String(c.id);
+      if (!seen.has(String(c.id))) seen.set(String(c.id), { id: String(c.id), name, type: c.type });
+    }
+    res.json({ chats: [...seen.values()] });
+  } catch (e) {
+    res.status(400).json({ error: `Telegram: ${(e as Error).message}` });
+  }
+}));
+app.post('/api/admin/telegram/test', auth, wrap(async (req, res) => {
+  const S = await getSettings();
+  const token = String(req.body?.token ?? S.telegram_bot_token ?? '').trim();
+  const chat = String(req.body?.chat_id ?? S.telegram_chat_id ?? '').trim();
+  if (!tgOk(token)) return res.status(400).json({ error: 'Paste the bot token from @BotFather first.' });
+  if (!chat) return res.status(400).json({ error: 'Fill in your chat ID (press "Find my chat ID").' });
+  const sample = { name: 'Sample Customer', whatsapp: S.whatsapp || '6500000000', service_type: 'Aircon Ducting', house_type: 'Condo', address: 'Bukit Timah', message: 'This is a test message from your website.' };
+  const { text, buttons } = quoteAlert(sample, baseUrl(req, S), String(req.body?.detail || S.telegram_detail), true);
+  try {
+    await tgSend(token, chat, text, buttons);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: `Telegram: ${(e as Error).message}` });
+  }
 }));
 
 // Customer review from /review: saved as pending, shown on the site only after approval in Admin
