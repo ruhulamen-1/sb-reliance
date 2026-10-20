@@ -805,3 +805,18 @@ html.lenis,html.lenis body{height:auto}
   .topbar,.admin-bar{background:var(--card);-webkit-backdrop-filter:none;backdrop-filter:none}
   .wachat{background:#efeae2;-webkit-backdrop-filter:none;backdrop-filter:none}
 }
+
+/* Payroll uses the whole screen width: wide tables (payroll run, attendance sheet) fit without side margins */
+.admin.wide .admin-inner{max-width:none}
+.admin.wide .pay-table{min-width:min(1180px,100%)}
+@media(min-width:1500px){.admin.wide .pay-table{font-size:.95rem}.admin.wide .pay-table input{width:104px}.admin.wide .pay-table input[type=number]{width:84px}}
+
+/* Payroll table: compact so all columns fit a laptop screen (about 1366px) without side scrolling */
+.admin.wide .pay-table{font-size:.86rem;table-layout:auto}
+.admin.wide .pay-table th,.admin.wide .pay-table td{padding:6px 5px}
+.admin.wide .pay-table th{white-space:normal;line-height:1.15;vertical-align:bottom}
+.admin.wide .pay-table input,.admin.wide .pay-table input[type=number]{width:64px;min-width:0;padding:4px 5px}
+.admin.wide .pay-table td:first-child{min-width:130px}
+.admin.wide .pay-table td:nth-child(2){min-width:90px}
+.admin.wide .pay-actions{flex-wrap:wrap;gap:4px}.admin.wide .pay-actions .btn{padding:4px 8px;font-size:.8rem}
+@media(min-width:1700px){.admin.wide .pay-table input,.admin.wide .pay-table input[type=number]{width:84px}.admin.wide .pay-table{font-size:.92rem}}

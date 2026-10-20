@@ -466,7 +466,7 @@ export default function Admin() {
   useSmoothScroll(authed);
   if (!authed) return <div className="wrap narrow"><Login onDone={() => setAuthed(true)} /></div>;
   return (
-    <div className="admin">
+    <div className={tab === 'Payroll' ? 'admin wide' : 'admin'}>
       <header className="admin-bar">
         <div className="admin-inner">
           <div className="admin-top">
