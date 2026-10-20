@@ -21,7 +21,7 @@ export default function useReveal() {
           el.style.transitionDelay = '';
         }, 600 + delay);
       });
-    }, { threshold: 0.12 });
+    }, { threshold: 0, rootMargin: '0px 0px -40px 0px' }); // any visible part counts: very tall forms (Admin > Settings) never reach a percentage of the screen
 
     const scan = () => {
       document.querySelectorAll<HTMLElement>(SELECTOR).forEach((el) => {
