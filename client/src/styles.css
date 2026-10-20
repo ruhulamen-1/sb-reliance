@@ -893,3 +893,24 @@ html.lenis,html.lenis body{height:auto}
 @media(max-width:900px){.bl-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.bl-feature{grid-template-columns:1fr}.bl-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.bl-img img,.bl-card,.bl-more span{transition:none}.bl-card:hover{transform:none}}
+
+/* ---------- blog post: full width (hero, text with a side column, more articles) ---------- */
+.pf-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:center;margin:4px 0 clamp(32px,5vw,56px)}
+.pf-hero.noimg{grid-template-columns:1fr}
+.pf-hero .h1m{margin:0 0 12px;line-height:1.12}
+.pf-hero .lead{max-width:60ch;margin:0}
+.pf-img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:16px;box-shadow:0 14px 34px rgba(16,52,58,.14)}
+.pf-body{display:grid;grid-template-columns:minmax(0,1fr) clamp(280px,25vw,400px);gap:clamp(28px,4vw,64px);align-items:start}
+.pf-prose{max-width:none;font-size:clamp(1.02rem,.92rem + .25vw,1.14rem);line-height:1.7}
+.pf-cta{margin-top:28px}
+.pf-side{position:sticky;top:96px;display:grid;gap:18px}
+.pf-box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+.pf-box h2{font-size:1.15rem;margin:0 0 8px}
+.pf-box p{color:var(--muted);margin:0 0 14px}
+.pf-quote{display:grid;gap:10px}.pf-quote p{margin:0 0 4px}.pf-quote .btn{text-align:center}
+.pf-links{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.pf-links a{display:block;padding:7px 0;font-weight:600;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+.pf-links li:last-child a{border-bottom:0}
+.pf-links a:hover{color:#7a5500}
+.pf-more{margin-top:clamp(44px,6vw,72px)}.pf-more h2{font-size:clamp(1.4rem,2.4vw,1.9rem);margin:0 0 18px}
+@media(max-width:900px){.pf-hero,.pf-body{grid-template-columns:1fr}.pf-side{position:static}.pf-side .pf-box:not(.pf-quote){display:none}}
