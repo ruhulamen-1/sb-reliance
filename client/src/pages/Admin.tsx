@@ -367,8 +367,8 @@ function TelegramBox({ form, setForm }: { form: Record<string, string>; setForm:
   async function findChat() {
     setBusy('find'); setMsg(null); setChats([]);
     try {
-      const { chats: found } = await api<{ chats: { id: string; name: string; type: string }[] }>('/admin/telegram/chat-id', { method: 'POST', auth: true, body: { token: form.telegram_bot_token || '' } });
-      if (!found.length) setMsg({ ok: false, text: 'No chat found yet. In Telegram open your bot, press Start and send it any message (or add it to your group and send a message there), then press this button again.' });
+      const { chats: found, bot } = await api<{ chats: { id: string; name: string; type: string }[]; bot: string }>('/admin/telegram/chat-id', { method: 'POST', auth: true, body: { token: form.telegram_bot_token || '' } });
+      if (!found.length) setMsg({ ok: false, text: `No chat found yet. This token belongs to ${bot ? `@${bot}` : 'your bot'}: open ${bot ? `t.me/${bot}` : 'that bot'} in Telegram, press Start and send it a message (for example "hi"), then press this button again within a few minutes. Or type your chat ID yourself: send any message to @userinfobot in Telegram and copy the "Id" number it replies with.` });
       else if (found.length === 1) { set('telegram_chat_id', found[0].id); setMsg({ ok: true, text: `Found: ${found[0].name}. Press "Send test message", then "Save settings".` }); }
       else setChats(found);
     } catch (e) { setMsg({ ok: false, text: (e as Error).message }); } finally { setBusy(''); }

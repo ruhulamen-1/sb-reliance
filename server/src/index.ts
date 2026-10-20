@@ -574,15 +574,18 @@ app.post('/api/admin/telegram/chat-id', auth, wrap(async (req, res) => {
   const token = String(req.body?.token || '').trim();
   if (!tgOk(token)) return res.status(400).json({ error: 'Paste the bot token from @BotFather first.' });
   try {
-    const updates = (await tgCall(token, 'getUpdates')) as { message?: { chat?: { id: number; type: string; title?: string; first_name?: string; last_name?: string; username?: string } }; my_chat_member?: { chat?: { id: number; type: string; title?: string } } }[];
+    // which bot this token belongs to, so Admin can link to the right one when no chat is found yet
+    const me = (await tgCall(token, 'getMe')) as { username?: string; first_name?: string };
+    type TgChat = { id: number; type: string; title?: string; first_name?: string; last_name?: string; username?: string };
+    const updates = (await tgCall(token, 'getUpdates')) as { message?: { chat?: TgChat }; edited_message?: { chat?: TgChat }; channel_post?: { chat?: TgChat }; my_chat_member?: { chat?: TgChat } }[];
     const seen = new Map<string, { id: string; name: string; type: string }>();
     for (const u of updates.reverse()) {
-      const c = u.message?.chat || u.my_chat_member?.chat;
+      const c = u.message?.chat || u.edited_message?.chat || u.channel_post?.chat || u.my_chat_member?.chat;
       if (!c) continue;
       const name = 'title' in c && c.title ? c.title : [(c as { first_name?: string }).first_name, (c as { last_name?: string }).last_name].filter(Boolean).join(' ') || (c as { username?: string }).username || String(c.id);
       if (!seen.has(String(c.id))) seen.set(String(c.id), { id: String(c.id), name, type: c.type });
     }
-    res.json({ chats: [...seen.values()] });
+    res.json({ chats: [...seen.values()], bot: me.username || '', botName: me.first_name || '' });
   } catch (e) {
     res.status(400).json({ error: `Telegram: ${(e as Error).message}` });
   }
