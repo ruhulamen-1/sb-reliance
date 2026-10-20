@@ -863,3 +863,33 @@ html.lenis,html.lenis body{height:auto}
 .team-ways a{font-weight:700}
 @media(max-width:800px){.team-contact{grid-template-columns:1fr}.tcard{width:62vw;--d:0!important;transform:none}.tcard.on{transform:none}.tcard img{filter:none}}
 @media(prefers-reduced-motion:reduce){.tcard,.tcard img{transition:none}}
+
+/* ---------- Blog page: latest post large, the rest as cards ---------- */
+.bl-head{margin-bottom:28px}.bl-head h1{font-size:clamp(2rem,4vw,2.8rem);margin-bottom:6px}
+.bl-tags{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;font-size:.8rem}
+.bl-tag{padding:3px 10px;border-radius:6px;font-weight:600}
+.bl-tag.t1{background:#fdf1d3;color:#7a5500}.bl-tag.t2{background:#e6eef7;color:#2c4f73}
+.bl-tags time{color:var(--muted);margin-left:4px}
+.bl-img{display:block;overflow:hidden;border-radius:14px;background:#e9eeed}
+.bl-img img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+.bl-noimg{display:block;width:100%;height:100%;background:linear-gradient(135deg,#eef3f1,#dfe7e5)}
+.bl-feature:hover .bl-img img,.bl-card:hover .bl-img img{transform:scale(1.04)}
+.bl-more{display:inline-flex;align-items:center;gap:6px;font-weight:700;text-decoration:none;border-bottom:2px solid var(--sun);padding-bottom:2px}
+.bl-more span{transition:transform .2s}.bl-more:hover span{transform:translate(2px,-2px)}
+.bl-feature{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(22px,4vw,48px);align-items:center;margin-bottom:clamp(36px,6vw,64px)}
+.bl-feature .bl-img{aspect-ratio:16/10;box-shadow:0 14px 34px rgba(16,52,58,.14)}
+.bl-feature h2{font-size:clamp(1.6rem,3vw,2.3rem);margin:0 0 12px;line-height:1.15}
+.bl-feature h2 a,.bl-card h3 a{color:var(--ink);text-decoration:none}
+.bl-feature h2 a:hover,.bl-card h3 a:hover{text-decoration:underline;text-decoration-color:var(--sun);text-underline-offset:4px}
+.bl-feature p{color:var(--muted);font-size:1.05rem;margin:0 0 16px}
+.bl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.bl-card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:box-shadow .25s,transform .25s}
+.bl-card:hover{box-shadow:0 12px 28px rgba(16,52,58,.12);transform:translateY(-3px)}
+.bl-card .bl-img{aspect-ratio:16/10;border-radius:0}
+.bl-card .bl-body{padding:16px 18px 18px;display:flex;flex-direction:column;flex:1}
+.bl-card h3{font-size:1.15rem;line-height:1.25;margin:0 0 8px}
+.bl-card p{color:var(--muted);margin:0 0 14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.bl-card .bl-more{margin-top:auto;align-self:flex-start}
+@media(max-width:900px){.bl-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.bl-feature{grid-template-columns:1fr}.bl-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.bl-img img,.bl-card,.bl-more span{transition:none}.bl-card:hover{transform:none}}
