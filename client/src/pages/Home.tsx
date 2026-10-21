@@ -8,7 +8,7 @@ import useSeo from '../components/useSeo';
 import { api, initialHome } from '../api';
 import { faqPairs, serviceHeading } from '../components/content';
 import { PriceCards } from '../components/PriceGuide';
-import { Guarantee, Stats, TrustBar } from '../components/Trust';
+import { Guarantee, HeroStats, TrustBar } from '../components/Trust';
 import GoogleReviews, { Review } from '../components/GoogleReviews';
 import { HIGH, photo, SIZES } from '../img';
 
@@ -20,6 +20,21 @@ interface HomeData { services: Service[]; testimonials: Review[]; posts: Post[];
 
 const CHIPS = ['#7FA6D6', '#9CC5B8', '#F2D16B', '#E8A598', '#C9C3E6', '#F4EFE6', '#A7D3C4', '#F0B88A'];
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
+
+/** Words between * in an admin-written headline are shown in gold: "Your *aircon* team". */
+function Gold({ text }: { text?: string }) {
+  return <>{(text || '').split(/\*([^*]+)\*/).map((part, i) => (i % 2 ? <em key={i} className="gold">{part}</em> : part))}</>;
+}
+
+// an icon for each project step, picked from the words in its title
+const STEP_ICONS: [RegExp, string][] = [
+  [/call|contact|whatsapp|request|enquir|book/i, 'M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z'],
+  [/visit|inspect|survey|check|assess|measure/i, 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4'],
+  [/quot|price|plan|proposal|agree/i, 'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6'],
+  [/work|install|build|fix|repair|carry/i, 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z'],
+  [/hand|finish|clean|done|complete|sign/i, 'M20 6 9 17l-5-5'],
+];
+const stepIcon = (t: string) => STEP_ICONS.find(([re]) => re.test(t))?.[1] || 'M20 6 9 17l-5-5';
 
 export default function Home() {
   const full = (d: Partial<HomeData>): HomeData => ({ services: d.services ?? [], testimonials: d.testimonials ?? [], posts: d.posts ?? [], gallery: d.gallery ?? [], settings: d.settings ?? {} });
@@ -100,16 +115,27 @@ export default function Home() {
           ))}
         </svg>
         <div className="wrap hero-grid">
-          <div>
-            <h1>{headlines[cur] || S.hero_title}</h1>
+          <div className="hero-copy">
+            {S.hero_badge && <p className="hero-badge">{S.hero_badge}</p>}
+            <h1><Gold text={headlines[cur] || S.hero_title} /></h1>
             <p className="lead">{S.hero_lead}</p>
             <div className="row gap">
-              <Link className="btn" to="/contact">Request a quote</Link>
+              <Link className="btn" to="/contact">Request a quote <span aria-hidden="true">↗</span></Link>
               <a className="btn ghost" href={wa}>Chat on WhatsApp</a>
             </div>
             <OpenStatus hours={S.open_hours} />
+            <HeroStats S={S} />
           </div>
-          {slides.length > 0 ? (
+          <div className={`hero-visual${S.hero_cutout ? ' cutout' : slides.length ? ' photos' : ''}`}>
+          {(S.hero_cutout || slides.length > 0) && (
+            <svg className="hero-deco" aria-hidden="true" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" /><circle cx="50" cy="50" r="28" /></svg>
+          )}
+          {S.hero_cutout ? (
+            <div className="hero-person">
+              <span className="hero-blob" aria-hidden="true" />
+              <img {...photo(S.hero_cutout, SIZES.hero)} alt={S.company_name || ''} {...HIGH} />
+            </div>
+          ) : slides.length > 0 ? (
             <div className="heroslides" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
               {slides.slice(0, ready ? slides.length : 1).map((src, i) => (
                 <img key={src} className={i === cur % slides.length ? 'heroimg on' : 'heroimg'} {...photo(src, SIZES.hero)} alt={S.company_name || ''}
@@ -132,6 +158,7 @@ export default function Home() {
             ))}
           </div>
           )}
+          </div>
         </div>
       </section>
 
@@ -183,24 +210,30 @@ export default function Home() {
         </section>
       )}
 
-      <Stats S={S} />
-
       <PriceCards services={data.services} />
 
+      {steps.length > 0 && (
+        <section id="how" className="wrap block how" aria-labelledby="how-title">
+          <h2 id="how-title"><Gold text={S.process_title} /></h2>
+          <ol className="how-steps">
+            {steps.map(([t, d], i) => (
+              <li key={t}>
+                <span className="how-ic" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d={stepIcon(t)} /></svg>
+                  <b>{i + 1}</b>
+                </span>
+                <strong>{t}</strong>
+                {d && <p>{d}</p>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
       <section id="included" className="band">
-        <div className="wrap two">
-          <div>
-            <h2>{S.why_title}</h2>
-            <ul className="ticks">{lines(S.why_list).map((t) => <li key={t}>{t}</li>)}</ul>
-          </div>
-          <div>
-            <h2>{S.process_title}</h2>
-            <ol className="step-cards">
-              {steps.map(([t, d], i) => (
-                <li key={t}><span className="step-no" aria-hidden="true">{i + 1}</span><strong>{t}</strong>{d && <p>{d}</p>}</li>
-              ))}
-            </ol>
-          </div>
+        <div className="wrap">
+          <h2>{S.why_title}</h2>
+          <ul className="ticks ticks-2">{lines(S.why_list).map((t) => <li key={t}>{t}</li>)}</ul>
         </div>
       </section>
 

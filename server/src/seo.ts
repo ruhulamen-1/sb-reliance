@@ -425,7 +425,7 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
   } else if (blogPath(path) && data.post) {
     main = `<article><h1>${esc(data.post.title)}</h1><p>${esc(data.post.excerpt || '')}</p>${textHtml(data.post.content)}</article>${contact}`;
   } else if (path === '/' || path in HOME_ALIASES) {
-    main = `<h1>${esc(S.hero_title || co)}</h1><p>${esc(S.hero_lead || '')}</p>`
+    main = `<h1>${esc((S.hero_title || co).replace(/\*/g, ''))}</h1><p>${esc(S.hero_lead || '')}</p>`
       + (svcList ? `<h2>${esc(S.services_title || 'Services')}</h2><ul>${svcList}</ul>` : '')
       + (faqPairs(S.home_faq).length ? `<h2>${esc(S.home_faq_title || 'Common questions')}</h2>${faqPairs(S.home_faq).map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}` : '')
       + contact;

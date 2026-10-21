@@ -70,10 +70,23 @@ export function CountUp({ value }: { value: string }) {
   return <span ref={ref}>{value}</span>;
 }
 
+export const statPairs = (S: Settings) => lines(S.stats)
+  .map((l) => { const [n, ...t] = l.split('|'); return [n.trim(), t.join('|').trim()]; })
+  .filter(([n, t]) => n && t);
+
+/** The same numbers, small, inside the home page hero. */
+export function HeroStats({ S }: { S: Settings }) {
+  const stats = statPairs(S).slice(0, 3);
+  if (!stats.length) return null;
+  return (
+    <dl className="hero-stats">
+      {stats.map(([n, t]) => <div key={t}><dt>{t}</dt><dd><CountUp value={n} /></dd></div>)}
+    </dl>
+  );
+}
+
 export function Stats({ S }: { S: Settings }) {
-  const stats = lines(S.stats)
-    .map((l) => { const [n, ...t] = l.split('|'); return [n.trim(), t.join('|').trim()]; })
-    .filter(([n, t]) => n && t);
+  const stats = statPairs(S);
   if (!stats.length) return null;
   return (
     <section className="wrap block stats-band" aria-label="In numbers">
