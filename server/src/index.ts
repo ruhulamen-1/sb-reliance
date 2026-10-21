@@ -105,6 +105,7 @@ const DEFAULTS: Record<string, string> = {
   page_bg: '',
   hero_badge: '',
   hero_media: '',
+  hero_3d: 'yes',
   hero_title: 'Air-con, electrical, CCTV and building works from one contractor.',
   hero_lead:
     'SB Reliance Pte Ltd specialises in ACMV and air-conditioning installation, electrical, CCTV, ceiling partition, painting, tiles and general building works for homes, offices and commercial spaces across Singapore.',
