@@ -1084,3 +1084,14 @@ button.cp-row{width:100%;font:inherit;text-align:left;cursor:pointer}
 .hero.has-bg .fx-aurora{opacity:.32}.hero.has-bg .fx-aurora.a2{opacity:.24}.hero.has-bg .fx-guide{stroke:#fff;opacity:.35}
 @media(max-width:800px){.fx-aurora{filter:blur(48px)}.fx-aurora.a1{width:80vw;height:80vw;top:-20%}.fx-aurora.a2{width:70vw;height:70vw}.fx-aurora.a3{display:none}}
 @media(prefers-reduced-motion:reduce){.fx-aurora,.fx-streak{animation:none}.fx-streak{opacity:0}.fx-glow{display:none}}
+/* blueprint grid: fine and main lines like a drawing sheet, strongest on the right, it slides a little as the page scrolls */
+.fx-grid{position:absolute;inset:-80px 0 -80px 0;background-image:linear-gradient(rgba(16,52,58,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(16,52,58,.09) 1px,transparent 1px),linear-gradient(rgba(16,52,58,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(16,52,58,.045) 1px,transparent 1px);background-size:120px 120px,120px 120px,24px 24px,24px 24px;background-position:-1px -1px;-webkit-mask-image:radial-gradient(ellipse 70% 90% at 78% 45%,#000 0%,rgba(0,0,0,.55) 45%,transparent 80%);mask-image:radial-gradient(ellipse 70% 90% at 78% 45%,#000 0%,rgba(0,0,0,.55) 45%,transparent 80%)}
+.hero.has-bg .fx-grid{background-image:linear-gradient(rgba(255,255,255,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.22) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px)}
+@media(max-width:800px){.fx-grid{-webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.5),transparent 70%);mask-image:linear-gradient(180deg,rgba(0,0,0,.5),transparent 70%)}}
+@supports (animation-timeline: scroll()){
+  @media(prefers-reduced-motion:no-preference){
+    @keyframes fx-grid-slide{from{transform:translateY(0)}to{transform:translateY(70px)}}
+    .fx-grid{animation:fx-grid-slide linear both;animation-timeline:scroll(root);animation-range:0 700px}
+  }
+}
+.hero.has-bg .fx-glow{mix-blend-mode:screen;background:radial-gradient(circle,rgba(255,214,102,.38) 0%,rgba(255,214,102,.12) 34%,rgba(255,214,102,0) 64%)}

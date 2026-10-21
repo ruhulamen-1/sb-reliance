@@ -8,7 +8,7 @@ const LINES = [
   'M-40 330 C260 280 500 380 760 320 S1080 270 1240 320',
 ];
 
-/** Moving background for the home page hero: drifting gold and green light, air streams, and a glow that follows the mouse. */
+/** Moving background for the home page hero: a faint blueprint grid, drifting gold and green light, air streams, and a glow that follows the mouse. */
 export default function HeroFx() {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -44,6 +44,7 @@ export default function HeroFx() {
 
   return (
     <div ref={ref} className="hero-fx" aria-hidden="true">
+      <span className="fx-grid" />
       <span className="fx-aurora a1" />
       <span className="fx-aurora a2" />
       <span className="fx-aurora a3" />
