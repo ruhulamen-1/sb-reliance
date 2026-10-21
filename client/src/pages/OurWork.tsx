@@ -72,13 +72,12 @@ export default function OurWork() {
           {shown.map((p, i) => (
             <article key={p.id} className={i % 2 ? 'ow-row flip' : 'ow-row'}>
               <Link className="ow-media" to={`/portfolio/${p.slug}`} tabIndex={-1} aria-hidden="true">
-                <img {...photo(p.image_url, SIZES.wide)} alt="" loading={i < 2 ? 'eager' : 'lazy'} />
+                <span className="ow-pic"><img {...photo(p.image_url, SIZES.card)} alt="" loading={i < 2 ? 'eager' : 'lazy'} /></span>
                 {p.before_image_url && (
                   <span className="ow-before"><img src={p.before_image_url} alt="" loading="lazy" /><b>Before</b></span>
                 )}
               </Link>
               <div className="ow-body">
-                <span className="ow-no">{String(i + 1).padStart(2, '0')}</span>
                 <h3><Link to={`/portfolio/${p.slug}`}>{projectHeading(p)}</Link></h3>
                 {p.description && <p className="ow-desc">{short(p.description)}</p>}
                 <dl className="ow-meta">

@@ -1167,3 +1167,29 @@ button.cp-row{width:100%;font:inherit;text-align:left;cursor:pointer}
 }
 @media(max-width:520px){.ow-stats{gap:8px}.ow-stats div{padding:14px 10px}.ow-stats dd{font-size:1.6rem}.ow-meta div{grid-template-columns:90px 1fr}}
 @media(prefers-reduced-motion:reduce){.ow-media>img{transition:none}.ow-row:hover .ow-media>img{transform:none}}
+
+/* /our-work rows, closer to the reference: a smaller photo with an offset gold frame, short gold bar under the title */
+.ow-rows{max-width:1060px;margin:0 auto;gap:clamp(56px,7vw,96px)}
+.ow-row,.ow-row.flip{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,6vw,80px)}
+.ow-media{position:relative;isolation:isolate;overflow:visible;aspect-ratio:auto;max-width:440px;width:100%;border-radius:0;background:none;box-shadow:none;justify-self:start}
+.ow-row.flip .ow-media{justify-self:end}
+.ow-media::after{content:'';position:absolute;z-index:-1;left:16px;right:-18px;top:28px;bottom:-34px;border:3px solid #d4a017;pointer-events:none}
+.ow-pic{display:block;overflow:hidden;aspect-ratio:4/3;background:#e9eeed;box-shadow:0 26px 50px rgba(16,52,58,.16)}
+.ow-pic img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+.ow-row:hover .ow-pic img{transform:scale(1.04)}
+.ow-media>img{display:none}
+.ow-before{left:10px;bottom:10px;width:28%;max-width:120px;border-radius:6px;border-width:2px}
+.ow-row.flip .ow-before{left:10px;right:auto}
+.ow-body h3{font-size:clamp(1.35rem,2.3vw,1.75rem);margin:0 0 14px;padding-bottom:16px;position:relative}
+.ow-body h3::after{content:'';position:absolute;left:0;bottom:0;width:48px;height:3px;border-radius:2px;background:#d4a017}
+.ow-desc{font-size:.98rem;margin-bottom:16px}
+.ow-meta{border-top:0;gap:10px;margin-bottom:18px}
+.ow-meta div{display:block;padding:0;border:0}
+.ow-meta dt{font-size:.92rem;margin-bottom:2px}
+.ow-meta dd{font-size:.95rem}
+@media(max-width:900px){
+  .ow-row,.ow-row.flip{grid-template-columns:1fr;gap:44px}
+  .ow-media,.ow-row.flip .ow-media{justify-self:start;max-width:none;width:calc(100% - 18px)}
+}
+@media(prefers-reduced-motion:reduce){.ow-pic img{transition:none}.ow-row:hover .ow-pic img{transform:none}}
+.ow-meta{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px 20px}
