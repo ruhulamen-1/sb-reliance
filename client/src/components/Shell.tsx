@@ -4,6 +4,7 @@ import WaChat from './WaChat';
 import useReveal from './useReveal';
 import useSmoothScroll from './useSmoothScroll';
 import { serviceHeading } from './content';
+import { homeData, initialHome } from '../api';
 
 export type Settings = Record<string, string>;
 // the default settings ship with a placeholder email; never show it
@@ -80,6 +81,33 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
     return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onDown); };
   }, [menu]);
 
+  // Services dropdown in the header: opens on click (and on hover with a mouse), closes on navigation, Escape or a click outside
+  type Svc = { id: number; title: string; slug?: string | null };
+  const [drop, setDrop] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const shutTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [menuSvcs, setMenuSvcs] = useState<Svc[]>(() => (services.length ? services : (initialHome()?.services ?? [])));
+  useEffect(() => { if (services.length) setMenuSvcs(services); }, [services]);
+  useEffect(() => {
+    if (menuSvcs.length) return;
+    let live = true;
+    homeData<{ services?: Svc[] }>().then((d) => { if (live && d.services) setMenuSvcs(d.services); }).catch(() => undefined);
+    return () => { live = false; };
+  }, [menuSvcs.length]);
+  useEffect(() => setDrop(false), [pathname]);
+  useEffect(() => {
+    if (!drop) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setDrop(false); dropRef.current?.querySelector('button')?.focus(); } };
+    const onDown = (e: PointerEvent) => { if (!dropRef.current?.contains(e.target as Node)) setDrop(false); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onDown); };
+  }, [drop]);
+  const hoverable = () => window.matchMedia('(min-width: 1101px) and (hover: hover)').matches;
+  const hoverOpen = () => { if (!hoverable()) return; clearTimeout(shutTimer.current); setDrop(true); };
+  const hoverShut = () => { if (!hoverable()) return; shutTimer.current = setTimeout(() => setDrop(false), 220); };
+  const svcMenu = menuSvcs.filter((x) => x.slug);
+
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
   const tel = (S.phone || '').replace(/[^\d+]/g, '');
   const email = realEmail(S.email);
@@ -94,7 +122,17 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
             <span aria-hidden="true" />
           </button>
           <nav id="site-nav" className="row gap" aria-label="Main">
-            <NavLink to="/services">Services</NavLink>
+            <div className={drop ? 'nav-drop open' : 'nav-drop'} ref={dropRef} onMouseEnter={hoverOpen} onMouseLeave={hoverShut}>
+              <button type="button" className={pathname.startsWith('/services') ? 'nav-drop-btn current' : 'nav-drop-btn'}
+                aria-expanded={drop} aria-controls="svc-menu" onClick={() => setDrop(!drop)}>
+                Services
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+              </button>
+              <div id="svc-menu" className="nav-drop-menu">
+                {svcMenu.map((x) => <NavLink key={x.id} to={`/services/${x.slug}`}>{x.title}</NavLink>)}
+                <Link className="nav-drop-all" to="/services">All services <span aria-hidden="true">→</span></Link>
+              </div>
+            </div>
             <NavLink to="/portfolio">Portfolio</NavLink>
             <NavLink to="/why-us">Why us</NavLink>
             <NavLink to="/blog">Blog</NavLink>
