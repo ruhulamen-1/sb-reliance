@@ -18,12 +18,20 @@ interface GalleryItem { id: number; title: string; slug?: string | null; image_u
 type Settings = Record<string, string>;
 interface HomeData { services: Service[]; testimonials: Review[]; posts: Post[]; gallery: GalleryItem[]; settings: Settings }
 
-const CHIPS = ['#7FA6D6', '#9CC5B8', '#F2D16B', '#E8A598', '#C9C3E6', '#F4EFE6', '#A7D3C4', '#F0B88A'];
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
 /** Words between * in an admin-written headline are shown in gold: "Your *aircon* team". */
 function Gold({ text }: { text?: string }) {
   return <>{(text || '').split(/\*([^*]+)\*/).map((part, i) => (i % 2 ? <em key={i} className="gold">{part}</em> : part))}</>;
+}
+
+/** The optional hero picture: a video file plays muted on a loop, anything else (JPG, PNG, WebP, GIF) shows as an image. */
+function HeroMedia({ src, alt }: { src: string; alt: string }) {
+  if (/\.(mp4|webm)(\?|$)/i.test(src)) {
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    return <video className="hero-media" src={src} autoPlay={!still} muted loop playsInline controls={still} preload="metadata" aria-label={alt} />;
+  }
+  return <img className="hero-media" {...photo(src, SIZES.hero)} alt={alt} {...HIGH} />;
 }
 
 // an icon for each project step, picked from the words in its title
@@ -58,34 +66,11 @@ export default function Home() {
     if (el) el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
     else if (!id) window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
   }, [pathname, data]);
-  const slides = [S.hero_image, S.hero_image_2, S.hero_image_3].filter(Boolean) as string[];
   const homeFaq = faqPairs(S.home_faq);
   const hacking = data.services.find((s) => s.slug === 'hacking' || /hacking/i.test(s.title));
   const hackPoints = lines(S.hacking_points);
   const aboutLines = lines(S.about_intro || S.about_text).slice(0, 2);
-  const headlines = (S.hero_headlines || '').split('\n').map((x) => x.trim());
-  const slideCount = Math.max(slides.length, headlines.filter(Boolean).length, 1);
-  const [slide, setSlide] = useState(0);
-  const [paused, setPaused] = useState(false);
-  // the 2nd and 3rd hero photos are added only after the page has loaded, so phones spend
-  // their bandwidth on the first photo and the headline first (PageSpeed LCP)
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const go = () => setTimeout(() => setReady(true), 1500);
-    if (document.readyState === 'complete') { const t = go(); return () => clearTimeout(t); }
-    let t: ReturnType<typeof setTimeout> | undefined;
-    const onLoad = () => { t = go(); };
-    window.addEventListener('load', onLoad, { once: true });
-    return () => { window.removeEventListener('load', onLoad); if (t) clearTimeout(t); };
-  }, []);
-  useEffect(() => {
-    if (slideCount < 2 || paused || !ready || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const t = setInterval(() => setSlide((i) => (i + 1) % slideCount), 6000);
-    return () => clearInterval(t);
-  }, [slideCount, paused, ready]);
-  const cur = slide % slideCount;
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
-  const serviceNames = data.services.map((s) => s.title);
   const steps = lines(S.steps).map((l) => {
     const [t, ...d] = l.split('|');
     return [t.trim(), d.join('|').trim()];
@@ -104,20 +89,22 @@ export default function Home() {
       {loadErr && <p className="err wrap block">{loadErr}</p>}
 
       {/* the "page background image" setting now sits only behind the hero, lightly, instead of behind every section */}
-      <section className="hero" style={S.page_bg ? { ['--hero-bg' as string]: `url("${S.page_bg}")` } : undefined}>
-        <svg className="airflow" aria-hidden="true" viewBox="0 0 2400 400" preserveAspectRatio="none">
-          {[0, 1200].map((x) => (
-            <g key={x} transform={`translate(${x} 0)`} fill="none" strokeLinecap="round">
-              <path d="M0 110 C300 30 300 190 600 110 C900 30 900 190 1200 110" strokeWidth="3" />
-              <path d="M0 200 C300 120 300 280 600 200 C900 120 900 280 1200 200" strokeWidth="2" />
-              <path d="M0 290 C300 210 300 370 600 290 C900 210 900 370 1200 290" strokeWidth="3" />
-            </g>
-          ))}
-        </svg>
+      <section className={S.page_bg ? 'hero has-bg' : 'hero'} style={S.page_bg ? { ['--hero-bg' as string]: `url("${S.page_bg}")` } : undefined}>
+        {!S.page_bg && (
+          <svg className="airflow" aria-hidden="true" viewBox="0 0 2400 400" preserveAspectRatio="none">
+            {[0, 1200].map((x) => (
+              <g key={x} transform={`translate(${x} 0)`} fill="none" strokeLinecap="round">
+                <path d="M0 110 C300 30 300 190 600 110 C900 30 900 190 1200 110" strokeWidth="3" />
+                <path d="M0 200 C300 120 300 280 600 200 C900 120 900 280 1200 200" strokeWidth="2" />
+                <path d="M0 290 C300 210 300 370 600 290 C900 210 900 370 1200 290" strokeWidth="3" />
+              </g>
+            ))}
+          </svg>
+        )}
         <div className="wrap hero-grid">
           <div className="hero-copy">
             {S.hero_badge && <p className="hero-badge">{S.hero_badge}</p>}
-            <h1><Gold text={headlines[cur] || S.hero_title} /></h1>
+            <h1><Gold text={S.hero_title} /></h1>
             <p className="lead">{S.hero_lead}</p>
             <div className="row gap">
               <Link className="btn" to="/contact">Request a quote <span aria-hidden="true">↗</span></Link>
@@ -126,39 +113,8 @@ export default function Home() {
             <OpenStatus hours={S.open_hours} />
             <HeroStats S={S} />
           </div>
-          <div className={`hero-visual${S.hero_cutout ? ' cutout' : slides.length ? ' photos' : ''}`}>
-          {(S.hero_cutout || slides.length > 0) && (
-            <svg className="hero-deco" aria-hidden="true" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" /><circle cx="50" cy="50" r="28" /></svg>
-          )}
-          {S.hero_cutout ? (
-            <div className="hero-person">
-              <span className="hero-blob" aria-hidden="true" />
-              <img {...photo(S.hero_cutout, SIZES.hero)} alt={S.company_name || ''} {...HIGH} />
-            </div>
-          ) : slides.length > 0 ? (
-            <div className="heroslides" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
-              {slides.slice(0, ready ? slides.length : 1).map((src, i) => (
-                <img key={src} className={i === cur % slides.length ? 'heroimg on' : 'heroimg'} {...photo(src, SIZES.hero)} alt={S.company_name || ''}
-                  {...(i === 0 ? HIGH : { loading: 'lazy' as const })} />
-              ))}
-              {slideCount > 1 && (
-                <div className="dots">
-                  {Array.from({ length: slideCount }, (_, i) => (
-                    <button key={i} type="button" className={i === cur ? 'on' : ''} aria-label={`Show slide ${i + 1}`} aria-current={i === cur} onClick={() => setSlide(i)} />
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-          <div className="swatches" aria-hidden="true">
-            {serviceNames.map((n, i) => (
-              <div key={n} className="chip" style={{ background: CHIPS[i % CHIPS.length], transform: `rotate(${((i % 4) - 1.5) * 2}deg)` }}>
-                <span>{n}</span>
-              </div>
-            ))}
-          </div>
-          )}
-          </div>
+          {/* right side: empty unless a picture, GIF / animation or video is added in Admin > Settings */}
+          {S.hero_media && <div className="hero-visual"><HeroMedia src={S.hero_media} alt={S.company_name || ''} /></div>}
         </div>
       </section>
 
@@ -289,7 +245,7 @@ export default function Home() {
         <div className="wrap narrow">
           <h2>{S.quote_title}</h2>
           <p>{S.quote_intro}</p>
-          <QuoteForm S={S} serviceNames={serviceNames} />
+          <QuoteForm S={S} serviceNames={data.services.map((s) => s.title)} />
         </div>
       </section>
 

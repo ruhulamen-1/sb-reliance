@@ -16,7 +16,7 @@ async function toDataUrl(file: File): Promise<string> {
     r.onerror = () => rej(new Error('Could not read the file'));
     r.readAsDataURL(file);
   });
-  if (file.type === 'image/gif' || file.size < 300_000) return raw;
+  if (file.type === 'image/gif' || file.type.startsWith('video/') || file.size < 300_000) return raw;
   // shrink photos to max 1600px WebP so pages load fast on phones
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
@@ -29,12 +29,16 @@ async function toDataUrl(file: File): Promise<string> {
   return webp.startsWith('data:image/webp') ? webp : c.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
 }
 
-function ImageField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+const isVideo = (url: string) => /\.(mp4|webm)(\?|$)/i.test(url);
+
+function ImageField({ label, hint, media, value, onChange }: { label: string; hint?: string; media?: boolean; value: string; onChange: (v: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   async function pick(file?: File) {
     if (!file) return;
     setErr('');
+    if (file.type.startsWith('video/') && !media) return setErr('Please choose an image here.');
+    if (file.type.startsWith('video/') && file.size > 20 * 1024 * 1024) return setErr('Video must be under 20 MB. Try a shorter clip or a smaller size.');
     setBusy(true);
     try {
       const data = await toDataUrl(file);
@@ -49,12 +53,13 @@ function ImageField({ label, value, onChange }: { label: string; value: string; 
   return (
     <div className="full imgfield" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files?.[0]); }}>
       <span>{label}</span>
-      {value && <img src={value} alt="" className="thumb" />}
+      {hint && <small>{hint}</small>}
+      {value && (isVideo(value) ? <video src={value} className="thumb" muted loop autoPlay playsInline /> : <img src={value} alt="" className="thumb" />)}
       <div className="row gap">
-        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => pick(e.target.files?.[0])} />
-        {value && <button type="button" className="btn ghost" onClick={() => onChange('')}>Remove image</button>}
+        <input type="file" accept={`image/jpeg,image/png,image/webp,image/gif${media ? ',video/mp4,video/webm' : ''}`} onChange={(e) => pick(e.target.files?.[0])} />
+        {value && <button type="button" className="btn ghost" onClick={() => onChange('')}>{isVideo(value) ? 'Remove video' : 'Remove image'}</button>}
       </div>
-      {!value && !busy && <small>Choose a photo or drop it here.</small>}
+      {!value && !busy && <small>{media ? 'Choose a picture, GIF or video, or drop it here.' : 'Choose a photo or drop it here.'}</small>}
       {busy && <small>Uploading…</small>}
       {err && <p className="err">{err}</p>}
     </div>
@@ -300,7 +305,7 @@ export function Crud({ table, fields }: { table: string; fields: CrudField[] }) 
   );
 }
 
-const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: string; image?: boolean }[] = [
+const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: string; image?: boolean; media?: boolean }[] = [
   { key: 'brand', label: 'Brand name (header)' },
   { key: 'logo', label: 'Logo (optional, replaces the default logo; square or transparent PNG works best)', image: true },
   { key: 'company_name', label: 'Company name (footer, page title)' },
@@ -327,12 +332,8 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'notify_email', label: 'Email new quote requests to (optional)', hint: 'Needs the SMTP settings on the server (see DEPLOY.md). Requests are always saved in Admin > Quotes.' },
   { key: 'price_range', label: 'Price range for Google (optional)', hint: 'Shown to Google only, e.g. $$ or From $300. Leave empty if you prefer not to say.' },
   { key: 'ga_measurement_id', label: 'Google Analytics measurement ID (optional)', hint: 'From Google Analytics > Admin > Data streams > your website, e.g. G-AB12CD34EF. Empty turns Analytics off. Takes effect on the next page load.' },
-  { key: 'hero_image', label: 'Hero image 1 (optional, replaces the service tiles)', image: true },
-  { key: 'hero_image_2', label: 'Hero image 2 (optional, makes the hero a slider)', image: true },
-  { key: 'hero_image_3', label: 'Hero image 3 (optional)', image: true },
-  { key: 'hero_cutout', label: 'Hero person photo (optional, PNG with no background)', image: true, hint: 'A team member standing, cut out with a clear background. Shown on a coloured shape instead of the hero images.' },
-  { key: 'hero_headlines', label: 'Slider headlines (optional)', area: true, hint: 'One per line, in slide order. Empty lines use the main headline.' },
-  { key: 'page_bg', label: 'Hero background image (optional, shown very faded behind the top section of the home page)', image: true },
+  { key: 'page_bg', label: 'Hero background image (optional, the large photo behind the top of the home page)', image: true, hint: 'A wide photo of your work, at least 1600 px wide. The left side is lightened so the headline stays easy to read.' },
+  { key: 'hero_media', label: 'Hero picture, animation or video (optional, right side of the top section)', image: true, media: true, hint: 'Empty keeps the right side clear. JPG, PNG (also with no background), WebP or GIF up to 5 MB, or a short MP4 / WebM video up to 20 MB (plays muted on a loop).' },
   { key: 'hero_badge', label: 'Small line above the headline (optional)', hint: 'e.g. Trusted contractor in Singapore. Empty hides it.' },
   { key: 'hero_title', label: 'Hero headline', hint: 'Put a word or two between * to show them in gold, e.g. Your *aircon & ACMV* team in Singapore' },
   { key: 'hero_lead', label: 'Hero paragraph', area: true },
@@ -456,7 +457,7 @@ function Settings() {
         onLoadStale={() => { setForm({ ...base, ...stale }); setStale(null); setRestored(true); }}
         onDiscard={() => { clearDraft('sbdraft:settings'); setForm(base); setRestored(false); setStale(null); }} />
       {SETTING_FIELDS.map((f) => f.image ? (
-        <ImageField key={f.key} label={f.label} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
+        <ImageField key={f.key} label={f.label} hint={f.hint} media={f.media} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
       ) : (
         <label key={f.key} className={f.area ? 'full' : ''}>{f.label}
           {f.hint && <small>{f.hint}</small>}

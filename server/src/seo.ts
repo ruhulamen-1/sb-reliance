@@ -228,7 +228,7 @@ export function postalAddress(addr: string): Record<string, string> {
 
 export function businessJsonLd(S: Settings, services: SeoService[], base: string): Record<string, unknown> {
   const co = S.company_name || S.brand || 'SB Reliance';
-  const img = S.hero_image || S.about_image || S.logo;
+  const img = S.page_bg || S.about_image || S.logo;
   const addr = (S.address || '').trim();
   const data: Record<string, unknown> = {
     '@context': 'https://schema.org',
@@ -343,7 +343,7 @@ export function pageJsonLd(path: string, S: Settings, data: SeoData, base: strin
 export function headTags(path: string, S: Settings, data: SeoData, base: string): { tags: string; status: number } {
   const m = pageMeta(path, S, data);
   const co = S.company_name || S.brand || 'SB Reliance';
-  const image = m.image || S.hero_image || S.about_image || S.logo;
+  const image = m.image || S.page_bg || S.about_image || S.logo;
   const t: string[] = [`<title>${esc(m.title)}</title>`];
   if (m.description) t.push(`<meta name="description" content="${esc(m.description)}" />`);
   // a thin project page stays out of search, but its links (services, other projects) still count
@@ -446,7 +446,7 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
 
 /** The first, largest image a visitor sees on this page (hero or service photo), if any. */
 export function lcpImage(path: string, S: Settings, data: SeoData): string {
-  if (path === '/' || path in HOME_ALIASES) return S.hero_image || '';
+  if (path === '/' || path in HOME_ALIASES) return /\.(mp4|webm)$/i.test(S.hero_media || '') ? '' : S.hero_media || '';
   const svcSlug = servicePath(path);
   if (svcSlug) return findService(data.services, safeDecode(svcSlug))?.image_url || '';
   if (path === '/about') return S.about_image || '';
@@ -470,7 +470,7 @@ export function renderHtml(template: string, rawPath: string, S: Settings, data:
     tags = `<link rel="preload" as="image" href="${esc(lcp)}"${set ? ` imagesrcset="${esc(set)}" imagesizes="${sizes}"` : ''} fetchpriority="high" />\n    ` + tags;
   }
   // the faded photo behind the home hero (wide screens only, see styles.css); without this it is found only after the app runs
-  if ((path === '/' || path in HOME_ALIASES) && S.page_bg) tags = `<link rel="preload" as="image" href="${esc(S.page_bg)}" media="(min-width: 801px)" />\n    ` + tags;
+  if ((path === '/' || path in HOME_ALIASES) && S.page_bg) tags = `<link rel="preload" as="image" href="${esc(S.page_bg)}" />\n    ` + tags;
   // the shared page data, so the app renders at once instead of fetching it again
   if (initial && path !== '/admin') tags += `\n    <script>window.__HOME__=${JSON.stringify(initial).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')}</script>`;
   const body = bodyHtml(path, S, data);

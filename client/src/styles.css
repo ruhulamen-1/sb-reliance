@@ -923,17 +923,15 @@ html.lenis,html.lenis body{height:auto}
 .hero-stats div{display:flex;flex-direction:column-reverse}
 .hero-stats dd{margin:0;font:800 clamp(1.8rem,3.4vw,2.6rem)/1 'Bricolage Grotesque',sans-serif;color:var(--ink)}
 .hero-stats dt{color:var(--muted);font-size:.92rem;margin-top:6px}
-.hero-visual{position:relative;min-width:0}
-.hero-deco{position:absolute;width:clamp(70px,9vw,120px);top:-4%;left:-6%;z-index:2;fill:none;stroke:#b07d00;stroke-width:3;stroke-dasharray:60 30;opacity:.45;pointer-events:none}
-.hero-deco circle+circle{stroke:var(--ink);opacity:.5;stroke-dasharray:40 26}
-.hero-visual.photos .heroslides{border-radius:46% 54% 42% 58% / 55% 45% 55% 45%;overflow:hidden;box-shadow:0 18px 40px rgba(16,52,58,.16)}
-.hero-visual.photos .heroimg{aspect-ratio:1/1;border-radius:0}
-.hero-person{position:relative;display:grid;place-items:end center;aspect-ratio:1/1.02}
-.hero-blob{position:absolute;inset:14% 6% 0;border-radius:46% 54% 42% 58% / 55% 45% 55% 45%;background:linear-gradient(150deg,#d6ece6,#f6e3a8)}
-.hero-person img{position:relative;width:auto;max-width:92%;max-height:100%;object-fit:contain;filter:drop-shadow(0 18px 24px rgba(16,52,58,.18))}
+.hero-visual{position:relative;min-width:0;display:flex;justify-content:center;animation:rise .7s .3s cubic-bezier(.2,.7,.2,1) both}
+/* any picture, GIF or video: shown as it is (a PNG with no background floats), rounded, with a soft shadow that follows its shape */
+.hero-media{display:block;width:100%;height:auto;max-height:min(70vh,560px);object-fit:contain;border-radius:20px;filter:drop-shadow(0 18px 28px rgba(16,52,58,.18))}
+/* the background photo is the main picture: the left is lightened for the text, the right stays clear */
+.hero.has-bg{background:linear-gradient(90deg,rgba(251,250,247,.95) 0%,rgba(251,250,247,.88) 38%,rgba(251,250,247,.35) 68%,rgba(251,250,247,.08) 100%),var(--hero-bg) center/cover no-repeat;min-height:min(80vh,680px);display:flex;align-items:center}
+.hero.has-bg>.wrap{width:100%}
 @media(max-width:800px){
-  .hero-visual.photos .heroimg{aspect-ratio:1/1}
   .hero-visual{max-width:440px;width:100%;margin:0 auto}
+  .hero.has-bg{background:linear-gradient(180deg,rgba(251,250,247,.93) 0%,rgba(251,250,247,.86) 70%,rgba(251,250,247,.7) 100%),var(--hero-bg) center/cover no-repeat;min-height:0}
   .hero-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
   .hero-stats dd{font-size:1.55rem}
   .hero-stats dt{font-size:.8rem;line-height:1.3}
@@ -962,4 +960,4 @@ html.lenis,html.lenis body{height:auto}
   .how-steps li:not(:last-child)::before{display:none}
 }
 .ticks-2{columns:2 280px;column-gap:40px}.ticks-2 li{break-inside:avoid}
-@media(prefers-reduced-motion:reduce){.how-ic,.hero .btn span{transition:none}}
+@media(prefers-reduced-motion:reduce){.how-ic,.hero .btn span{transition:none}.hero-visual{animation:none}}

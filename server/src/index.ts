@@ -56,10 +56,6 @@ const DEFAULTS: Record<string, string> = {
   whatsapp: '6585334478',
   email: 'info@example.com',
   address: 'Singapore',
-  hero_image: '',
-  hero_image_2: '',
-  hero_image_3: '',
-  hero_headlines: '',
   about_text:
     'SB Reliance Pte Ltd is a Singapore contractor for ACMV and air-conditioning, electrical, CCTV, ceiling partition, painting, tiles and general building works.',
   footer_bg: '',
@@ -108,7 +104,7 @@ const DEFAULTS: Record<string, string> = {
   ].join('\n'),
   page_bg: '',
   hero_badge: '',
-  hero_cutout: '',
+  hero_media: '',
   hero_title: 'Air-con, electrical, CCTV and building works from one contractor.',
   hero_lead:
     'SB Reliance Pte Ltd specialises in ACMV and air-conditioning installation, electrical, CCTV, ceiling partition, painting, tiles and general building works for homes, offices and commercial spaces across Singapore.',
@@ -356,7 +352,7 @@ function pickUploadsDir() {
 // UPLOAD_DIR lets you keep uploaded images outside the app folder so redeploys never delete them
 const uploadsDir = pickUploadsDir();
 console.log('Uploads folder:', uploadsDir);
-const IMAGE_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+const IMAGE_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm' };
 
 // New quote requests are emailed to Admin > Settings "Notify email" (or NOTIFY_EMAIL) when SMTP_* is set.
 // Without SMTP settings this does nothing; the request is always saved and shown in Admin > Quotes.
@@ -642,13 +638,15 @@ app.post('/api/reviews', wrap(async (req, res) => {
 }));
 
 // ---------- Admin ----------
-app.post('/api/admin/upload', express.json({ limit: '8mb' }), auth, wrap(async (req, res) => {
+// images up to 5 MB; short MP4 / WebM videos (for the home page hero) up to 20 MB
+app.post('/api/admin/upload', express.json({ limit: '28mb' }), auth, wrap(async (req, res) => {
   const data = String((req.body as { data?: string }).data || '');
   const comma = data.indexOf(',');
-  const m = /^data:(image\/(?:jpeg|png|webp|gif));base64$/.exec(comma > 0 ? data.slice(0, comma) : '');
-  if (!m) return res.status(400).json({ error: 'Only JPG, PNG, WebP or GIF images are allowed' });
+  const m = /^data:(image\/(?:jpeg|png|webp|gif)|video\/(?:mp4|webm));base64$/.exec(comma > 0 ? data.slice(0, comma) : '');
+  if (!m) return res.status(400).json({ error: 'Only JPG, PNG, WebP or GIF images, or MP4 / WebM videos, are allowed' });
   const buf = Buffer.from(data.slice(comma + 1), 'base64');
-  if (!buf.length || buf.length > 5 * 1024 * 1024) return res.status(400).json({ error: 'Image must be under 5 MB' });
+  const video = m[1].startsWith('video/');
+  if (!buf.length || buf.length > (video ? 20 : 5) * 1024 * 1024) return res.status(400).json({ error: video ? 'Video must be under 20 MB' : 'Image must be under 5 MB' });
   const name = `${Date.now()}-${randomBytes(4).toString('hex')}.${IMAGE_EXT[m[1]]}`;
   writeFileSync(join(uploadsDir, name), buf);
   res.status(201).json({ url: `/uploads/${name}` });
