@@ -4,6 +4,7 @@ import Shell from '../components/Shell';
 import QuoteSection from '../components/QuoteSection';
 import QuickQuote from '../components/QuickQuote';
 import OpenStatus from '../components/OpenStatus';
+import HeroFx from '../components/HeroFx';
 import useSeo from '../components/useSeo';
 import { api, initialHome } from '../api';
 import { faqPairs, serviceHeading } from '../components/content';
@@ -90,17 +91,7 @@ export default function Home() {
 
       {/* the "page background image" setting now sits only behind the hero, lightly, instead of behind every section */}
       <section className={S.page_bg ? 'hero has-bg' : 'hero'} style={S.page_bg ? { ['--hero-bg' as string]: `url("${S.page_bg}")` } : undefined}>
-        {!S.page_bg && (
-          <svg className="airflow" aria-hidden="true" viewBox="0 0 2400 400" preserveAspectRatio="none">
-            {[0, 1200].map((x) => (
-              <g key={x} transform={`translate(${x} 0)`} fill="none" strokeLinecap="round">
-                <path d="M0 110 C300 30 300 190 600 110 C900 30 900 190 1200 110" strokeWidth="3" />
-                <path d="M0 200 C300 120 300 280 600 200 C900 120 900 280 1200 200" strokeWidth="2" />
-                <path d="M0 290 C300 210 300 370 600 290 C900 210 900 370 1200 290" strokeWidth="3" />
-              </g>
-            ))}
-          </svg>
-        )}
+        <HeroFx />
         <div className="wrap hero-grid">
           <div className="hero-copy">
             {S.hero_badge && <p className="hero-badge">{S.hero_badge}</p>}
