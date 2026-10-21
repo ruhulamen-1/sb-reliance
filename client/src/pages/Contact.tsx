@@ -3,7 +3,7 @@ import { homeData, initialHome } from '../api';
 import Shell, { Settings, realEmail } from '../components/Shell';
 import { Service } from '../components/content';
 import { AddressMap, GoogleRating } from '../components/Trust';
-import QuoteForm from '../components/QuoteForm';
+import QuoteSection from '../components/QuoteSection';
 import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
 
@@ -52,13 +52,7 @@ export default function Contact() {
         <AddressMap S={S} />
       </section>
 
-      <section id="quote" className="band">
-        <div className="wrap narrow">
-          <h2>{S.quote_title || 'Request a quote'}</h2>
-          <p>{S.quote_intro}</p>
-          <QuoteForm S={S} serviceNames={serviceNames} />
-        </div>
-      </section>
+      <QuoteSection S={S} serviceNames={serviceNames} title={S.quote_title || 'Request a quote'} contact={false} />
     </Shell>
   );
 }

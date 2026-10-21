@@ -961,3 +961,36 @@ html.lenis,html.lenis body{height:auto}
 }
 .ticks-2{columns:2 280px;column-gap:40px}.ticks-2 li{break-inside:avoid}
 @media(prefers-reduced-motion:reduce){.how-ic,.hero .btn span{transition:none}.hero-visual{animation:none}}
+
+/* ---------- quote section: heading, contact cards and hours on the left, the form in a card on the right ---------- */
+.qx{padding:clamp(48px,7vw,88px) 0;background:var(--paper)}
+.qx-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(28px,5vw,72px);align-items:start}
+.qx-info h2{font-size:clamp(1.9rem,3.6vw,2.7rem);line-height:1.12;margin:0 0 12px}
+.qx-info h2 .gold{font-style:normal;color:#b07d00}
+.qx-intro{color:var(--muted);font-size:1.08rem;max-width:46ch;margin:0 0 28px}
+.qx-info h3{font-size:1.2rem;margin:0 0 14px}
+.qx-cards{list-style:none;margin:0 0 30px;padding:0;display:grid;gap:12px}
+.qx-cards a{display:flex;align-items:center;gap:16px;padding:16px 18px;background:#f1f4f3;border:1px solid transparent;border-radius:14px;color:var(--ink);text-decoration:none;transition:border-color .2s,background .2s,transform .2s}
+.qx-cards a:hover{background:#fff;border-color:var(--line);transform:translateX(3px)}
+.qx-cards strong{display:block;font-weight:600}
+.qx-cards a>span:last-child{min-width:0}
+.qx-cards a>span:last-child>span{display:block;color:var(--muted);overflow-wrap:anywhere}
+.qx-ic{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#fff;box-shadow:0 4px 12px rgba(16,52,58,.08)}
+.qx-ic svg{width:24px;height:24px;fill:none;stroke:#b07d00;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.qx-hours{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.qx-hours li{padding:16px 18px;background:#f1f4f3;border-radius:14px}
+.qx-hours strong{display:block;font-weight:600}.qx-hours span{color:var(--muted)}
+.qx-form{background:#f1f4f3;border:1px solid var(--line);border-radius:18px;padding:clamp(20px,3vw,32px)}
+.qx-form .form{gap:16px}
+.qx-form label{font-weight:500;font-size:.95rem}
+.qx-form input,.qx-form select,.qx-form textarea{padding:11px 12px;border-color:#c9d6d3;border-radius:10px;transition:border-color .2s,box-shadow .2s}
+.qx-form input:focus,.qx-form select:focus,.qx-form textarea:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(242,183,5,.35)}
+.qx-form fieldset{border:0;padding:0;margin:0;gap:8px}
+.qx-form legend{font-weight:500;font-size:.95rem;margin-bottom:8px;padding:0}
+.qx-form .check{padding:6px 12px;border:1px solid #c9d6d3;border-radius:999px;background:#fff;font-size:.92rem;cursor:pointer;transition:background .2s,border-color .2s}
+.qx-form .check:has(input:checked){background:#fdf1d3;border-color:#e0b740}
+.qx-form .check input{accent-color:var(--ink)}
+.qx-form button.btn{border-radius:999px;padding:13px 18px;font-size:1.02rem}
+@media(max-width:900px){.qx-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.qx-cards a{transition:none}.qx-cards a:hover{transform:none}}
+.qx-form ::placeholder{color:#8a9c9f}

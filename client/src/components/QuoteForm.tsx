@@ -28,9 +28,9 @@ export default function QuoteForm({ S, serviceNames, defaultService = '' }: { S:
 
   return (
     <form onSubmit={submit} className="form">
-      <label>Full name<input required value={form.name} onChange={set('name')} /></label>
-      <label>WhatsApp number<input required value={form.whatsapp} onChange={set('whatsapp')} /></label>
-      <label className="full">Address<input required value={form.address} onChange={set('address')} /></label>
+      <label>Full name<input required value={form.name} onChange={set('name')} placeholder="Your name" autoComplete="name" /></label>
+      <label>WhatsApp number<input required value={form.whatsapp} onChange={set('whatsapp')} placeholder="e.g. 9123 4567" inputMode="tel" autoComplete="tel" /></label>
+      <label className="full">Address<input required value={form.address} onChange={set('address')} placeholder="Block, street, unit or postal code" autoComplete="street-address" /></label>
       <label>Property type<select required value={form.house_type} onChange={set('house_type')}><option value="">Select</option>{lines(S.property_types).map((h) => <option key={h}>{h}</option>)}</select></label>
       <label>Main service needed<select required value={form.service_type} onChange={set('service_type')}><option value="">Select</option>{serviceNames.map((h) => <option key={h}>{h}</option>)}</select></label>
       <fieldset className="full">
@@ -43,7 +43,7 @@ export default function QuoteForm({ S, serviceNames, defaultService = '' }: { S:
         ))}
       </fieldset>
       <label>Preferred date<input type="date" value={form.preferred_date} onChange={set('preferred_date')} /></label>
-      <label className="full">Message<textarea rows={3} value={form.message} onChange={set('message')} /></label>
+      <label className="full">Message<textarea rows={3} value={form.message} onChange={set('message')} placeholder="Tell us a little about the job" /></label>
       <button className="btn full" disabled={state.kind === 'sending'}>{state.kind === 'sending' ? 'Sending…' : 'Send request'}</button>
       {state.kind === 'ok' && (
         <div className="sent full" role="status">

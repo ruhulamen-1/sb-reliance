@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, initialHome } from '../api';
 import Shell, { Settings } from '../components/Shell';
-import QuoteForm from '../components/QuoteForm';
+import QuoteSection from '../components/QuoteSection';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
 import { serviceHeading, Service } from '../components/content';
@@ -88,13 +88,7 @@ export default function ProjectPage() {
             )}
           </article>
 
-          <section id="quote" className="band">
-            <div className="wrap narrow">
-              <h2>Need similar work?</h2>
-              <p>{S.quote_intro}</p>
-              <QuoteForm S={S} serviceNames={services.map((s) => s.title)} defaultService={svc?.title || ''} />
-            </div>
-          </section>
+          <QuoteSection S={S} serviceNames={services.map((s) => s.title)} defaultService={svc?.title || ''} title="Need *similar work*?" />
 
           {data!.related.length > 0 && (
             <section className="wrap block">

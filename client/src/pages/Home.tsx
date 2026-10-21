@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Shell from '../components/Shell';
-import QuoteForm from '../components/QuoteForm';
+import QuoteSection from '../components/QuoteSection';
 import QuickQuote from '../components/QuickQuote';
 import OpenStatus from '../components/OpenStatus';
 import useSeo from '../components/useSeo';
@@ -241,13 +241,7 @@ export default function Home() {
         </section>
       )}
 
-      <section id="quote" className="band">
-        <div className="wrap narrow">
-          <h2>{S.quote_title}</h2>
-          <p>{S.quote_intro}</p>
-          <QuoteForm S={S} serviceNames={data.services.map((s) => s.title)} />
-        </div>
-      </section>
+      <QuoteSection S={S} serviceNames={data.services.map((s) => s.title)} />
 
     </Shell>
   );

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, homeData, initialHome } from '../api';
 import Shell, { Settings } from '../components/Shell';
-import QuoteForm from '../components/QuoteForm';
+import QuoteSection from '../components/QuoteSection';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
 import { Guarantee, TrustBar } from '../components/Trust';
@@ -129,13 +129,7 @@ export default function ServicePage() {
             </section>
           )}
 
-          <section id="quote" className="band">
-            <div className="wrap narrow">
-              <h2>Get a quote for {service.title.toLowerCase()}</h2>
-              <p>{S.quote_intro}</p>
-              <QuoteForm S={S} serviceNames={services.map((s) => s.title)} defaultService={service.title} />
-            </div>
-          </section>
+          <QuoteSection S={S} serviceNames={services.map((s) => s.title)} defaultService={service.title} title={`Get a quote for *${service.title.toLowerCase()}*`} />
 
           {others.length > 0 && (
             <section className="wrap block">
