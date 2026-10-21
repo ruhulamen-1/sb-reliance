@@ -5,7 +5,6 @@ import QuoteSection from '../components/QuoteSection';
 import QuickQuote from '../components/QuickQuote';
 import OpenStatus from '../components/OpenStatus';
 import HeroFx from '../components/HeroFx';
-import HeroDuct from '../components/HeroDuct';
 import useSeo from '../components/useSeo';
 import { api, initialHome } from '../api';
 import { faqPairs, serviceHeading } from '../components/content';
@@ -105,10 +104,8 @@ export default function Home() {
             <OpenStatus hours={S.open_hours} />
             <HeroStats S={S} />
           </div>
-          {/* right side: the picture, GIF or video from Admin > Settings; without one, the 3D ducting model on desktop (can be turned off) */}
-          {S.hero_media
-            ? <div className="hero-visual"><HeroMedia src={S.hero_media} alt={S.company_name || ''} /></div>
-            : S.hero_3d !== 'no' && <HeroDuct />}
+          {/* right side: empty unless a picture, GIF / animation or video is added in Admin > Settings */}
+          {S.hero_media && <div className="hero-visual"><HeroMedia src={S.hero_media} alt={S.company_name || ''} /></div>}
         </div>
       </section>
 
