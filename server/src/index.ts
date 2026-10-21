@@ -143,6 +143,16 @@ const DEFAULTS: Record<string, string> = {
   notify_email: '',
   ga_measurement_id: '',
   price_range: '',
+  // /card: the page the business-card QR code opens (Admin > QR page); "no" hides a block
+  card_title: 'Thank you for scanning',
+  card_intro: 'Chat with us, get a free quote or see our work. Everything you need is on this page.',
+  card_notice: '',
+  card_image: '',
+  card_links: '',
+  card_services: 'yes',
+  card_projects: 'yes',
+  card_reviews: 'yes',
+  card_quote: 'yes',
   property_types: ['HDB', 'Condo', 'Landed', 'Retail Shop', 'Office', 'Factory / Warehouse', 'Others'].join('\n'),
 };
 

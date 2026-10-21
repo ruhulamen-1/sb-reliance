@@ -477,6 +477,74 @@ function Settings() {
   );
 }
 
+// Admin > QR page: the /card page the QR code on business cards opens. Saved with the other settings.
+const CARD_FIELDS: { key: string; label: string; area?: boolean; hint?: string; image?: boolean; yesno?: boolean }[] = [
+  { key: 'card_title', label: 'Heading', hint: 'e.g. Thank you for scanning' },
+  { key: 'card_intro', label: 'Short text under the heading (optional)', area: true },
+  { key: 'card_notice', label: 'Notice or offer (optional)', area: true, hint: 'Shown in a highlighted box, e.g. October offer: free site visit and 10% off painting. Empty hides it. Change it any time.' },
+  { key: 'card_image', label: 'Picture (optional)', image: true },
+  { key: 'card_links', label: 'Extra buttons (optional)', area: true, hint: 'One per line: Label | link | short note (note optional). The link is a full address (https://...) or a page of this site, e.g. Our projects | /portfolio | Before and after photos, or Leave a review | /review' },
+  { key: 'card_services', label: 'Show the services list', yesno: true },
+  { key: 'card_projects', label: 'Show recent project photos', yesno: true },
+  { key: 'card_reviews', label: 'Show customer reviews', yesno: true },
+  { key: 'card_quote', label: 'Show the quote form on the page', yesno: true },
+];
+
+function CardSettings() {
+  const [form, setForm] = useState<Record<string, string> | null>(null);
+  const [msg, setMsg] = useState('');
+  const [copied, setCopied] = useState(false);
+  useEffect(() => { api<Record<string, string>>('/admin/settings', { auth: true }).then(setForm).catch((e: Error) => setMsg(e.message)); }, []);
+  if (!form) return <p className={msg ? 'err' : ''}>{msg || 'Loading…'}</p>;
+  const base = /^https?:\/\/[^/]+$/i.test((form.site_url || '').trim().replace(/\/+$/, '')) ? form.site_url.trim().replace(/\/+$/, '') : location.origin;
+  const url = `${base}/card`;
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setMsg('');
+    try {
+      // fetch the latest settings first, so changes made in Settings meanwhile are kept
+      const latest = await api<Record<string, string>>('/admin/settings', { auth: true });
+      const mine = Object.fromEntries(CARD_FIELDS.map((f) => [f.key, form![f.key] ?? '']));
+      await api('/admin/settings', { method: 'PUT', auth: true, body: { ...latest, ...mine } });
+      setMsg('Saved. The QR page shows the change straight away.');
+    } catch (x) { setMsg((x as Error).message); }
+  }
+  return (
+    <>
+      <div className="card review-link">
+        <strong>The QR code link</strong>
+        <p>The QR code on the business cards opens this address. It is not in the website menu or on Google; visitors can go to the home page from it. Change the page below as often as you like; the printed QR code stays the same.</p>
+        <code>{url}</code>
+        <div className="row gap">
+          <a className="btn" href="/card" target="_blank" rel="noopener noreferrer">Open the page</a>
+          <button type="button" className="btn ghost" onClick={() => { navigator.clipboard?.writeText(url).then(() => setCopied(true)).catch(() => undefined); }}>{copied ? 'Copied' : 'Copy link'}</button>
+        </div>
+      </div>
+      <form className="form card" onSubmit={submit}>
+        {CARD_FIELDS.map((f) => f.image ? (
+          <ImageField key={f.key} label={f.label} hint={f.hint} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
+        ) : f.yesno ? (
+          <label key={f.key}>{f.label}
+            <select value={form[f.key] === 'no' ? 'no' : 'yes'} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}>
+              <option value="yes">Yes</option><option value="no">No</option>
+            </select>
+          </label>
+        ) : (
+          <label key={f.key} className={f.area ? 'full' : ''}>{f.label}
+            {f.hint && <small>{f.hint}</small>}
+            {f.area
+              ? <TextBox rows={f.key === 'card_links' ? 5 : 3} value={form[f.key] ?? ''} onChange={(v) => setForm({ ...form, [f.key]: v })} />
+              : <input value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />}
+          </label>
+        ))}
+        <p className="full"><small>WhatsApp, phone, email, address, services, projects and reviews come from Settings and the other sections, so they are always up to date here too.</small></p>
+        <button className="btn full">Save QR page</button>
+        {msg && <p className={`full ${msg.startsWith('Saved') ? 'ok' : 'err'}`} role="status">{msg}</p>}
+      </form>
+    </>
+  );
+}
+
 // One click: add back the company's standard services that are missing and fill empty service pages.
 function StandardServices({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
@@ -500,7 +568,7 @@ function StandardServices({ onDone }: { onDone: () => void }) {
   );
 }
 
-const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Payroll', 'Redirects', 'Settings'] as const;
+const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Payroll', 'Redirects', 'QR page', 'Settings'] as const;
 const INTRO: Record<(typeof TABS)[number], string> = {
   Overview: 'Quote requests by status and revenue from completed jobs.',
   Quotes: 'Requests sent from the website. Update the status, amount and notes as the job moves on.',
@@ -511,6 +579,7 @@ const INTRO: Record<(typeof TABS)[number], string> = {
   Testimonials: 'Reviews from real customers. Send the review link after a job and approve new reviews before they show.',
   Redirects: 'When a page address changes, the old address sends visitors and Google to the new one, so no ranking is lost.',
   Payroll: 'Employees, daily attendance and the monthly salary run with payslips.',
+  'QR page': 'The page the QR code on the business cards opens. Update it any time.',
   Settings: 'Company details, contact, Google and trust information used across the site.',
 };
 
@@ -587,6 +656,7 @@ export default function Admin() {
       {tab === 'Team' && <Crud table="team" fields={[{ key: 'name', label: 'Name' }, { key: 'role', label: 'Role / title' }, { key: 'bio', label: 'Short bio (optional)', area: true, optional: true }, { key: 'sort_order', label: 'Order (smaller shows first)', num: true }, { key: 'image_url', label: 'Photo (optional)', image: true }]} />}
       {tab === 'Payroll' && <Payroll />}
       {tab === 'Redirects' && <Redirects />}
+      {tab === 'QR page' && <CardSettings />}
       {tab === 'Settings' && <Settings />}
       {tab === 'Testimonials' && <ReviewLink />}
       {tab === 'Testimonials' && <Crud table="testimonials" fields={[

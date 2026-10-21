@@ -14,10 +14,11 @@ import Blog from './pages/Blog';
 import ProjectPage from './pages/ProjectPage';
 import './styles.css';
 
-// admin (with payroll and attendance) and the review form are rarely opened: load them only when visited,
+// admin (with payroll and attendance), the review form and the business-card QR page are rarely opened: load them only when visited,
 // so visitors' phones do not download and run that code
 const Admin = lazy(() => import('./pages/Admin'));
 const Review = lazy(() => import('./pages/Review'));
+const CardPage = lazy(() => import('./pages/CardPage'));
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -37,6 +38,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/privacy-policy" element={<Privacy />} />
           <Route path="/about" element={<About />} />
           <Route path="/review" element={<Review />} />
+          <Route path="/card" element={<CardPage />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -994,3 +994,34 @@ html.lenis,html.lenis body{height:auto}
 @media(max-width:900px){.qx-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.qx-cards a{transition:none}.qx-cards a:hover{transform:none}}
 .qx-form ::placeholder{color:#8a9c9f}
+
+/* /card: the page the business-card QR code opens (phone first) */
+.cardpage{--cg:#0d4a35;--cgold:#d2ac55;flex:1 0 auto;background:var(--paper);padding-bottom:28px}
+.cp-head{background:var(--cg);color:#f6eed6;text-align:center;padding:28px 20px 64px;border-radius:0 0 28px 28px}
+.cp-head img{height:44px;width:auto;margin-bottom:18px}
+.cp-head h1{font-size:clamp(1.7rem,6vw,2.3rem);color:#fff;margin:0 0 8px}
+.cp-intro{max-width:46ch;margin:0 auto;color:#e8d9a8}
+.cp-body{max-width:560px;margin:-40px auto 0;padding:0 16px;display:grid;gap:18px}
+.cp-notice{margin:0;padding:14px 16px;border-radius:14px;background:#fdf1d3;border:1px solid #e0b740;font-weight:600;white-space:pre-line}
+.cp-hero{width:100%;border-radius:14px;display:block;aspect-ratio:16/9;object-fit:cover}
+.cp-list{display:grid;gap:10px}
+.cp-row{display:flex;align-items:center;gap:14px;padding:14px 16px;min-height:64px;background:var(--card);border:1px solid var(--line);border-radius:14px;color:var(--ink);text-decoration:none;box-shadow:0 4px 14px rgba(16,52,58,.06);transition:border-color .2s,transform .2s}
+.cp-row:hover{border-color:var(--cgold);transform:translateY(-1px)}
+.cp-ic{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--cg);color:var(--cgold)}
+.cp-ic svg,.cp-go svg,.cp-foot svg{width:22px;height:22px}
+.cp-txt{flex:1;min-width:0}.cp-txt strong{display:block;font-weight:600}.cp-txt span{display:block;color:var(--muted);font-size:.95rem;overflow-wrap:anywhere}
+.cp-go{flex:none;color:var(--muted)}
+.cp-sec h2{font-size:1.25rem;margin:6px 0 10px}
+.cp-sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}.cp-sec-head a{font-weight:600}
+.cp-chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.cp-chips a{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);text-decoration:none;font-size:.95rem}
+.cp-chips a:hover{border-color:var(--cgold)}
+.cp-pics{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cp-pics img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}
+.cp-review{margin:0 0 10px;padding:14px 16px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.cp-review blockquote{margin:4px 0 6px}.cp-review figcaption{color:var(--muted);font-size:.92rem}
+.cp-stars{color:#d29b00;letter-spacing:2px}
+.cp-quote{margin-top:24px}
+.cp-foot{max-width:560px;margin:24px auto 0;padding:0 16px;display:grid;gap:10px;justify-items:center;text-align:center}
+.cp-foot .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;border-radius:999px;padding:13px 18px;background:var(--cg);border-color:var(--cg);color:#fff}
+@media(prefers-reduced-motion:reduce){.cp-row{transition:none}.cp-row:hover{transform:none}}

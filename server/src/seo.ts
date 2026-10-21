@@ -188,6 +188,9 @@ export function pageMeta(path: string, S: Settings, data: SeoData = { services: 
       return { title: `Privacy policy – ${co}`, description: clip(`How ${co} collects and uses the details you send us.`), canonical: path, status: 200 };
     case '/review':
       return { title: `Leave a review – ${co}`, description: clip(`Tell us how ${co} did on your job.`), noindex: true, status: 200 };
+    case '/card':
+      // the page the QR code on business cards opens: kept out of Google and the sitemap
+      return { title: `${S.card_title || 'Welcome'} – ${co}`, description: clip(S.card_intro || ''), noindex: true, status: 200 };
     case '/admin':
       return { title: `Admin – ${co}`, description: '', noindex: true, status: 200 };
     default:
