@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { api } from '../api';
 import type { Settings } from './Shell';
+import { track } from '../analytics';
 
 // One-row quote form under the home page hero: only name and WhatsApp are needed.
 const EMPTY = { name: '', whatsapp: '', email: '', address: '' };
@@ -15,6 +16,7 @@ export default function QuickQuote({ S }: { S: Settings }) {
     setState({ kind: 'sending' });
     try {
       await api('/quotes', { method: 'POST', body: { ...form, quick: true } });
+      track('generate_lead', { form: 'quick_quote' });
       setState({ kind: 'ok' });
       setForm(EMPTY);
     } catch (err) {

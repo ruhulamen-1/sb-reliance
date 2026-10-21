@@ -13,6 +13,9 @@ import PostPage from './pages/PostPage';
 import Blog from './pages/Blog';
 import ProjectPage from './pages/ProjectPage';
 import './styles.css';
+import { trackContactClicks } from './analytics';
+
+trackContactClicks();
 
 // admin (with payroll and attendance), the review form and the business-card QR page are rarely opened: load them only when visited,
 // so visitors' phones do not download and run that code

@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { api } from '../api';
 import type { Settings } from './Shell';
+import { track } from '../analytics';
 
 const EMPTY_FORM = { name: '', whatsapp: '', address: '', house_type: '', service_type: '', preferred_date: '', message: '' };
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
@@ -19,6 +20,8 @@ export default function QuoteForm({ S, serviceNames, defaultService = '', compac
     setState({ kind: 'sending' });
     try {
       await api('/quotes', { method: 'POST', body: { ...form, addons, ...(source ? { source } : {}) } });
+      // the lead GA4 counts (mark generate_lead as a key event in Google Analytics)
+      track('generate_lead', { form: source === 'card' ? 'qr_page_quote' : 'quote_form', service: form.service_type, property_type: form.house_type });
       setState({ kind: 'ok' });
       setSent(form);
       setForm({ ...EMPTY_FORM, service_type: defaultService });
