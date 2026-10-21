@@ -581,6 +581,8 @@ app.post('/api/quotes', wrap(async (req, res) => {
   const email = String(b.email ?? '').trim().slice(0, 150);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Please check the email address' });
   if (quick) Object.assign(b, { address: String(b.address ?? '').trim() || '-', house_type: '-', service_type: 'Quick enquiry', addons: [] });
+  // requests from the business-card QR page are marked, so Admin and the alert show where the lead came from
+  if (b.source === 'card') b.message = ['(Sent from the business-card QR page)', String(b.message ?? '').trim()].filter(Boolean).join('\n');
   const [r] = await pool.query<ResultSetHeader>(
     'INSERT INTO quotes (name, whatsapp, email, address, house_type, service_type, addons, preferred_date, message) VALUES (?,?,?,?,?,?,?,?,?)',
     [b.name, b.whatsapp, email || null, b.address, b.house_type, b.service_type, JSON.stringify(b.addons || []), b.preferred_date || null, b.message || null],
@@ -1290,6 +1292,30 @@ app.get('/sitemap.xml', wrap(async (req, res) => {
   const [posts] = await pool.query<RowDataPacket[]>("SELECT title, slug, excerpt, created_at FROM posts WHERE status = 'published' ORDER BY id DESC");
   const [projects] = await pool.query<RowDataPacket[]>('SELECT title, slug, description FROM gallery ORDER BY id DESC');
   res.type('application/xml').send(sitemapXml(baseUrl(req, await getSettings()), services as SeoService[], posts as SeoPost[], projects as SeoProject[]));
+}));
+
+// /card.vcf: the company as a phone contact, for the "Save our contact" button on the QR page
+const vEsc = (v: unknown) => String(v ?? '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/([,;])/g, '\\$1');
+app.get('/card.vcf', wrap(async (req, res) => {
+  const S = await getSettings();
+  const co = S.company_name || S.brand || 'SB Reliance Pte Ltd';
+  const tel = (S.phone || '').replace(/[^\d+]/g, '');
+  const wa = (S.whatsapp || '').replace(/\D/g, '');
+  const email = (S.email || '').trim();
+  const card = [
+    'BEGIN:VCARD', 'VERSION:3.0',
+    `FN:${vEsc(co)}`, `ORG:${vEsc(co)}`,
+    tel && `TEL;TYPE=WORK,VOICE:${tel}`,
+    wa && wa !== tel.replace(/\D/g, '') && `TEL;TYPE=CELL:+${wa}`,
+    email && !/@example\.com$/i.test(email) && `EMAIL;TYPE=WORK:${vEsc(email)}`,
+    S.address && `ADR;TYPE=WORK:;;${vEsc(S.address)};;;;Singapore`,
+    `URL:${baseUrl(req, S)}`,
+    wa && `X-SOCIALPROFILE;TYPE=whatsapp:https://wa.me/${wa}`,
+    wa && `NOTE:${vEsc(`WhatsApp: https://wa.me/${wa}`)}`,
+    'END:VCARD',
+  ].filter(Boolean).join('\r\n');
+  res.set({ 'Content-Type': 'text/vcard; charset=utf-8', 'Content-Disposition': `attachment; filename="${co.replace(/[^\w ]+/g, '').trim().replace(/\s+/g, '-') || 'contact'}.vcf"`, 'Cache-Control': 'no-cache' });
+  res.send(card + '\r\n');
 }));
 
 const clientDist = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'client', 'dist');

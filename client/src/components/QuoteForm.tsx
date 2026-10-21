@@ -5,7 +5,9 @@ import type { Settings } from './Shell';
 const EMPTY_FORM = { name: '', whatsapp: '', address: '', house_type: '', service_type: '', preferred_date: '', message: '' };
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
-export default function QuoteForm({ S, serviceNames, defaultService = '' }: { S: Settings; serviceNames: string[]; defaultService?: string }) {
+/** compact: a shorter form (no extra services or date), for the business-card QR page; source is sent along to mark where the lead came from */
+export default function QuoteForm({ S, serviceNames, defaultService = '', compact = false, source }:
+  { S: Settings; serviceNames: string[]; defaultService?: string; compact?: boolean; source?: string }) {
   const [form, setForm] = useState({ ...EMPTY_FORM, service_type: defaultService });
   const [addons, setAddons] = useState<string[]>([]);
   const [state, setState] = useState<{ kind: 'idle' | 'sending' | 'ok' | 'err'; msg?: string }>({ kind: 'idle' });
@@ -16,7 +18,7 @@ export default function QuoteForm({ S, serviceNames, defaultService = '' }: { S:
     e.preventDefault();
     setState({ kind: 'sending' });
     try {
-      await api('/quotes', { method: 'POST', body: { ...form, addons } });
+      await api('/quotes', { method: 'POST', body: { ...form, addons, ...(source ? { source } : {}) } });
       setState({ kind: 'ok' });
       setSent(form);
       setForm({ ...EMPTY_FORM, service_type: defaultService });
@@ -33,16 +35,20 @@ export default function QuoteForm({ S, serviceNames, defaultService = '' }: { S:
       <label className="full">Address<input required value={form.address} onChange={set('address')} placeholder="Block, street, unit or postal code" autoComplete="street-address" /></label>
       <label>Property type<select required value={form.house_type} onChange={set('house_type')}><option value="">Select</option>{lines(S.property_types).map((h) => <option key={h}>{h}</option>)}</select></label>
       <label>Main service needed<select required value={form.service_type} onChange={set('service_type')}><option value="">Select</option>{serviceNames.map((h) => <option key={h}>{h}</option>)}</select></label>
-      <fieldset className="full">
-        <legend>Other services needed</legend>
-        {serviceNames.map((a) => (
-          <label key={a} className="check">
-            <input type="checkbox" checked={addons.includes(a)} onChange={(e) => setAddons(e.target.checked ? [...addons, a] : addons.filter((x) => x !== a))} />
-            {a}
-          </label>
-        ))}
-      </fieldset>
-      <label>Preferred date<input type="date" value={form.preferred_date} onChange={set('preferred_date')} /></label>
+      {!compact && (
+        <>
+        <fieldset className="full">
+          <legend>Other services needed</legend>
+          {serviceNames.map((a) => (
+            <label key={a} className="check">
+              <input type="checkbox" checked={addons.includes(a)} onChange={(e) => setAddons(e.target.checked ? [...addons, a] : addons.filter((x) => x !== a))} />
+              {a}
+            </label>
+          ))}
+        </fieldset>
+        <label>Preferred date<input type="date" value={form.preferred_date} onChange={set('preferred_date')} /></label>
+        </>
+      )}
       <label className="full">Message<textarea rows={3} value={form.message} onChange={set('message')} placeholder="Tell us a little about the job" /></label>
       <button className="btn full" disabled={state.kind === 'sending'}>{state.kind === 'sending' ? 'Sending…' : 'Send request'}</button>
       {state.kind === 'ok' && (

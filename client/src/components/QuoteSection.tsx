@@ -25,8 +25,8 @@ function hoursCard(line: string): [string, string] {
 }
 
 /** The quote request block: a heading and ways to reach us on the left, the form in a card on the right. */
-export default function QuoteSection({ S, serviceNames, title, defaultService = '', contact = true }:
-  { S: Settings; serviceNames: string[]; title?: string; defaultService?: string; contact?: boolean }) {
+export default function QuoteSection({ S, serviceNames, title, defaultService = '', contact = true, compact = false, source }:
+  { S: Settings; serviceNames: string[]; title?: string; defaultService?: string; contact?: boolean; compact?: boolean; source?: string }) {
   const tel = (S.phone || '').replace(/[^\d+]/g, '');
   const wa = (S.whatsapp || '').replace(/\D/g, '');
   const email = realEmail(S.email);
@@ -72,7 +72,7 @@ export default function QuoteSection({ S, serviceNames, title, defaultService = 
           )}
         </div>
         <div className="qx-form">
-          <QuoteForm S={S} serviceNames={serviceNames} defaultService={defaultService} />
+          <QuoteForm S={S} serviceNames={serviceNames} defaultService={defaultService} compact={compact} source={source} />
         </div>
       </div>
     </section>
