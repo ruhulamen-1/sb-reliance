@@ -334,6 +334,8 @@ const SETTING_FIELDS: { key: string; label: string; area?: boolean; hint?: strin
   { key: 'ga_measurement_id', label: 'Google Analytics measurement ID (optional)', hint: 'From Google Analytics > Admin > Data streams > your website, e.g. G-AB12CD34EF. Empty turns Analytics off. Takes effect on the next page load.' },
   { key: 'page_bg', label: 'Hero background image (optional, the large photo behind the top of the home page)', image: true, hint: 'A wide photo of your work, at least 1600 px wide. The left side is lightened so the headline stays easy to read.' },
   { key: 'hero_media', label: 'Hero picture, animation or video (optional, right side of the top section)', image: true, media: true, hint: 'Empty keeps the right side clear. JPG, PNG (also with no background), WebP or GIF up to 5 MB, or a short MP4 / WebM video up to 20 MB (plays muted on a loop).' },
+  { key: 'work_title', label: 'Our work page: heading', hint: 'Put a word between * to show it in gold, e.g. Projects we have *built* across Singapore' },
+  { key: 'work_intro', label: 'Our work page: short intro', area: true },
   { key: 'hero_badge', label: 'Small line above the headline (optional)', hint: 'e.g. Trusted contractor in Singapore. Empty hides it.' },
   { key: 'hero_title', label: 'Hero headline', hint: 'Put a word or two between * to show them in gold, e.g. Your *aircon & ACMV* team in Singapore' },
   { key: 'hero_lead', label: 'Hero paragraph', area: true },

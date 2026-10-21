@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
 import About from './pages/About';
 import Portfolio from './pages/Portfolio';
+import OurWork from './pages/OurWork';
 import Team from './pages/Team';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
@@ -34,6 +35,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/services/:slug" element={<ServicePage />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<PostPage />} />
+          <Route path="/our-work" element={<OurWork />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/portfolio/:slug" element={<ProjectPage />} />
           <Route path="/team" element={<Team />} />

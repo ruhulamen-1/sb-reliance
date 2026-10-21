@@ -133,6 +133,7 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
                 <Link className="nav-drop-all" to="/services">All services <span aria-hidden="true">→</span></Link>
               </div>
             </div>
+            <NavLink to="/our-work">Our work</NavLink>
             <NavLink to="/portfolio">Portfolio</NavLink>
             <NavLink to="/why-us">Why us</NavLink>
             <NavLink to="/blog">Blog</NavLink>
@@ -175,6 +176,7 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
                 <ul>
                   <li><Link to="/">Home</Link></li>
                   <li><Link to="/services">Services</Link></li>
+                  <li><Link to="/our-work">Our work</Link></li>
                   <li><Link to="/portfolio">Portfolio</Link></li>
                   <li><Link to="/why-us">Why us</Link></li>
                   <li><Link to="/about">About us</Link></li>

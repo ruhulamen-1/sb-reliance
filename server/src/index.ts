@@ -104,6 +104,9 @@ const DEFAULTS: Record<string, string> = {
   ].join('\n'),
   page_bg: '',
   hero_badge: '',
+  // /our-work page heading and intro (a word between * shows in gold)
+  work_title: 'Projects we have *built* across Singapore',
+  work_intro: 'Aircon ducting, ACMV, electrical, CCTV, ceiling partition and renovation works we have completed for homes, offices, shops and factories.',
   hero_media: '',
   hero_title: 'Air-con, electrical, CCTV and building works from one contractor.',
   hero_lead:
@@ -1358,7 +1361,7 @@ if (existsSync(clientDist)) {
         [allPosts] = await pool.query<RowDataPacket[]>("SELECT id, title, slug, excerpt, image_url, created_at FROM posts WHERE status = 'published' ORDER BY id DESC LIMIT 200");
       }
       let projects: RowDataPacket[] | undefined;
-      if (/^\/portfolio\/?$/.test(req.path)) {
+      if (/^\/(portfolio|our-work)\/?$/.test(req.path)) {
         [projects] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, category, location, description, image_url FROM gallery ORDER BY id DESC LIMIT 200');
       }
       const data = { services: services as SeoService[], post, project: (project?.project as SeoProject) || null, posts: allPosts as SeoPost[] | undefined, projects: projects as SeoProject[] | undefined };

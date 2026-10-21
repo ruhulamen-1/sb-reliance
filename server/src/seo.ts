@@ -120,7 +120,7 @@ export function projectService<T extends SeoService>(project: object, services: 
 }
 
 /** Pages that should be in the sitemap. /services and /why-us show the home page, so they are not listed. */
-export const INDEXABLE = ['/', '/blog', '/portfolio', '/team', '/contact', '/about', '/privacy-policy'];
+export const INDEXABLE = ['/', '/blog', '/our-work', '/portfolio', '/team', '/contact', '/about', '/privacy-policy'];
 const HOME_ALIASES: Record<string, string> = { '/services': 'Services', '/why-us': 'Why choose us' };
 
 interface PageMeta {
@@ -176,6 +176,8 @@ export function pageMeta(path: string, S: Settings, data: SeoData = { services: 
     case '/why-us':
     case '/blog':
       return { title: `Blog – ${co}`, description: clip(`Guides from ${co} on hacking, renovation, air-conditioning, electrical, CCTV, painting and tiling in Singapore.`), canonical: path, status: 200 };
+    case '/our-work':
+      return { title: `Our work – ${co}`, description: clip(S.work_intro || `Projects completed by ${co} in Singapore: aircon ducting, ACMV, electrical, CCTV, ceiling and renovation works.`), canonical: path, status: 200 };
     case '/portfolio':
       return { title: `Portfolio – ${co}`, description: clip(`Completed projects by ${co}: air-conditioning, electrical, CCTV, ceiling, painting, tiles and building works.`), canonical: path, status: 200 };
     case '/team':
@@ -434,6 +436,9 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
       + contact;
   } else if (path === '/blog') {
     main = `<h1>Blog</h1><ul>${(data.posts || []).map((p) => `<li><a href="/blog/${esc(encodeURIComponent(p.slug))}">${esc(p.title)}</a></li>`).join('')}</ul>`;
+  } else if (path === '/our-work') {
+    const list = (data.projects || []).filter((p) => p.slug && projectIndexable(p)).map((p) => `<li><a href="/portfolio/${esc(encodeURIComponent(p.slug))}">${esc(projectHeading(p))}</a>${p.category ? ` – ${esc(p.category)}` : ''}</li>`).join('');
+    main = `<h1>Our work</h1><p>${esc(S.work_intro || `Projects completed by ${co} in Singapore.`)}</p>${list ? `<ul>${list}</ul>` : ''}`;
   } else if (path === '/portfolio') {
     const list = (data.projects || []).filter((p) => p.slug && projectIndexable(p)).map((p) => `<li><a href="/portfolio/${esc(encodeURIComponent(p.slug))}">${esc(projectHeading(p))}</a></li>`).join('');
     main = `<h1>Portfolio</h1><p>Completed projects by ${esc(co)}.</p>${list ? `<ul>${list}</ul>` : ''}`;
