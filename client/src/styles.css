@@ -1193,3 +1193,8 @@ button.cp-row{width:100%;font:inherit;text-align:left;cursor:pointer}
 }
 @media(prefers-reduced-motion:reduce){.ow-pic img{transition:none}.ow-row:hover .ow-pic img{transform:none}}
 .ow-meta{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px 20px}
+/* /our-work heading over a background photo (Admin > Settings): the left is lightened for the text, the right stays clear */
+.ow-hero.has-bg{background:linear-gradient(90deg,rgba(251,250,247,.96) 0%,rgba(251,250,247,.9) 36%,rgba(251,250,247,.35) 66%,rgba(251,250,247,.05) 100%),var(--ow-bg) center/cover no-repeat;min-height:min(62vh,520px);display:flex;align-items:center}
+.ow-hero.has-bg>.wrap{width:100%}
+.ow-hero.has-bg::after{display:none}
+@media(max-width:900px){.ow-hero.has-bg{background:linear-gradient(180deg,rgba(251,250,247,.93) 0%,rgba(251,250,247,.85) 70%,rgba(251,250,247,.75) 100%),var(--ow-bg) center/cover no-repeat;min-height:0}}

@@ -29,14 +29,23 @@ export default function OurWork() {
   }, []);
   useSeo({ title: S.company_name ? `Our work – ${S.company_name}` : '', description: S.work_intro, canonical: '/our-work' });
 
-  const cats = Array.from(new Set(items.map((i) => i.category).filter(Boolean))) as string[];
-  const shown = cat ? items.filter((i) => i.category === cat) : items;
+  // a project's category can list several kinds of work ("Drywall, Ceiling, Insulation"): each one is its own filter,
+  // the same word written twice ("ACMV", "acmv ") shows once, and the most used come first
+  const tagsOf = (p: Project) => (p.category || '').split(/[,/|]/).map((t) => t.trim()).filter(Boolean);
+  const count = new Map<string, { label: string; n: number }>();
+  items.forEach((p) => tagsOf(p).forEach((t) => {
+    const k = t.toLowerCase();
+    const c = count.get(k);
+    if (c) c.n += 1; else count.set(k, { label: t, n: 1 });
+  }));
+  const cats = [...count.values()].sort((a, b) => b.n - a.n).map((c) => c.label);
+  const shown = cat ? items.filter((p) => tagsOf(p).some((t) => t.toLowerCase() === cat.toLowerCase())) : items;
   const stats = statPairs(S).slice(0, 3);
   const wa = (S.whatsapp || '').replace(/\D/g, '');
 
   return (
     <Shell S={S} services={services}>
-      <section className="ow-hero">
+      <section className={S.work_bg ? 'ow-hero has-bg' : 'ow-hero'} style={S.work_bg ? { ['--ow-bg' as string]: `url("${S.work_bg}")` } : undefined}>
         <div className="wrap ow-hero-grid">
           <div>
             <p className="hero-badge">Our work</p>
@@ -81,7 +90,7 @@ export default function OurWork() {
                 <h3><Link to={`/portfolio/${p.slug}`}>{projectHeading(p)}</Link></h3>
                 {p.description && <p className="ow-desc">{short(p.description)}</p>}
                 <dl className="ow-meta">
-                  {p.category && <div><dt>Work</dt><dd>{p.category}</dd></div>}
+                  {p.category && <div><dt>Work</dt><dd>{tagsOf(p).join(', ')}</dd></div>}
                   {p.location && <div><dt>Location</dt><dd>{p.location}</dd></div>}
                   {p.duration && <div><dt>Duration</dt><dd>{p.duration}</dd></div>}
                 </dl>

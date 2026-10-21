@@ -106,6 +106,7 @@ const DEFAULTS: Record<string, string> = {
   hero_badge: '',
   // /our-work page heading and intro (a word between * shows in gold)
   work_title: 'Projects we have *built* across Singapore',
+  work_bg: '',
   work_intro: 'Aircon ducting, ACMV, electrical, CCTV, ceiling partition and renovation works we have completed for homes, offices, shops and factories.',
   hero_media: '',
   hero_title: 'Air-con, electrical, CCTV and building works from one contractor.',
