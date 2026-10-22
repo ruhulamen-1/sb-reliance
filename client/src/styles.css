@@ -1351,3 +1351,12 @@ table.sheet{border-collapse:separate;border-spacing:0;width:max-content;min-widt
 }
 @media (max-width:700px){table.mcards td :is(input,select),table.mcards td.cell :is(input,select){height:auto!important;min-height:44px}}
 @media (max-width:700px){table.mcards td[data-label="Notes"],table.mcards td[data-label="Note"]{grid-column:1/-1}}
+
+/* frozen header row that follows the page (see useFrozenHeader): the box scrolls sideways only */
+.sheet-wrap{max-height:none;overflow-x:auto;overflow-y:hidden}
+.sheet thead th{position:relative;top:auto;transform:translateY(var(--freeze-y,0px));will-change:transform}
+.sheet thead th.rn,.sheet thead th.stick{position:sticky;top:auto}
+.sheet-wrap.frozen thead th{box-shadow:0 2px 0 #c7cdd1,0 6px 10px -4px rgba(16,52,58,.18)}
+.sheet-wrap.frozen thead th.stick{box-shadow:2px 0 0 #c7cdd1,0 6px 10px -4px rgba(16,52,58,.18)}
+.sheet tfoot td{position:relative;bottom:auto}
+.sheet tfoot td.rn,.sheet tfoot td.stick{position:sticky;bottom:auto}

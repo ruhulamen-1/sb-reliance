@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { api } from '../api';
 import { useRemembered } from '../remember';
@@ -131,6 +131,7 @@ function Employees() {
   const [q, setQ] = useState('');
   const [msg, setMsg] = useState('');
   const [open, setOpen] = useState<number | null>(null); // phones: the employee whose full details are shown
+  const freezeEmp = useFrozenHeader([rows.length]);
   const load = useCallback(() => {
     api<Row[]>('/admin/employees', { auth: true }).then((d) => { setRows(d); setSaved(Object.fromEntries(d.map((r) => [r.id, JSON.stringify(r)]))); }).catch((e: Error) => setMsg(e.message));
   }, []);
@@ -182,7 +183,7 @@ function Employees() {
         <span className="sheet-count">{active.length} active · {rows.length - active.length} inactive</span>
       </div>
       {msg && <p className="err" role="alert">{msg}</p>}
-      <div className="pay-scroll sheet-wrap">
+      <div className="pay-scroll sheet-wrap" ref={freezeEmp}>
         <table className="sheet emp-sheet mcards" onKeyDown={enterDown}>
           <thead>
             <tr><th className="rn" aria-label="Row" />{EMP_SHEET.map(([k, l, kind, w], i) => <th key={k} className={`${kind === 'num' ? 'num' : ''}${i === 0 ? ' stick' : ''}`} style={{ minWidth: w }}>{l}</th>)}<th aria-label="Delete" /></tr>
@@ -233,6 +234,38 @@ const EDIT: [string, string, ('daily' | 'monthly')?][] = [
 ];
 const basisOf = (r: Row) => (r.pay_basis === 'daily' ? 'daily' : 'monthly');
 
+
+/** Excel-style "freeze top row": the sheet scrolls with the page, and its header row stays just under the Admin bar
+ *  until the end of the table. (The box only scrolls sideways, so the header can follow the page.) */
+function useFrozenHeader(deps: unknown[]) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const wrap = ref.current;
+    if (!wrap) return;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const table = wrap.querySelector('table');
+      const head = table?.querySelector('thead');
+      if (!table || !head || getComputedStyle(head).display === 'none') return; // phones show cards, no header row
+      const bar = document.querySelector('.admin-bar')?.getBoundingClientRect().bottom ?? 0;
+      const top = table.getBoundingClientRect().top;
+      const foot = table.querySelector('tfoot') as HTMLElement | null;
+      const room = table.offsetHeight - head.offsetHeight - (foot?.offsetHeight ?? 0);
+      const y = Math.max(0, Math.min(bar - top, room));
+      wrap.style.setProperty('--freeze-y', `${y}px`);
+      wrap.classList.toggle('frozen', y > 0);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); cancelAnimationFrame(raf); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return ref;
+}
+
 /** Enter in a cell goes to the same column one row down (Shift+Enter one row up), as in Excel / Google Sheets. */
 function enterDown(e: React.KeyboardEvent<HTMLTableElement>) {
   const el = e.target as HTMLElement;
@@ -254,6 +287,7 @@ function Month() {
   const [msg, setMsg] = useState('');
   const [company, setCompany] = useState<Row>({});
   const [slip, setSlip] = useState<Row>({});
+  const freezeMonth = useFrozenHeader([items.length > 0]);
   const load = useCallback(() => {
     setMsg('');
     api<{ items: Row[] }>(`/admin/payroll?period=${period}`, { auth: true }).then((d) => setItems(d.items)).catch((e: Error) => setMsg(e.message));
@@ -332,7 +366,7 @@ function Month() {
             <div><small>Levy</small><strong>${$(sum('levy'))}</strong></div>
             <div><small>Total company cost</small><strong>${$(cost)}</strong></div>
           </div>
-          <div className="pay-scroll sheet-wrap">
+          <div className="pay-scroll sheet-wrap" ref={freezeMonth}>
             <table className="pay-table sheet mcards pay-month" onKeyDown={enterDown}>
               <thead>
                 <tr><th className="rn" aria-label="Row" /><th className="stick">Employee</th><th>Basic</th>{EDIT.map(([, l]) => <th key={l} className="num">{l}</th>)}<th className="num">Gross</th><th className="num">CPF employee / employer</th><th className="num">Net pay</th><th>Status</th><th /></tr>
