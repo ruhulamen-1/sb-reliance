@@ -1252,3 +1252,6 @@ button.cp-row{width:100%;font:inherit;text-align:left;cursor:pointer}
     .ow-row .ow-media,.ow-row.flip .ow-media,.ow-row .ow-body,.ow-row.flip .ow-body{animation-name:sd-text}
   }
 }
+.emp-import{margin-bottom:16px}.emp-import summary{cursor:pointer;font-weight:700}
+.emp-import input[type=file]{margin:10px 0}
+.emp-preview td,.emp-preview th{white-space:nowrap}

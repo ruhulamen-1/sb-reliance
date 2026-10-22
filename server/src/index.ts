@@ -788,6 +788,30 @@ app.post('/api/admin/employees', auth, wrap(async (req, res) => {
   const [r] = await pool.query<ResultSetHeader>('INSERT INTO employees SET ?', [e]);
   res.status(201).json({ id: r.insertId });
 }));
+// many employees at once (Admin > Payroll > Employees > Import). A row matches an existing employee by NRIC / FIN,
+// or by name when it has none; for a match only the columns filled in the file are changed, so salaries set in Admin stay.
+app.post('/api/admin/employees/import', auth, wrap(async (req, res) => {
+  const rows = Array.isArray(req.body?.rows) ? (req.body.rows as Record<string, unknown>[]).slice(0, 500) : [];
+  let added = 0, updated = 0;
+  const skipped: string[] = [];
+  for (const raw of rows) {
+    const e = employeeRow(raw);
+    if (!e.name) { skipped.push('a row without a name'); continue; }
+    const filled = EMP_COLS.filter((k) => raw[k] !== undefined && String(raw[k]).trim() !== '');
+    const [found] = e.id_number
+      ? await pool.query<RowDataPacket[]>('SELECT id FROM employees WHERE id_number = ? LIMIT 1', [e.id_number])
+      : await pool.query<RowDataPacket[]>("SELECT id FROM employees WHERE (id_number IS NULL OR id_number = '') AND UPPER(name) = UPPER(?) LIMIT 1", [e.name]);
+    if (found[0]) {
+      const part = Object.fromEntries(filled.map((k) => [k, e[k]]));
+      if (Object.keys(part).length) await pool.query('UPDATE employees SET ? WHERE id = ?', [part, found[0].id]);
+      updated += 1;
+    } else {
+      await pool.query('INSERT INTO employees SET ?', [e]);
+      added += 1;
+    }
+  }
+  res.json({ added, updated, skipped });
+}));
 app.put('/api/admin/employees/:id', auth, wrap(async (req, res) => {
   const e = employeeRow(req.body);
   if (!e.name) return res.status(400).json({ error: 'Name is required' });

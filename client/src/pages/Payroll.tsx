@@ -36,11 +36,76 @@ export default function Payroll() {
   );
 }
 
+// CSV for Admin > Payroll > Employees > Import: the first row holds column names (name, id_number, pass_type, ...)
+const EMP_KEYS = ['name', 'id_number', 'pass_type', 'date_of_birth', 'designation', 'join_date', 'pay_basis', 'basic_salary', 'daily_rate', 'transport', 'fixed_allowance', 'ot_rate', 'monthly_levy', 'bank_name', 'bank_account', 'active', 'notes'];
+function parseCsv(text: string): string[][] {
+  const out: string[][] = [];
+  let row: string[] = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); out.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); out.push(row); }
+  return out.filter((r) => r.some((x) => x.trim()));
+}
+// 15/07/2028 (as MOM and CPF write dates) -> 2028-07-15
+const isoDay = (v: string) => { const m = v.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : v.trim(); };
+
+function ImportEmployees({ onDone }: { onDone: () => void }) {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function pick(file?: File) {
+    setMsg(''); setRows([]);
+    if (!file) return;
+    const table = parseCsv((await file.text()).replace(/^\uFEFF/, ''));
+    const head = (table.shift() || []).map((h) => h.trim().toLowerCase());
+    const unknown = head.filter((h) => h && !EMP_KEYS.includes(h));
+    if (!head.includes('name')) return setMsg('The first row must have column names, including "name".');
+    const list = table.map((r) => Object.fromEntries(head.map((h, i) => [h, /date/.test(h) ? isoDay(r[i] || '') : (r[i] || '').trim()]).filter(([h]) => EMP_KEYS.includes(h))));
+    setRows(list.filter((r) => r.name));
+    if (unknown.length) setMsg(`These columns are not used: ${unknown.join(', ')}`);
+  }
+  async function send() {
+    setBusy(true);
+    try {
+      const r = await api<{ added: number; updated: number; skipped: string[] }>('/admin/employees/import', { method: 'POST', auth: true, body: { rows } });
+      setMsg(`Done: ${r.added} added, ${r.updated} updated${r.skipped.length ? `, ${r.skipped.length} skipped` : ''}.`);
+      setRows([]);
+      onDone();
+    } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
+  }
+  return (
+    <details className="card emp-import">
+      <summary>Import employees from a file (CSV / Excel)</summary>
+      <p className="pay-hint">Save the Excel sheet as CSV. The first row holds the column names: {EMP_KEYS.join(', ')}. Only "name" is required. Dates can be 15/07/2028 or 2028-07-15. pass_type is WP, SPASS, EP, SC, PR3 or PR12; pay_basis is daily or monthly. An employee who is already in the list (same NRIC / FIN, or the same name when there is none) is updated, not added twice, and only the filled columns change.</p>
+      <input type="file" accept=".csv,text/csv" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }} />
+      {rows.length > 0 && (
+        <>
+          <div className="att-scroll"><table className="att-table emp-preview">
+            <thead><tr><th>#</th><th>Name</th><th>Pass</th><th>NRIC / FIN</th><th>Pay</th><th>Levy</th></tr></thead>
+            <tbody>{rows.map((r, i) => <tr key={i}><td>{i + 1}</td><td>{r.name}</td><td>{passName(r.pass_type || 'WP')}</td><td>{r.id_number || '–'}</td><td>{r.pay_basis === 'daily' ? `${r.daily_rate || 0}/day` : r.basic_salary ? `${r.basic_salary}/month` : '–'}</td><td>{r.monthly_levy || '–'}</td></tr>)}</tbody>
+          </table></div>
+          <button type="button" className="btn" disabled={busy} onClick={send}>{busy ? 'Importing…' : `Import ${rows.length} employees`}</button>
+        </>
+      )}
+      {msg && <p className={/^Done/.test(msg) ? 'ok' : 'err'}>{msg}</p>}
+    </details>
+  );
+}
+
 function Employees() {
+  const [ver, setVer] = useState(0);
   return (
     <>
+      <ImportEmployees onDone={() => setVer((v) => v + 1)} />
       <p className="pay-hint">Add each employee once. Their basic salary, fixed allowance and levy are copied into every new month; you can still change the month's figures. Date of birth is needed for CPF (Singapore Citizens and PRs). Employees with salary records cannot be deleted; set them to inactive.</p>
-      <Crud table="employees" fields={[
+      <Crud key={ver} table="employees" fields={[
         { key: 'name', label: 'Name (as on NRIC / work pass)' },
         { key: 'designation', label: 'Designation', optional: true },
         { key: 'pass_type', label: 'Citizenship / pass', options: PASS },
