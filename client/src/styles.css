@@ -1360,3 +1360,35 @@ table.sheet{border-collapse:separate;border-spacing:0;width:max-content;min-widt
 .sheet-wrap.frozen thead th.stick{box-shadow:2px 0 0 #c7cdd1,0 6px 10px -4px rgba(16,52,58,.18)}
 .sheet tfoot td{position:relative;bottom:auto}
 .sheet tfoot td.rn,.sheet tfoot td.stick{position:sticky;bottom:auto}
+
+/* monthly payroll: columns fitted to their contents so the whole month fits a laptop screen */
+.admin .pay-table.pay-month{width:100%;min-width:0;table-layout:auto}
+.admin .pay-table.pay-month thead th{white-space:normal;line-height:1.2;vertical-align:bottom;padding:6px 6px;font-size:11.5px}
+.admin .pay-table.pay-month td{padding:4px 6px}
+.admin .pay-table.pay-month td.cell,.admin.wide .pay-table.pay-month td.cell{width:66px;min-width:58px;max-width:80px;padding:0}
+.admin .pay-table.pay-month td.cell input{width:100%;min-width:0;padding:4px 6px}
+.admin .pay-table.pay-month td.stick,.admin.wide .pay-table.pay-month td.stick{min-width:0;width:150px;max-width:170px}
+.admin .pay-table.pay-month td.stick strong{white-space:normal;line-height:1.2}
+.admin .pay-table.pay-month td:nth-child(3){min-width:0;width:92px;white-space:nowrap}
+.admin .pay-table.pay-month td.num{white-space:nowrap}
+.admin .pay-table.pay-month .paid-tag,.admin .pay-table.pay-month .draft-tag{white-space:nowrap;font-size:11px}
+.admin .pay-table.pay-month .pay-actions{width:96px}
+.admin .pay-table.pay-month .pay-actions .btn{display:block;width:100%;margin:0 0 4px;padding:3px 6px;font-size:11.5px;line-height:1.3;text-align:center}
+.admin .pay-table.pay-month .pay-actions .btn:last-child{margin-bottom:0}
+.admin .pay-table.pay-month td.cell input[type=text]{font-size:11px}
+.admin .pay-table.pay-month td.stick,.admin.wide .pay-table.pay-month td.stick{width:150px;min-width:150px}
+.admin .pay-table.pay-month td:nth-child(3){width:82px;white-space:normal}
+.admin .pay-table.pay-month td small{white-space:normal;line-height:1.25}
+.admin .pay-table.pay-month td.cell,.admin.wide .pay-table.pay-month td.cell{width:60px;min-width:54px}
+.admin .pay-table.pay-month td.num:has(small){white-space:normal}
+.admin.wide .pay-table.pay-month thead th,.admin .pay-table.sheet.pay-month thead th{white-space:normal;line-height:1.2;vertical-align:bottom}
+/* payslip / paid / remove side by side, so each employee stays one short row */
+.admin .pay-table.pay-month .pay-actions{width:auto;white-space:nowrap}
+.admin .pay-table.pay-month .pay-actions .btn{display:inline-block;width:auto;margin:0 3px 0 0;padding:3px 7px}
+.admin .pay-table.pay-month .pay-actions .pay-x{padding:3px 6px;color:#5f6368}
+.admin .pay-table.pay-month td.num:nth-last-child(4){max-width:110px}
+@media (max-width:700px){.pay-table.pay-month .pay-actions .btn{flex:1 1 auto}.pay-table.pay-month .m-only{display:inline}}
+.admin .pay-table.pay-month .pay-actions{min-width:150px}
+.admin .pay-table.pay-month td.num:nth-last-child(4){width:92px}
+@media (min-width:701px){.admin .pay-table.pay-month td.pay-actions{display:table-cell;vertical-align:middle}}
+@media (max-width:700px){.admin .pay-table.pay-month td.cell,.admin.wide .pay-table.pay-month td.cell,.admin .pay-table.pay-month td.stick,.admin.wide .pay-table.pay-month td.stick,.admin .pay-table.pay-month td:nth-child(3),.admin .pay-table.pay-month td.num:nth-last-child(4),.admin .pay-table.pay-month .pay-actions{width:auto;min-width:0;max-width:none}.admin .pay-table.pay-month .pay-actions .btn{margin:0;padding:8px 12px!important;font-size:15px!important}}
