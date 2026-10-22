@@ -1214,3 +1214,41 @@ button.cp-row{width:100%;font:inherit;text-align:left;cursor:pointer}
 .ins-card li span{font-weight:400;color:var(--muted)}
 .ins-card p{margin:8px 0 0;color:var(--muted);font-size:.92rem}
 .cp-ins{gap:6px}.cp-ins .shield{color:#4ade80}
+
+/* ---------- scroll motion for paragraphs and photos (same technique as above: only browsers with scroll-driven
+   animations, never with reduced motion; individual translate / scale / opacity so hover effects keep working) ---------- */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes sd-text{from{opacity:0;translate:0 28px}to{opacity:1;translate:0 0}}
+    @keyframes sd-photo{from{opacity:.25;scale:.9;translate:0 40px}to{opacity:1;scale:1;translate:0 0}}
+    @keyframes sd-side-l{from{opacity:0;translate:-60px 0}to{opacity:1;translate:0 0}}
+    @keyframes sd-side-r{from{opacity:0;translate:60px 0}to{opacity:1;translate:0 0}}
+
+    /* paragraphs, lists and small headings in page sections rise in as they scroll into view (not in the hero) */
+    .page section:not(.hero):not(.ow-hero) :is(p,.lead,.ticks li,.svc-links li,h3):not(.status):not(:is(.bl-card,.ow-body,.qx-cards,.pf-box,.ins-card,.cp-row) *),
+    .page article :is(p,li,h3):not(:is(.bl-card,.ow-body,.qx-cards,.pf-box,.ins-card,.cp-row) *),
+    .page .prose :is(p,li,h2,h3){
+      animation:sd-text linear both;animation-timeline:view();animation-range:entry 0% entry 45%}
+
+    /* photos grow up into place */
+    .bl-img img,.bl-noimg,.cardimg,.postimg,.pf-img,.cp-pics img,.tcard img,.about-img,.svc-hero img{
+      animation:sd-photo linear both;animation-timeline:view();animation-range:entry 0% cover 28%}
+
+    /* Our work: the photo slides in from its side, the text from the other */
+    .ow-row .ow-media{animation:sd-side-l linear both;animation-timeline:view();animation-range:entry 0% cover 30%}
+    .ow-row .ow-body{animation:sd-side-r linear both;animation-timeline:view();animation-range:entry 5% cover 32%}
+    .ow-row.flip .ow-media{animation-name:sd-side-r}
+    .ow-row.flip .ow-body{animation-name:sd-side-l}
+
+    /* cards that sit in a list come in one after another */
+    .bl-card,.qx-cards li,.qx-hours li,.ins-card,.ow-stats div,.pf-box{animation:sd-pop linear both;animation-timeline:view();animation-range:entry 0% entry 38%}
+    .bl-card:nth-child(3n+2),.qx-cards li:nth-child(2),.qx-hours li:nth-child(2),.ow-stats div:nth-child(2){animation-range:entry 6% entry 44%}
+    .bl-card:nth-child(3n),.qx-cards li:nth-child(3),.qx-hours li:nth-child(3),.ow-stats div:nth-child(3){animation-range:entry 12% entry 50%}
+  }
+}
+/* on phones the side slides would push past the screen edge: rise instead */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) and (max-width: 900px) {
+    .ow-row .ow-media,.ow-row.flip .ow-media,.ow-row .ow-body,.ow-row.flip .ow-body{animation-name:sd-text}
+  }
+}
