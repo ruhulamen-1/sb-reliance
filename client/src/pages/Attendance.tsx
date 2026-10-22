@@ -109,7 +109,7 @@ function Day({ date, setDate }: { date: string; setDate: (d: string) => void }) 
       {!emps.length && <p>No active employees. Add them under "Employees".</p>}
       {emps.length > 0 && (
         <div className="pay-scroll">
-          <table className="pay-table att-table">
+          <table className="pay-table att-table mcards">
             <thead><tr><th>Employee</th><th>Status</th><th>Time in</th><th>Time out</th><th>OT hours</th><th>Note</th></tr></thead>
             <tbody>
               {emps.map((e) => {
@@ -118,8 +118,8 @@ function Day({ date, setDate }: { date: string; setDate: (d: string) => void }) 
                 const who = e.name;
                 return (
                   <tr key={e.id} className={off ? 'paid' : !r.status ? 'att-empty' : ''}>
-                    <td><strong>{e.name}</strong><small>{e.designation || ''}{off ? ' · salary paid, locked' : ''}</small></td>
-                    <td>
+                    <td className="full mhead"><strong>{e.name}</strong><small>{e.designation || ''}{off ? ' · salary paid, locked' : ''}</small></td>
+                    <td className="full" data-label="Status">
                       <select aria-label={`Status, ${who}`} disabled={off} value={r.status || ''} className={`att-s att-${r.status || 'none'}`}
                         onChange={(ev) => { const status = ev.target.value; edit(e.id, { status }); save(e.id, { status, ot_hours: WORK.includes(status) ? r.ot_hours ?? '' : 0 }); }}>
                         <option value="">— not entered —</option>
@@ -127,17 +127,17 @@ function Day({ date, setDate }: { date: string; setDate: (d: string) => void }) 
                       </select>
                     </td>
                     {(['time_in', 'time_out'] as const).map((k) => (
-                      <td key={k}>
+                      <td key={k} data-label={k === 'time_in' ? 'Time in' : 'Time out'}>
                         <input type="time" aria-label={`${k === 'time_in' ? 'Time in' : 'Time out'}, ${who}`} disabled={off} value={r[k] || ''}
                           onChange={(ev) => edit(e.id, { [k]: ev.target.value })}
                           onBlur={(ev) => { if (ev.target.value !== (saved.current[e.id]?.[k] || '')) save(e.id, { [k]: ev.target.value, ot_hours: '' }); }} />
                       </td>
                     ))}
-                    <td>
+                    <td data-label="OT hours">
                       <input type="number" min={0} max={24} step="0.5" aria-label={`OT hours, ${who}`} disabled={off} value={r.ot_hours ?? ''} placeholder="0"
                         onChange={(ev) => edit(e.id, { ot_hours: ev.target.value })} onBlur={(ev) => { if (Number(ev.target.value || 0) !== Number(saved.current[e.id]?.ot_hours || 0)) save(e.id, { ot_hours: ev.target.value || 0 }); }} />
                     </td>
-                    <td>
+                    <td data-label="Note">
                       <input type="text" maxLength={120} aria-label={`Note, ${who}`} disabled={off} value={r.note || ''}
                         onChange={(ev) => edit(e.id, { note: ev.target.value })} onBlur={(ev) => { if (r.status && ev.target.value !== (saved.current[e.id]?.note || '')) save(e.id); }} />
                     </td>
@@ -258,26 +258,26 @@ function Person({ period, setPeriod, person, setPerson }: { period: string; setP
       <p className="att-day"><strong>{monthName(period)}</strong> · Present {tot.P} · Sunday/PH worked {tot.rest} · Unpaid days {tot.unpaid} · Paid leave {tot.leave} · OT {tot.ot} h{tot.empty ? ` · ${tot.empty} day(s) not entered` : ''}{dirty && <strong className="att-dirty"> · Not saved yet</strong>}</p>
       {msg && <p className="ok" role="status">{msg}</p>}
       <div className="pay-scroll">
-        <table className="pay-table att-table">
+        <table className="pay-table att-table mcards">
           <thead><tr><th>Date</th><th>Status</th><th>Time in</th><th>Time out</th><th>OT hours</th><th>Note</th></tr></thead>
           <tbody>
             {days.map((d, i) => {
               const label = dayName(d.work_date);
               return (
                 <tr key={d.work_date} className={wd(d.work_date) === 0 ? 'att-sun' : !d.status ? 'att-empty' : ''}>
-                  <td><strong>{Number(d.work_date.slice(8))}</strong> <small>{new Date(`${d.work_date}T00:00:00`).toLocaleDateString('en-SG', { weekday: 'short' })}</small></td>
-                  <td>
+                  <td className="mhead m-date"><strong>{Number(d.work_date.slice(8))}</strong> <small>{new Date(`${d.work_date}T00:00:00`).toLocaleDateString('en-SG', { weekday: 'short' })}</small></td>
+                  <td data-label="Status">
                     <select aria-label={`Status, ${label}`} disabled={locked} value={d.status} className={`att-s att-${d.status || 'none'}`}
                       onChange={(e) => set(i, { status: e.target.value, ...(WORK.includes(e.target.value) ? {} : { time_in: '', time_out: '', ot_hours: '' }) })}>
                       <option value="">— not entered —</option>
                       {STATUS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                   </td>
-                  <td><input type="time" aria-label={`Time in, ${label}`} disabled={locked || !WORK.includes(d.status)} value={d.time_in} onChange={(e) => set(i, { time_in: e.target.value, ot_hours: '' })} /></td>
-                  <td><input type="time" aria-label={`Time out, ${label}`} disabled={locked || !WORK.includes(d.status)} value={d.time_out} onChange={(e) => set(i, { time_out: e.target.value, ot_hours: '' })} /></td>
-                  <td><input type="number" min={0} max={24} step="0.5" aria-label={`OT hours, ${label}`} disabled={locked || !WORK.includes(d.status)} value={d.ot_hours}
+                  <td data-label="Time in"><input type="time" aria-label={`Time in, ${label}`} disabled={locked || !WORK.includes(d.status)} value={d.time_in} onChange={(e) => set(i, { time_in: e.target.value, ot_hours: '' })} /></td>
+                  <td data-label="Time out"><input type="time" aria-label={`Time out, ${label}`} disabled={locked || !WORK.includes(d.status)} value={d.time_out} onChange={(e) => set(i, { time_out: e.target.value, ot_hours: '' })} /></td>
+                  <td data-label="OT hours"><input type="number" min={0} max={24} step="0.5" aria-label={`OT hours, ${label}`} disabled={locked || !WORK.includes(d.status)} value={d.ot_hours}
                     placeholder={previewOt(d, cfg) ? String(previewOt(d, cfg)) : '0'} onChange={(e) => set(i, { ot_hours: e.target.value })} /></td>
-                  <td><input type="text" maxLength={120} aria-label={`Note, ${label}`} disabled={locked || !d.status} value={d.note} onChange={(e) => set(i, { note: e.target.value })} /></td>
+                  <td data-label="Note"><input type="text" maxLength={120} aria-label={`Note, ${label}`} disabled={locked || !d.status} value={d.note} onChange={(e) => set(i, { note: e.target.value })} /></td>
                 </tr>
               );
             })}

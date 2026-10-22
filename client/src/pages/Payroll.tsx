@@ -121,12 +121,16 @@ const EMP_SHEET: Col[] = [
   ['notes', 'Notes', 'text', 320],
 ];
 
+// shown on each employee card on a phone; the rest open with "Edit all details"
+const EMP_KEY = ['name', 'pass_type', 'pay_basis', 'daily_rate', 'basic_salary', 'active'];
+
 function Employees() {
   const [ver, setVer] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
   const [saved, setSaved] = useState<Record<number, string>>({});
   const [q, setQ] = useState('');
   const [msg, setMsg] = useState('');
+  const [open, setOpen] = useState<number | null>(null); // phones: the employee whose full details are shown
   const load = useCallback(() => {
     api<Row[]>('/admin/employees', { auth: true }).then((d) => { setRows(d); setSaved(Object.fromEntries(d.map((r) => [r.id, JSON.stringify(r)]))); }).catch((e: Error) => setMsg(e.message));
   }, []);
@@ -179,16 +183,21 @@ function Employees() {
       </div>
       {msg && <p className="err" role="alert">{msg}</p>}
       <div className="pay-scroll sheet-wrap">
-        <table className="sheet emp-sheet" onKeyDown={enterDown}>
+        <table className="sheet emp-sheet mcards" onKeyDown={enterDown}>
           <thead>
             <tr><th className="rn" aria-label="Row" />{EMP_SHEET.map(([k, l, kind, w], i) => <th key={k} className={`${kind === 'num' ? 'num' : ''}${i === 0 ? ' stick' : ''}`} style={{ minWidth: w }}>{l}</th>)}<th aria-label="Delete" /></tr>
           </thead>
           <tbody>
             {shown.map((r, i) => (
-              <tr key={r.id} className={Number(r.active) === 1 ? '' : 'inactive'}>
+              <tr key={r.id} className={`${Number(r.active) === 1 ? '' : 'inactive'}${open === r.id ? ' open' : ''}`}>
                 <td className="rn">{i + 1}</td>
-                {EMP_SHEET.map((c, j) => <td key={c[0]} className={`cell${c[2] === 'num' ? ' num' : ''}${j === 0 ? ' stick' : ''}`}>{cell(r, c)}</td>)}
-                <td className="sheet-del"><button type="button" aria-label={`Delete ${r.name}`} title="Delete" onClick={() => remove(r)}>✕</button></td>
+                {EMP_SHEET.map((c, j) => (
+                  <td key={c[0]} data-label={c[1]} className={`cell${c[2] === 'num' ? ' num' : ''}${j === 0 ? ' stick full' : ''}${EMP_KEY.includes(c[0]) ? ' m-key' : ''}`}>{cell(r, c)}</td>
+                ))}
+                <td className="sheet-del full">
+                  <button type="button" className="m-only m-more" aria-expanded={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? 'Hide details ▴' : 'Edit all details ▾'}</button>
+                  <button type="button" aria-label={`Delete ${r.name}`} title="Delete" onClick={() => remove(r)}>✕<span className="m-only"> Delete</span></button>
+                </td>
               </tr>
             ))}
             {!shown.length && <tr><td className="rn" /><td colSpan={EMP_SHEET.length + 1} className="sheet-empty">{rows.length ? 'No employee matches the search.' : 'No employees yet. Press "+ Add employee" or import a file.'}</td></tr>}
@@ -197,7 +206,7 @@ function Employees() {
             <tfoot>
               <tr>
                 <td className="rn" />
-                {EMP_SHEET.map(([k, , kind], j) => <td key={k} className={`${kind === 'num' ? 'num' : ''}${j === 0 ? ' stick' : ''}`}>{j === 0 ? <strong>Total ({shown.length})</strong> : kind === 'num' && ['basic_salary', 'transport', 'fixed_allowance', 'monthly_levy'].includes(k) ? `$${$(total(k))}` : ''}</td>)}
+                {EMP_SHEET.map(([k, label, kind], j) => <td key={k} data-label={label} className={`${kind === 'num' ? 'num' : ''}${j === 0 ? ' stick full' : ''}${['name', 'basic_salary', 'transport', 'fixed_allowance', 'monthly_levy'].includes(k) ? '' : ' m-hide'}`}>{j === 0 ? <strong>Total ({shown.length})</strong> : kind === 'num' && ['basic_salary', 'transport', 'fixed_allowance', 'monthly_levy'].includes(k) ? `$${$(total(k))}` : ''}</td>)}
                 <td />
               </tr>
             </tfoot>
@@ -324,7 +333,7 @@ function Month() {
             <div><small>Total company cost</small><strong>${$(cost)}</strong></div>
           </div>
           <div className="pay-scroll sheet-wrap">
-            <table className="pay-table sheet" onKeyDown={enterDown}>
+            <table className="pay-table sheet mcards pay-month" onKeyDown={enterDown}>
               <thead>
                 <tr><th className="rn" aria-label="Row" /><th className="stick">Employee</th><th>Basic</th>{EDIT.map(([, l]) => <th key={l} className="num">{l}</th>)}<th className="num">Gross</th><th className="num">CPF employee / employer</th><th className="num">Net pay</th><th>Status</th><th /></tr>
               </thead>
@@ -334,16 +343,16 @@ function Month() {
                   return (
                     <tr key={r.id} className={locked ? 'paid' : ''}>
                       <td className="rn">{i + 1}</td>
-                      <td className="stick"><strong>{r.employee_name}</strong><small>{passName(r.pass_type)}</small>{r.note && <small className="warn">{r.note}</small>}</td>
-                      <td>
+                      <td className="stick full mhead"><strong>{r.employee_name}</strong><small>{passName(r.pass_type)}</small>{r.note && <small className="warn">{r.note}</small>}</td>
+                      <td data-label="Basic">
                         ${$(r.basic_salary)}
                         {basisOf(r) === 'daily' ? <small>{Number(r.work_days)} day(s) x ${$(r.daily_rate)}</small> : <small>Monthly</small>}
                         {Number(r.fixed_allowance) > 0 && <small>+ fixed allowance ${$(r.fixed_allowance)}</small>}
                         {Number(r.rest_pay) > 0 && <small>Sunday/PH ${$(r.rest_pay)}</small>}
                         {Number(r.ot_pay) > 0 && <small>OT ${$(r.ot_pay)} @ ${$(r.ot_rate)}/h</small>}
                       </td>
-                      {EDIT.map(([k, l, only]) => only && only !== basisOf(r) ? <td key={k} className="num na"><small>—</small></td> : (
-                        <td key={k} className="num cell">
+                      {EDIT.map(([k, l, only]) => only && only !== basisOf(r) ? <td key={k} className="num na m-hide"><small>—</small></td> : (
+                        <td key={k} className="num cell" data-label={l}>
                           <input type="number" min={0} step="any" data-col={k} aria-label={`${l}, ${r.employee_name}`} disabled={locked} value={r[k] ?? ''}
                             onChange={(e) => edit(r.id, { [k]: e.target.value })} onBlur={() => save(r)} />
                           {k === 'unpaid_leave' && Number(r.unpaid_days) > 0 && <small>{Number(r.unpaid_days)} day(s)</small>}
@@ -353,8 +362,8 @@ function Month() {
                           )}
                         </td>
                       ))}
-                      <td className="num">${$(r.gross_pay)}</td>
-                      <td className="num">
+                      <td className="num" data-label="Gross">${$(r.gross_pay)}</td>
+                      <td className="num" data-label="CPF employee / employer">
                         {r.pass_type === 'PR12' || Number(r.cpf_manual) ? (
                           <span className="cpf-manual">
                             <input type="number" min={0} step="any" aria-label={`CPF employee, ${r.employee_name}`} disabled={locked} value={r.cpf_employee ?? ''} onChange={(e) => edit(r.id, { cpf_employee: e.target.value, cpf_manual: 1 })} onBlur={() => save(r)} />
@@ -362,9 +371,9 @@ function Month() {
                           </span>
                         ) : ['WP', 'SPASS', 'EP'].includes(r.pass_type) ? <small>No CPF</small> : <>${$(r.cpf_employee)} / ${$(r.cpf_employer)}</>}
                       </td>
-                      <td className="num"><strong>${$(r.net_pay)}</strong></td>
-                      <td>{locked ? <span className="paid-tag">Paid {r.paid_on}</span> : <span className="draft-tag">Draft</span>}</td>
-                      <td className="pay-actions">
+                      <td className="num m-net" data-label="Net pay"><strong>${$(r.net_pay)}</strong></td>
+                      <td data-label="Status">{locked ? <span className="paid-tag">Paid {r.paid_on}</span> : <span className="draft-tag">Draft</span>}</td>
+                      <td className="pay-actions full">
                         <button type="button" className="btn ghost" onClick={() => payslip(r, company, slip, period)}>Payslip</button>
                         {locked
                           ? <button type="button" className="btn ghost" onClick={() => setPaid(r, false)}>Mark unpaid</button>
@@ -377,13 +386,13 @@ function Month() {
               <tfoot>
                 <tr>
                   <td className="rn" />
-                  <td className="stick"><strong>Total ({items.length})</strong></td>
-                  <td className="num">${$(sum('basic_salary'))}</td>
-                  {EDIT.map(([k]) => <td key={k} className="num">{['work_days', 'rest_days', 'ot_hours'].includes(k) ? sum(k).toLocaleString('en-SG') : `$${$(sum(k))}`}</td>)}
-                  <td className="num">${$(sum('gross_pay'))}</td>
-                  <td className="num">${$(sum('cpf_employee'))} / ${$(sum('cpf_employer'))}</td>
-                  <td className="num"><strong>${$(sum('net_pay'))}</strong></td>
-                  <td colSpan={2} />
+                  <td className="stick full mhead"><strong>Total ({items.length})</strong></td>
+                  <td className="num" data-label="Basic">${$(sum('basic_salary'))}</td>
+                  {EDIT.map(([k, l]) => <td key={k} className="num" data-label={l}>{['work_days', 'rest_days', 'ot_hours'].includes(k) ? sum(k).toLocaleString('en-SG') : `$${$(sum(k))}`}</td>)}
+                  <td className="num" data-label="Gross">${$(sum('gross_pay'))}</td>
+                  <td className="num" data-label="CPF employee / employer">${$(sum('cpf_employee'))} / ${$(sum('cpf_employer'))}</td>
+                  <td className="num m-net" data-label="Net pay"><strong>${$(sum('net_pay'))}</strong></td>
+                  <td colSpan={2} className="m-hide" />
                 </tr>
               </tfoot>
             </table>

@@ -1305,3 +1305,49 @@ table.sheet{border-collapse:separate;border-spacing:0;width:max-content;min-widt
 .admin.wide .pay-table.sheet td.cell,.pay-table.sheet td.cell{padding:0}
 .admin.wide .pay-table.sheet th{white-space:nowrap;vertical-align:middle}
 .sheet td.cell.stick{position:sticky;left:38px;z-index:2}
+
+/* ---------- Payroll and attendance on phones: every table row becomes a card with labelled fields,
+   big touch targets and 16px text (so iPhones do not zoom in when a box is tapped) ---------- */
+.m-only{display:none}
+@media (max-width:700px){
+  .admin .pay-scroll.sheet-wrap,.admin .pay-scroll:has(> .mcards){max-height:none;overflow:visible;border:0;background:none}
+  table.mcards{display:block;min-width:0!important;width:100%!important;font-size:15px;border:0}
+  table.mcards thead{display:none}
+  table.mcards tbody,table.mcards tfoot{display:grid;gap:12px}
+  table.mcards tfoot{margin-top:12px}
+  table.mcards tr{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;padding:14px;background:#fff;border:1px solid #dadce0;border-radius:12px;box-shadow:0 2px 6px rgba(16,52,58,.06)}
+  table.mcards tfoot tr{background:#f1f3f4}
+  table.mcards tr:hover td{background:none}
+  table.mcards td,table.mcards td.stick,table.mcards td.cell,table.mcards td.cell.stick,table.mcards tfoot td{position:static;display:block;min-width:0!important;width:auto;padding:0!important;border:0;background:none!important;box-shadow:none;text-align:left!important}
+  table.mcards td.rn,table.mcards .m-hide,table.mcards td.na,table.mcards td:empty{display:none}
+  table.mcards td.full,table.mcards td.mhead{grid-column:1/-1}
+  table.mcards td.mhead strong{font-size:16px}
+  table.mcards td[data-label]::before{content:attr(data-label);display:block;margin-bottom:4px;font-size:12px;font-weight:600;color:#5f6368;font-family:'Source Sans 3',sans-serif}
+  table.mcards td :is(input,select),table.mcards td.cell :is(input,select){width:100%!important;min-height:44px;font-size:16px!important;padding:8px 10px!important;border:1px solid #c7cdd1!important;border-radius:8px!important;background:#fff!important;text-align:left!important}
+  table.mcards td.cell :is(input,select):focus{box-shadow:0 0 0 2px #1a73e8!important}
+  table.mcards .m-net strong{font-size:18px;color:var(--ink)}
+  table.mcards .pay-actions{display:flex!important;flex-wrap:wrap;gap:8px;padding-top:4px!important;border-top:1px solid #eceff1!important}
+  table.mcards .pay-actions .btn{flex:1 1 auto;min-height:44px;font-size:15px!important;padding:8px 12px!important}
+  table.mcards tr.paid{background:#f3faf5}
+  table.mcards tr.inactive{background:#fafafa}
+  /* employee cards: the key fields, the rest after "Edit all details" */
+  .emp-sheet.mcards tbody td.cell:not(.m-key){display:none}
+  .emp-sheet.mcards tbody tr.open td.cell{display:block}
+  .emp-sheet.mcards tbody td.stick input{font-weight:700}
+  .emp-sheet .m-only{display:inline}
+  .emp-sheet.mcards .sheet-del{display:flex!important;gap:8px;justify-content:space-between;padding-top:4px!important}
+  .emp-sheet.mcards .sheet-del button{min-height:44px;padding:8px 12px;border:1px solid #dadce0;border-radius:8px;font-size:15px;color:#3c4043;background:#fff}
+  .emp-sheet.mcards .sheet-del .m-more{flex:1;font-weight:600;color:var(--ink)}
+  /* attendance: date / name on top, status across, times side by side */
+  .att-table.mcards td.m-date{display:flex;align-items:baseline;gap:6px}
+  .att-table.mcards tr.att-empty{border-color:#f4b4ae}
+  .att-table.mcards tr.att-sun{background:#fbf1ef}
+  .att-table.mcards td small{display:inline}
+  /* bars, search and buttons above the tables */
+  .sheet-bar .btn,.pay-bar .btn{min-height:44px}
+  .sheet-search,.sheet-search input{width:100%}
+  .admin .pay-bar input,.admin .pay-bar select,.sheet-search input,.emp-import input{font-size:16px}
+  .pay-totals{grid-template-columns:1fr 1fr}
+}
+@media (max-width:700px){table.mcards td :is(input,select),table.mcards td.cell :is(input,select){height:auto!important;min-height:44px}}
+@media (max-width:700px){table.mcards td[data-label="Notes"],table.mcards td[data-label="Note"]{grid-column:1/-1}}
