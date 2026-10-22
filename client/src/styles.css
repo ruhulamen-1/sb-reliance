@@ -1255,3 +1255,53 @@ button.cp-row{width:100%;font:inherit;text-align:left;cursor:pointer}
 .emp-import{margin-bottom:16px}.emp-import summary{cursor:pointer;font-weight:700}
 .emp-import input[type=file]{margin:10px 0}
 .emp-preview td,.emp-preview th{white-space:nowrap}
+
+/* ---------- Payroll tables as a spreadsheet (Excel / Google Sheets): grid lines, row numbers, frozen header and
+   name column, cells you type into directly with a blue focus box, numbers on the right, a totals row ---------- */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sheet-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:14px 0 10px}
+.sheet-search input{width:min(340px,70vw);padding:8px 10px;border-radius:8px}
+.sheet-count{color:var(--muted);font-size:.9rem}
+.sheet-wrap{max-height:min(72vh,760px);overflow:auto;border:1px solid #c7cdd1;border-radius:6px;background:#fff}
+table.sheet{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font:13px/1.35 Arial,'Source Sans 3',sans-serif;color:#202124;font-variant-numeric:tabular-nums}
+.sheet th,.sheet td{border-right:1px solid #e2e3e3;border-bottom:1px solid #e2e3e3;padding:4px 8px;vertical-align:middle;background:#fff;text-align:left}
+.sheet thead th{position:sticky;top:0;z-index:3;background:#f8f9fa;color:#3c4043;font-weight:700;font-size:12px;white-space:nowrap;border-bottom:2px solid #c7cdd1;padding:7px 8px}
+.sheet th.num,.sheet td.num{text-align:right}
+.sheet .rn{position:sticky;left:0;z-index:2;width:38px;min-width:38px;text-align:center!important;background:#f8f9fa;color:#5f6368;font-size:11px;border-right:1px solid #c7cdd1}
+.sheet thead .rn{z-index:5}
+.sheet .stick{position:sticky;left:38px;z-index:2;box-shadow:2px 0 0 #c7cdd1}
+.sheet thead .stick{z-index:5}
+.sheet tbody tr:hover td{background:#f1f7ff}
+.sheet tbody tr:hover td.rn{background:#e8eaed}
+.sheet tfoot td{position:sticky;bottom:0;z-index:2;background:#f1f3f4;font-weight:700;border-top:2px solid #c7cdd1}
+.sheet tfoot td.rn,.sheet tfoot td.stick{z-index:4}
+.sheet td small{display:block;color:#5f6368;font-size:11px}
+/* cells you can type into look like plain cells until you click them */
+.sheet td.cell{padding:0;position:relative}
+.sheet td.cell :is(input,select){display:block;width:100%;min-width:0;height:100%;min-height:30px;margin:0;padding:4px 8px;border:0;border-radius:0;background:transparent;font:inherit;color:inherit;box-shadow:none;outline:none}
+.sheet td.cell.num input{text-align:right}
+.sheet td.cell :is(input,select):focus{box-shadow:inset 0 0 0 2px #1a73e8;background:#fff}
+.sheet td.cell :is(input,select):disabled{color:#80868b;background:transparent}
+.sheet td.cell input[type=number]::-webkit-inner-spin-button{opacity:0}
+.sheet td.cell input[type=number]{-moz-appearance:textfield}
+.sheet td.cell select{cursor:pointer;appearance:auto}
+.sheet td.na{color:#bdc1c6}
+.sheet tr.paid td{background:#f3faf5}
+.sheet tr.inactive td{color:#80868b;background:#fafafa}
+.sheet tr.inactive td.stick input{text-decoration:line-through}
+.sheet-del button{border:0;background:none;color:#9aa0a6;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px}
+.sheet-del button:hover{background:#fce8e6;color:#c5221f}
+.sheet-empty{color:#5f6368;padding:18px!important}
+/* monthly payroll keeps its inputs as cells too */
+.pay-table.sheet{min-width:max-content}
+.pay-table.sheet td:not(.cell) input{width:80px;padding:3px 5px;border:1px solid #dadce0;border-radius:3px;font:inherit}
+.pay-table.sheet td.cell input[type=text]{border-top:1px dashed #e2e3e3}
+.pay-table.sheet .pay-actions{white-space:nowrap}
+.pay-table.sheet .pay-actions .btn{padding:4px 10px;font-size:12px}
+.pay-table.sheet td.stick{min-width:170px}
+.admin.wide .pay-table.sheet input,.admin.wide .pay-table.sheet input[type=number]{width:100%}
+.admin.wide .pay-table.sheet td.cell{min-width:78px}
+.pay-table.sheet td.rn,.admin.wide .pay-table.sheet td.rn{min-width:38px;width:38px;padding:4px 2px}
+.admin.wide .pay-table.sheet td.cell,.pay-table.sheet td.cell{padding:0}
+.admin.wide .pay-table.sheet th{white-space:nowrap;vertical-align:middle}
+.sheet td.cell.stick{position:sticky;left:38px;z-index:2}

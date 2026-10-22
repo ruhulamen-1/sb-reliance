@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import type React from 'react';
 import { api } from '../api';
 import { useRemembered } from '../remember';
-import { Crud } from './Admin';
 import Attendance from './Attendance';
 
 // Admin > Payroll: employees and the monthly salary run (OT, allowances, CPF, SDL), payslips and a CSV for Excel.
@@ -99,31 +99,112 @@ function ImportEmployees({ onDone }: { onDone: () => void }) {
   );
 }
 
+// [field, heading, kind, width] for the employee sheet
+type Col = [string, string, 'text' | 'num' | 'date' | 'pass' | 'basis' | 'active', number];
+const EMP_SHEET: Col[] = [
+  ['name', 'Name (as on NRIC / pass)', 'text', 220],
+  ['designation', 'Designation', 'text', 140],
+  ['pass_type', 'Citizenship / pass', 'pass', 150],
+  ['id_number', 'NRIC / FIN', 'text', 110],
+  ['date_of_birth', 'Date of birth', 'date', 140],
+  ['join_date', 'Date joined', 'date', 140],
+  ['pay_basis', 'Pay basis', 'basis', 100],
+  ['daily_rate', 'Daily rate', 'num', 90],
+  ['basic_salary', 'Basic / month', 'num', 100],
+  ['transport', 'Transport', 'num', 90],
+  ['fixed_allowance', 'Allowance', 'num', 90],
+  ['ot_rate', 'OT rate / h', 'num', 90],
+  ['monthly_levy', 'Levy / month', 'num', 100],
+  ['bank_name', 'Bank', 'text', 110],
+  ['bank_account', 'Account no.', 'text', 130],
+  ['active', 'Status', 'active', 100],
+  ['notes', 'Notes', 'text', 320],
+];
+
 function Employees() {
   const [ver, setVer] = useState(0);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [saved, setSaved] = useState<Record<number, string>>({});
+  const [q, setQ] = useState('');
+  const [msg, setMsg] = useState('');
+  const load = useCallback(() => {
+    api<Row[]>('/admin/employees', { auth: true }).then((d) => { setRows(d); setSaved(Object.fromEntries(d.map((r) => [r.id, JSON.stringify(r)]))); }).catch((e: Error) => setMsg(e.message));
+  }, []);
+  useEffect(() => { load(); }, [load, ver]);
+
+  const edit = (id: number, patch: Row) => setRows((xs) => xs.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  // a row is saved when you leave a cell, only if something in it changed
+  async function save(id: number) {
+    const r = rows.find((x) => x.id === id);
+    if (!r || saved[id] === JSON.stringify(r)) return;
+    if (!String(r.name || '').trim()) { setMsg('Every employee needs a name.'); return; }
+    try {
+      await api(`/admin/employees/${id}`, { method: 'PUT', auth: true, body: r });
+      setSaved((s) => ({ ...s, [id]: JSON.stringify(r) }));
+      setMsg('');
+    } catch (e) { setMsg((e as Error).message); }
+  }
+  async function addRow() {
+    const name = prompt('Name of the new employee (as on NRIC / work pass)');
+    if (!name?.trim()) return;
+    try { await api('/admin/employees', { method: 'POST', auth: true, body: { name: name.trim(), pass_type: 'WP', pay_basis: 'daily', active: 1 } }); load(); } catch (e) { setMsg((e as Error).message); }
+  }
+  async function remove(r: Row) {
+    if (!confirm(`Delete ${r.name}? Their attendance and unpaid salary lines go too. (Employees who were paid cannot be deleted: set them to Inactive.)`)) return;
+    try { await api(`/admin/employees/${r.id}`, { method: 'DELETE', auth: true }); load(); } catch (e) { setMsg((e as Error).message); }
+  }
+
+  const needle = q.trim().toLowerCase();
+  const shown = needle ? rows.filter((r) => [r.name, r.id_number, r.designation, r.notes, passName(r.pass_type)].some((v) => String(v || '').toLowerCase().includes(needle))) : rows;
+  const active = rows.filter((r) => Number(r.active) === 1);
+  const total = (k: string) => shown.reduce((t, r) => t + Number(r[k] || 0), 0);
+
+  const cell = (r: Row, [k, label, kind]: Col) => {
+    const common = { 'data-col': k, 'aria-label': `${label}, ${r.name || 'new employee'}`, onBlur: () => save(r.id) };
+    if (kind === 'pass') return <select {...common} value={r.pass_type || 'WP'} onChange={(e) => edit(r.id, { pass_type: e.target.value })}>{PASS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>;
+    if (kind === 'basis') return <select {...common} value={r.pay_basis === 'daily' ? 'daily' : 'monthly'} onChange={(e) => edit(r.id, { pay_basis: e.target.value })}><option value="daily">Daily</option><option value="monthly">Monthly</option></select>;
+    if (kind === 'active') return <select {...common} value={Number(r.active) === 1 ? '1' : '0'} onChange={(e) => edit(r.id, { active: Number(e.target.value) })}><option value="1">Active</option><option value="0">Inactive</option></select>;
+    if (kind === 'date') return <input {...common} type="date" value={String(r[k] || '').slice(0, 10)} onChange={(e) => edit(r.id, { [k]: e.target.value || null })} />;
+    if (kind === 'num') return <input {...common} type="number" min={0} step="any" value={r[k] == null || Number(r[k]) === 0 ? '' : r[k]} placeholder="0" onChange={(e) => edit(r.id, { [k]: e.target.value })} />;
+    return <input {...common} type="text" value={r[k] ?? ''} onChange={(e) => edit(r.id, { [k]: e.target.value })} />;
+  };
+
   return (
     <>
       <ImportEmployees onDone={() => setVer((v) => v + 1)} />
-      <p className="pay-hint">Add each employee once. Their basic salary, fixed allowance and levy are copied into every new month; you can still change the month's figures. Date of birth is needed for CPF (Singapore Citizens and PRs). Employees with salary records cannot be deleted; set them to inactive.</p>
-      <Crud key={ver} table="employees" fields={[
-        { key: 'name', label: 'Name (as on NRIC / work pass)' },
-        { key: 'designation', label: 'Designation', optional: true },
-        { key: 'pass_type', label: 'Citizenship / pass', options: PASS },
-        { key: 'id_number', label: 'NRIC / FIN (optional)', optional: true, hint: 'Shown on the payslip (IC No / FIN No) and in the Excel file.' },
-        { key: 'date_of_birth', label: 'Date of birth', date: true, optional: true, hint: 'Needed for CPF: the rate depends on age.' },
-        { key: 'join_date', label: 'Date joined', date: true, optional: true },
-        { key: 'pay_basis', label: 'Pay basis', options: [['daily', 'Daily rate (days worked x rate)'], ['monthly', 'Monthly salary']] },
-        { key: 'daily_rate', label: 'Daily rate (SGD) – daily-rated workers', num: true, optional: true, hint: 'Basic = days worked x daily rate. Sunday / public holiday worked = 2 x daily rate. OT rate = daily rate / normal hours x 1.5.' },
-        { key: 'basic_salary', label: 'Basic salary per month (SGD) – monthly-rated staff', num: true, optional: true },
-        { key: 'transport', label: 'Transport allowance per month (SGD)', num: true, optional: true },
-        { key: 'fixed_allowance', label: 'Other fixed allowance per month (SGD)', num: true, optional: true },
-        { key: 'ot_rate', label: 'OT rate per hour (optional)', num: true, optional: true, hint: 'Empty or 0 = Employment Act rate: 1.5 x basic hourly rate (12 x basic / 52 / 44).' },
-        { key: 'monthly_levy', label: 'Foreign worker levy per month (optional)', num: true, optional: true, hint: 'Paid by the company to MOM, never deducted from salary. Only used for the company cost total.' },
-        { key: 'bank_name', label: 'Bank (optional)', optional: true },
-        { key: 'bank_account', label: 'Bank account (optional)', optional: true },
-        { key: 'active', label: 'Status', options: [['1', 'Active'], ['0', 'Inactive (left)']] },
-        { key: 'notes', label: 'Notes (optional)', area: true, optional: true },
-      ]} />
+      <div className="sheet-bar">
+        <button type="button" className="btn" onClick={addRow}>+ Add employee</button>
+        <label className="sheet-search"><span className="sr-only">Search employees</span><input type="search" placeholder="Search name, NRIC / FIN, notes…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <span className="sheet-count">{active.length} active · {rows.length - active.length} inactive</span>
+      </div>
+      {msg && <p className="err" role="alert">{msg}</p>}
+      <div className="pay-scroll sheet-wrap">
+        <table className="sheet emp-sheet" onKeyDown={enterDown}>
+          <thead>
+            <tr><th className="rn" aria-label="Row" />{EMP_SHEET.map(([k, l, kind, w], i) => <th key={k} className={`${kind === 'num' ? 'num' : ''}${i === 0 ? ' stick' : ''}`} style={{ minWidth: w }}>{l}</th>)}<th aria-label="Delete" /></tr>
+          </thead>
+          <tbody>
+            {shown.map((r, i) => (
+              <tr key={r.id} className={Number(r.active) === 1 ? '' : 'inactive'}>
+                <td className="rn">{i + 1}</td>
+                {EMP_SHEET.map((c, j) => <td key={c[0]} className={`cell${c[2] === 'num' ? ' num' : ''}${j === 0 ? ' stick' : ''}`}>{cell(r, c)}</td>)}
+                <td className="sheet-del"><button type="button" aria-label={`Delete ${r.name}`} title="Delete" onClick={() => remove(r)}>✕</button></td>
+              </tr>
+            ))}
+            {!shown.length && <tr><td className="rn" /><td colSpan={EMP_SHEET.length + 1} className="sheet-empty">{rows.length ? 'No employee matches the search.' : 'No employees yet. Press "+ Add employee" or import a file.'}</td></tr>}
+          </tbody>
+          {shown.length > 0 && (
+            <tfoot>
+              <tr>
+                <td className="rn" />
+                {EMP_SHEET.map(([k, , kind], j) => <td key={k} className={`${kind === 'num' ? 'num' : ''}${j === 0 ? ' stick' : ''}`}>{j === 0 ? <strong>Total ({shown.length})</strong> : kind === 'num' && ['basic_salary', 'transport', 'fixed_allowance', 'monthly_levy'].includes(k) ? `$${$(total(k))}` : ''}</td>)}
+                <td />
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+      <p className="pay-hint">Click a cell to change it; it saves when you leave the cell. Enter moves down, Tab moves right. Date of birth is needed for CPF (Singapore Citizens and PRs). OT rate empty = Employment Act rate. Levy is paid by the company, never deducted from salary. Employees with paid salary records cannot be deleted: set them to Inactive.</p>
     </>
   );
 }
@@ -142,6 +223,21 @@ const EDIT: [string, string, ('daily' | 'monthly')?][] = [
   ['other_deduction', 'Other deduction'],
 ];
 const basisOf = (r: Row) => (r.pay_basis === 'daily' ? 'daily' : 'monthly');
+
+/** Enter in a cell goes to the same column one row down (Shift+Enter one row up), as in Excel / Google Sheets. */
+function enterDown(e: React.KeyboardEvent<HTMLTableElement>) {
+  const el = e.target as HTMLElement;
+  const col = el.dataset?.col;
+  if (e.key !== 'Enter' || !col || el.tagName === 'TEXTAREA') return;
+  e.preventDefault();
+  const rows = [...e.currentTarget.querySelectorAll('tbody tr')];
+  const at = rows.findIndex((r) => r.contains(el));
+  for (let i = at + (e.shiftKey ? -1 : 1); i >= 0 && i < rows.length; i += e.shiftKey ? -1 : 1) {
+    const next = rows[i].querySelector<HTMLElement>(`[data-col="${col}"]:not([disabled])`);
+    if (next) { next.focus(); if (next instanceof HTMLInputElement) next.select(); return; }
+  }
+  el.blur();
+}
 
 function Month() {
   const [period, setPeriod] = useRemembered('pay.period', thisMonth());
@@ -227,17 +323,18 @@ function Month() {
             <div><small>Levy</small><strong>${$(sum('levy'))}</strong></div>
             <div><small>Total company cost</small><strong>${$(cost)}</strong></div>
           </div>
-          <div className="pay-scroll">
-            <table className="pay-table">
+          <div className="pay-scroll sheet-wrap">
+            <table className="pay-table sheet" onKeyDown={enterDown}>
               <thead>
-                <tr><th>Employee</th><th>Basic</th>{EDIT.map(([, l]) => <th key={l}>{l}</th>)}<th>Gross</th><th>CPF employee / employer</th><th>Net pay</th><th>Status</th><th /></tr>
+                <tr><th className="rn" aria-label="Row" /><th className="stick">Employee</th><th>Basic</th>{EDIT.map(([, l]) => <th key={l} className="num">{l}</th>)}<th className="num">Gross</th><th className="num">CPF employee / employer</th><th className="num">Net pay</th><th>Status</th><th /></tr>
               </thead>
               <tbody>
-                {items.map((r) => {
+                {items.map((r, i) => {
                   const locked = r.status === 'paid';
                   return (
                     <tr key={r.id} className={locked ? 'paid' : ''}>
-                      <td><strong>{r.employee_name}</strong><small>{passName(r.pass_type)}</small>{r.note && <small className="warn">{r.note}</small>}</td>
+                      <td className="rn">{i + 1}</td>
+                      <td className="stick"><strong>{r.employee_name}</strong><small>{passName(r.pass_type)}</small>{r.note && <small className="warn">{r.note}</small>}</td>
                       <td>
                         ${$(r.basic_salary)}
                         {basisOf(r) === 'daily' ? <small>{Number(r.work_days)} day(s) x ${$(r.daily_rate)}</small> : <small>Monthly</small>}
@@ -245,9 +342,9 @@ function Month() {
                         {Number(r.rest_pay) > 0 && <small>Sunday/PH ${$(r.rest_pay)}</small>}
                         {Number(r.ot_pay) > 0 && <small>OT ${$(r.ot_pay)} @ ${$(r.ot_rate)}/h</small>}
                       </td>
-                      {EDIT.map(([k, l, only]) => only && only !== basisOf(r) ? <td key={k}><small>—</small></td> : (
-                        <td key={k}>
-                          <input type="number" min={0} step="any" aria-label={`${l}, ${r.employee_name}`} disabled={locked} value={r[k] ?? ''}
+                      {EDIT.map(([k, l, only]) => only && only !== basisOf(r) ? <td key={k} className="num na"><small>—</small></td> : (
+                        <td key={k} className="num cell">
+                          <input type="number" min={0} step="any" data-col={k} aria-label={`${l}, ${r.employee_name}`} disabled={locked} value={r[k] ?? ''}
                             onChange={(e) => edit(r.id, { [k]: e.target.value })} onBlur={() => save(r)} />
                           {k === 'unpaid_leave' && Number(r.unpaid_days) > 0 && <small>{Number(r.unpaid_days)} day(s)</small>}
                           {k === 'other_deduction' && Number(r.other_deduction) > 0 && (
@@ -256,8 +353,8 @@ function Month() {
                           )}
                         </td>
                       ))}
-                      <td>${$(r.gross_pay)}</td>
-                      <td>
+                      <td className="num">${$(r.gross_pay)}</td>
+                      <td className="num">
                         {r.pass_type === 'PR12' || Number(r.cpf_manual) ? (
                           <span className="cpf-manual">
                             <input type="number" min={0} step="any" aria-label={`CPF employee, ${r.employee_name}`} disabled={locked} value={r.cpf_employee ?? ''} onChange={(e) => edit(r.id, { cpf_employee: e.target.value, cpf_manual: 1 })} onBlur={() => save(r)} />
@@ -265,7 +362,7 @@ function Month() {
                           </span>
                         ) : ['WP', 'SPASS', 'EP'].includes(r.pass_type) ? <small>No CPF</small> : <>${$(r.cpf_employee)} / ${$(r.cpf_employer)}</>}
                       </td>
-                      <td><strong>${$(r.net_pay)}</strong></td>
+                      <td className="num"><strong>${$(r.net_pay)}</strong></td>
                       <td>{locked ? <span className="paid-tag">Paid {r.paid_on}</span> : <span className="draft-tag">Draft</span>}</td>
                       <td className="pay-actions">
                         <button type="button" className="btn ghost" onClick={() => payslip(r, company, slip, period)}>Payslip</button>
@@ -277,6 +374,18 @@ function Month() {
                   );
                 })}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td className="rn" />
+                  <td className="stick"><strong>Total ({items.length})</strong></td>
+                  <td className="num">${$(sum('basic_salary'))}</td>
+                  {EDIT.map(([k]) => <td key={k} className="num">{['work_days', 'rest_days', 'ot_hours'].includes(k) ? sum(k).toLocaleString('en-SG') : `$${$(sum(k))}`}</td>)}
+                  <td className="num">${$(sum('gross_pay'))}</td>
+                  <td className="num">${$(sum('cpf_employee'))} / ${$(sum('cpf_employer'))}</td>
+                  <td className="num"><strong>${$(sum('net_pay'))}</strong></td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
             </table>
           </div>
           <SlipHeader company={company} slip={slip} setSlip={setSlip} />
