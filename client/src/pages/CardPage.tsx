@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { homeData } from '../api';
 import { realEmail, Settings, WaLogo } from '../components/Shell';
 import OpenStatus from '../components/OpenStatus';
-import { CountUp, GoogleRating, statPairs } from '../components/Trust';
+import { CountUp, GoogleRating, insurance, Shield, statPairs } from '../components/Trust';
 import QuoteSection from '../components/QuoteSection';
 import { lines } from '../components/content';
 import useSeo from '../components/useSeo';
@@ -95,8 +95,9 @@ export default function CardPage() {
         <Link to="/" aria-label={`${S.brand || 'SB Reliance'} home`}><img src={S.logo || '/logo-gold.svg'} alt={S.brand || ''} width="211" height="44" /></Link>
         {ready && <h1>{S.card_title || `Welcome to ${co}`}</h1>}
         {S.card_intro && <p className="cp-intro">{S.card_intro}</p>}
-        {ready && (S.google_rating || S.open_hours) && (
+        {ready && (S.google_rating || S.open_hours || insurance(S).on) && (
           <div className="cp-trust">
+            {insurance(S).on && <span className="cp-pill cp-ins"><Shield /> Fully insured · WICA</span>}
             {S.google_rating && <span className="cp-pill"><GoogleRating S={S} /></span>}
             <OpenStatus hours={S.open_hours} />
           </div>

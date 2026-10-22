@@ -141,6 +141,10 @@ const DEFAULTS: Record<string, string> = {
   telegram_chat_id: '',
   telegram_detail: 'full',
   stats: '',
+  // insurance shown as a trust signal ("Cover | Insurer" per line); hidden on the site after insurance_until
+  insurance_items: ['WICA 2019 | Singlife', 'Business insurance | Allied World'].join('\n'),
+  insurance_until: '2027-10-23',
+  insurance_note: 'We send our insurance certificates to your MCST or building management before work starts.',
   warranty_title: '',
   warranty_text: '',
   quote_reply_time: '',

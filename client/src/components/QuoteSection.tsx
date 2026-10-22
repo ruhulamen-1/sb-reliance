@@ -1,5 +1,6 @@
 import QuoteForm from './QuoteForm';
 import { realEmail, Settings } from './Shell';
+import { InsuranceCard } from './Trust';
 
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
@@ -47,6 +48,7 @@ export default function QuoteSection({ S, serviceNames, title, defaultService = 
         <div className="qx-info">
           <h2>{heading}</h2>
           {S.quote_intro && <p className="qx-intro">{S.quote_intro}</p>}
+          <InsuranceCard S={S} />
           {ways.length > 0 && (
             <>
               <h3>Contact us directly</h3>

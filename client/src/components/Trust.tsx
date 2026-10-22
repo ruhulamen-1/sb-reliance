@@ -21,9 +21,41 @@ export function GoogleRating({ S }: { S: Settings }) {
     : <span>{text}</span>;
 }
 
+/** Insurance from Admin > Settings: "Cover | Insurer" lines, shown only while the policy date has not passed (Singapore time). */
+export function insurance(S: Settings) {
+  const items = lines(S.insurance_items).map((l) => { const [cover, ...by] = l.split('|'); return [cover.trim(), by.join('|').trim()] as [string, string]; }).filter(([c]) => c);
+  const until = (S.insurance_until || '').trim();
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date()); // YYYY-MM-DD
+  const valid = /^\d{4}-\d{2}-\d{2}$/.test(until) ? today <= until : true;
+  const untilText = /^\d{4}-\d{2}-\d{2}$/.test(until) ? new Date(`${until}T00:00:00`).toLocaleDateString('en-SG', { month: 'short', year: 'numeric' }) : '';
+  return { items, untilText, on: items.length > 0 && valid };
+}
+
+export const Shield = () => (
+  <svg className="shield" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z" /><path d="M8.5 12l2.4 2.4L15.8 9.5" /></svg>
+);
+
+/** "Fully insured" card: each cover and insurer, the end date and a note (e.g. certificates for MCST). */
+export function InsuranceCard({ S }: { S: Settings }) {
+  const ins = insurance(S);
+  if (!ins.on) return null;
+  return (
+    <div className="ins-card">
+      <span className="ins-ic"><Shield /></span>
+      <div>
+        <strong>Fully insured{ins.untilText && <small> · valid until {ins.untilText}</small>}</strong>
+        <ul>{ins.items.map(([c, by]) => <li key={c}>{c}{by && <span> – {by}</span>}</li>)}</ul>
+        {S.insurance_note && <p>{S.insurance_note}</p>}
+      </div>
+    </div>
+  );
+}
+
 /** Thin row under the hero: Google rating, UEN and licences. */
 export function TrustBar({ S }: { S: Settings }) {
+  const ins = insurance(S);
   const items = [
+    ins.on ? <span key="ins" className="tb-ins"><Shield /> Fully insured: {ins.items.map(([c, by]) => (by ? `${c} (${by})` : c)).join(' · ')}</span> : null,
     S.google_rating ? <GoogleRating key="g" S={S} /> : null,
     S.uen ? <span key="uen">UEN {S.uen}</span> : null,
     ...lines(S.licenses).map((l) => <span key={l}>{l}</span>),

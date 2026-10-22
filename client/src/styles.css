@@ -1198,3 +1198,19 @@ button.cp-row{width:100%;font:inherit;text-align:left;cursor:pointer}
 .ow-hero.has-bg>.wrap{width:100%}
 .ow-hero.has-bg::after{display:none}
 @media(max-width:900px){.ow-hero.has-bg{background:linear-gradient(180deg,rgba(251,250,247,.93) 0%,rgba(251,250,247,.85) 70%,rgba(251,250,247,.75) 100%),var(--ow-bg) center/cover no-repeat;min-height:0}}
+
+/* insurance: shield in the trust bar, a card beside the quote form, a pill on the QR page */
+.shield{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.trustbar li:has(.tb-ins):before{display:none}
+.tb-ins{display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
+.tb-ins .shield{color:#1f8f4e}
+.ins-card{display:flex;gap:14px;align-items:flex-start;margin:0 0 26px;padding:16px 18px;background:#eef7f1;border:1px solid #bfe0cb;border-radius:14px}
+.ins-ic{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#1f8f4e;color:#fff}
+.ins-ic .shield{width:24px;height:24px}
+.ins-card strong{display:block;color:var(--ink)}
+.ins-card strong small{font-weight:500;color:var(--muted)}
+.ins-card ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.ins-card li{padding:3px 10px;border-radius:999px;background:#fff;border:1px solid #bfe0cb;font-size:.9rem;font-weight:600;color:var(--ink)}
+.ins-card li span{font-weight:400;color:var(--muted)}
+.ins-card p{margin:8px 0 0;color:var(--muted);font-size:.92rem}
+.cp-ins{gap:6px}.cp-ins .shield{color:#4ade80}
