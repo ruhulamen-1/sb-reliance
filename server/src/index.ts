@@ -190,16 +190,38 @@ const wrap =
     fn(req, res).catch(next);
 
 // Admin sections a staff account can be given. The owner always has all of them, and alone manages accounts.
-const MODULES = ['overview', 'quotes', 'services', 'blog', 'gallery', 'team', 'testimonials', 'payroll', 'redirects', 'qr', 'settings'];
+// Payroll is split into its operations (pay.*); the older single 'payroll' still means all of them.
+const PAY_PERMS = ['pay.staff.view', 'pay.staff.edit', 'pay.att.view', 'pay.att.edit', 'pay.month.view', 'pay.month.edit', 'pay.paid', 'pay.export', 'pay.config'];
+const MODULES = ['overview', 'quotes', 'services', 'blog', 'gallery', 'team', 'testimonials', 'payroll', ...PAY_PERMS, 'redirects', 'qr', 'settings'];
 // first part of /api/admin/<part>/... → the section it belongs to (upload, settings and me are checked in their routes)
 const MODULE_OF: Record<string, string> = {
   stats: 'overview', quotes: 'quotes', services: 'services', posts: 'blog', gallery: 'gallery', team: 'team',
-  testimonials: 'testimonials', employees: 'payroll', payroll: 'payroll', 'payroll-config': 'payroll', attendance: 'payroll',
-  redirects: 'redirects', telegram: 'settings', users: 'owner',
+  testimonials: 'testimonials', redirects: 'redirects', telegram: 'settings', users: 'owner',
 };
+// the payroll operation an admin request needs
+function payPerm(method: string, part: string, rest: string): string | undefined {
+  const read = method === 'GET';
+  if (part === 'employees') return read ? 'pay.staff.view' : 'pay.staff.edit';
+  if (part === 'attendance') return read ? 'pay.att.view' : 'pay.att.edit';
+  if (part === 'payroll-config') return read ? 'pay.any' : 'pay.config';
+  if (part !== 'payroll') return undefined;
+  if (rest === 'export') return 'pay.export';
+  if (/^\d+\/status$/.test(rest)) return 'pay.paid';
+  return read ? 'pay.month.view' : 'pay.month.edit';
+}
 type AdminUser = { id: number; email: string; name: string; role: 'owner' | 'staff'; modules: string[] };
 const parseModules = (v: unknown) => { try { const a = JSON.parse(String(v || '[]')); return Array.isArray(a) ? a.filter((m) => MODULES.includes(m)) : []; } catch { return []; } };
-const can = (u: AdminUser, m: string) => u.role === 'owner' || (m !== 'owner' && u.modules.includes(m));
+function can(u: AdminUser, m: string) {
+  if (u.role === 'owner') return true;
+  if (m === 'owner') return false;
+  if (m.startsWith('pay.')) {
+    if (u.modules.includes('payroll')) return true;
+    if (m === 'pay.any') return u.modules.some((x) => x.startsWith('pay.'));
+    // changing something includes seeing it
+    if (m.endsWith('.view') && u.modules.includes(m.replace(/\.view$/, '.edit'))) return true;
+  }
+  return u.modules.includes(m);
+}
 
 // Signed in, account still active, and allowed into the section the address belongs to.
 // The account is read on every request, so a change or a switched-off account applies at once.
@@ -213,8 +235,9 @@ function auth(req: Request, res: Response, next: NextFunction) {
   pool.query<RowDataPacket[]>('SELECT id, email, name, role, modules, active FROM users WHERE id = ?', [id]).then(([r]) => {
     if (!r[0] || !r[0].active) return res.status(401).json({ error: 'This account is switched off' });
     const u: AdminUser = { id: r[0].id, email: r[0].email, name: r[0].name || '', role: r[0].role === 'owner' ? 'owner' : 'staff', modules: parseModules(r[0].modules) };
-    const part = (req.path.split('/')[3] || '').replace(/-deleted$/, '');
-    const m = MODULE_OF[part];
+    const [, , , first = '', ...rest] = req.path.split('/');
+    const part = first.replace(/-deleted$/, '');
+    const m = payPerm(req.method, part, rest.join('/')) ?? MODULE_OF[part];
     if (m && !can(u, m)) return res.status(403).json({ error: 'Your account does not have access to this section' });
     res.locals.user = u;
     next();

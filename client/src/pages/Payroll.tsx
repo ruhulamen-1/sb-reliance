@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { api } from '../api';
 import { useRemembered } from '../remember';
-import Attendance from './Attendance';
+import Attendance, { Rules } from './Attendance';
+import { useCan } from '../perm';
 
 // Admin > Payroll: employees and the monthly salary run (OT, allowances, CPF, SDL), payslips and a CSV for Excel.
 // All arithmetic is done on the server (server/src/payroll.ts); this page only edits inputs and shows results.
@@ -22,16 +23,39 @@ const thisMonth = () => new Date().toISOString().slice(0, 7);
 const monthName = (p: string) => new Date(`${p}-01T00:00:00`).toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
 const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
+type View = 'month' | 'att' | 'staff';
+const VIEWS: [View, string, string][] = [['month', 'Monthly payroll', 'pay.month.view'], ['att', 'Attendance', 'pay.att.view'], ['staff', 'Employees', 'pay.staff.view']];
+
 export default function Payroll() {
-  const [view, setView] = useRemembered<'month' | 'att' | 'staff'>('pay.view', 'month');
+  const can = useCan();
+  const [remembered, setView] = useRemembered<View>('pay.view', 'month');
+  // only the parts this account may see (Admin > Accounts)
+  const views = VIEWS.filter(([, , perm]) => can(perm));
+  const view = views.some(([v]) => v === remembered) ? remembered : views[0]?.[0];
+  if (!view) return <ConfigOnly />;
   return (
     <>
-      <div className="tabs" role="tablist" aria-label="Payroll">
-        <button role="tab" aria-selected={view === 'month'} className={view === 'month' ? 'on' : ''} onClick={() => setView('month')}>Monthly payroll</button>
-        <button role="tab" aria-selected={view === 'att'} className={view === 'att' ? 'on' : ''} onClick={() => setView('att')}>Attendance</button>
-        <button role="tab" aria-selected={view === 'staff'} className={view === 'staff' ? 'on' : ''} onClick={() => setView('staff')}>Employees</button>
-      </div>
+      {views.length > 1 && (
+        <div className="tabs" role="tablist" aria-label="Payroll">
+          {views.map(([v, label]) => <button key={v} role="tab" aria-selected={view === v} className={view === v ? 'on' : ''} onClick={() => setView(v)}>{label}</button>)}
+        </div>
+      )}
       {view === 'staff' ? <Employees /> : view === 'att' ? <Attendance /> : <Month />}
+    </>
+  );
+}
+
+// an account that may change the payroll rules and payslip header, but see no payroll data
+function ConfigOnly() {
+  const [company, setCompany] = useState<Row>({});
+  const [slip, setSlip] = useState<Row | null>(null);
+  useEffect(() => { api<Row>('/admin/settings', { auth: true }).then(setCompany).catch(() => undefined); }, []);
+  useEffect(() => { api<Row>('/admin/payroll-config', { auth: true }).then(setSlip).catch(() => undefined); }, []);
+  return (
+    <>
+      <p className="pay-hint">Your account can change the payroll rules and the payslip header only.</p>
+      <Rules />
+      {slip && <SlipHeader company={company} slip={slip} setSlip={setSlip} />}
     </>
   );
 }
@@ -125,6 +149,7 @@ const EMP_SHEET: Col[] = [
 const EMP_KEY = ['name', 'pass_type', 'pay_basis', 'daily_rate', 'basic_salary', 'active'];
 
 function Employees() {
+  const canEdit = useCan()('pay.staff.edit');
   const [ver, setVer] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
   const [saved, setSaved] = useState<Record<number, string>>({});
@@ -141,7 +166,7 @@ function Employees() {
   // a row is saved when you leave a cell, only if something in it changed
   async function save(id: number) {
     const r = rows.find((x) => x.id === id);
-    if (!r || saved[id] === JSON.stringify(r)) return;
+    if (!canEdit || !r || saved[id] === JSON.stringify(r)) return;
     if (!String(r.name || '').trim()) { setMsg('Every employee needs a name.'); return; }
     try {
       await api(`/admin/employees/${id}`, { method: 'PUT', auth: true, body: r });
@@ -165,7 +190,7 @@ function Employees() {
   const total = (k: string) => shown.reduce((t, r) => t + Number(r[k] || 0), 0);
 
   const cell = (r: Row, [k, label, kind]: Col) => {
-    const common = { 'data-col': k, 'aria-label': `${label}, ${r.name || 'new employee'}`, onBlur: () => save(r.id) };
+    const common = { 'data-col': k, 'aria-label': `${label}, ${r.name || 'new employee'}`, onBlur: () => save(r.id), disabled: !canEdit };
     if (kind === 'pass') return <select {...common} value={r.pass_type || 'WP'} onChange={(e) => edit(r.id, { pass_type: e.target.value })}>{PASS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>;
     if (kind === 'basis') return <select {...common} value={r.pay_basis === 'daily' ? 'daily' : 'monthly'} onChange={(e) => edit(r.id, { pay_basis: e.target.value })}><option value="daily">Daily</option><option value="monthly">Monthly</option></select>;
     if (kind === 'active') return <select {...common} value={Number(r.active) === 1 ? '1' : '0'} onChange={(e) => edit(r.id, { active: Number(e.target.value) })}><option value="1">Active</option><option value="0">Inactive</option></select>;
@@ -176,9 +201,9 @@ function Employees() {
 
   return (
     <>
-      <ImportEmployees onDone={() => setVer((v) => v + 1)} />
+      {canEdit && <ImportEmployees onDone={() => setVer((v) => v + 1)} />}
       <div className="sheet-bar">
-        <button type="button" className="btn" onClick={addRow}>+ Add employee</button>
+        {canEdit && <button type="button" className="btn" onClick={addRow}>+ Add employee</button>}
         <label className="sheet-search"><span className="sr-only">Search employees</span><input type="search" placeholder="Search name, NRIC / FIN, notes…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
         <span className="sheet-count">{active.length} active · {rows.length - active.length} inactive</span>
       </div>
@@ -196,12 +221,12 @@ function Employees() {
                   <td key={c[0]} data-label={c[1]} className={`cell${c[2] === 'num' ? ' num' : ''}${j === 0 ? ' stick full' : ''}${EMP_KEY.includes(c[0]) ? ' m-key' : ''}`}>{cell(r, c)}</td>
                 ))}
                 <td className="sheet-del full">
-                  <button type="button" className="m-only m-more" aria-expanded={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? 'Hide details ▴' : 'Edit all details ▾'}</button>
-                  <button type="button" aria-label={`Delete ${r.name}`} title="Delete" onClick={() => remove(r)}>✕<span className="m-only"> Delete</span></button>
+                  <button type="button" className="m-only m-more" aria-expanded={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? 'Hide details ▴' : canEdit ? 'Edit all details ▾' : 'All details ▾'}</button>
+                  {canEdit && <button type="button" aria-label={`Delete ${r.name}`} title="Delete" onClick={() => remove(r)}>✕<span className="m-only"> Delete</span></button>}
                 </td>
               </tr>
             ))}
-            {!shown.length && <tr><td className="rn" /><td colSpan={EMP_SHEET.length + 1} className="sheet-empty">{rows.length ? 'No employee matches the search.' : 'No employees yet. Press "+ Add employee" or import a file.'}</td></tr>}
+            {!shown.length && <tr><td className="rn" /><td colSpan={EMP_SHEET.length + 1} className="sheet-empty">{rows.length ? 'No employee matches the search.' : canEdit ? 'No employees yet. Press "+ Add employee" or import a file.' : 'No employees yet.'}</td></tr>}
           </tbody>
           {shown.length > 0 && (
             <tfoot>
@@ -214,7 +239,7 @@ function Employees() {
           )}
         </table>
       </div>
-      <p className="pay-hint">Click a cell to change it; it saves when you leave the cell. Enter moves down, Tab moves right. Date of birth is needed for CPF (Singapore Citizens and PRs). OT rate empty = Employment Act rate. Levy is paid by the company, never deducted from salary. Employees with paid salary records cannot be deleted: set them to Inactive.</p>
+      {canEdit && <p className="pay-hint">Click a cell to change it; it saves when you leave the cell. Enter moves down, Tab moves right. Date of birth is needed for CPF (Singapore Citizens and PRs). OT rate empty = Employment Act rate. Levy is paid by the company, never deducted from salary. Employees with paid salary records cannot be deleted: set them to Inactive.</p>}
     </>
   );
 }
@@ -284,6 +309,8 @@ function enterDown(e: React.KeyboardEvent<HTMLTableElement>) {
 }
 
 function Month() {
+  const can = useCan();
+  const canEdit = can('pay.month.edit'), canPaid = can('pay.paid'), canExport = can('pay.export'), canConfig = can('pay.config');
   const [period, setPeriod] = useRemembered('pay.period', thisMonth());
   const [items, setItems] = useState<Row[]>([]);
   const [msg, setMsg] = useState('');
@@ -300,6 +327,7 @@ function Month() {
 
   const edit = (id: number, patch: Row) => setItems((xs) => xs.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   async function save(r: Row) {
+    if (!canEdit) return;
     try {
       const out = await api<Row>(`/admin/payroll/${r.id}`, { method: 'PUT', auth: true, body: r });
       edit(r.id, out);
@@ -351,12 +379,12 @@ function Month() {
     <>
       <div className="card pay-bar">
         <label>Month<input type="month" value={period} onChange={(e) => e.target.value && setPeriod(e.target.value)} /></label>
-        <button type="button" className="btn" onClick={generate}>Add active employees to this month</button>
-        <button type="button" className="btn ghost" onClick={fromAttendance} disabled={!items.length}>Take days, OT and leave from attendance</button>
-        <button type="button" className="btn ghost" onClick={download} disabled={!items.length}>Download Excel (CSV)</button>
+        {canEdit && <button type="button" className="btn" onClick={generate}>Add active employees to this month</button>}
+        {canEdit && <button type="button" className="btn ghost" onClick={fromAttendance} disabled={!items.length}>Take days, OT and leave from attendance</button>}
+        {canExport && <button type="button" className="btn ghost" onClick={download} disabled={!items.length}>Download Excel (CSV)</button>}
       </div>
       {msg && <p className="ok" role="status">{msg}</p>}
-      {!items.length && <p>No salaries for {monthName(period)} yet. Add employees under "Employees", then press "Add active employees to this month".</p>}
+      {!items.length && <p>No salaries for {monthName(period)} yet.{canEdit && ' Add employees under "Employees", then press "Add active employees to this month".'}</p>}
 
       {items.length > 0 && (
         <>
@@ -389,11 +417,11 @@ function Month() {
                       </td>
                       {EDIT.map(([k, l, only]) => only && only !== basisOf(r) ? <td key={k} className="num na m-hide"><small>—</small></td> : (
                         <td key={k} className="num cell" data-label={l}>
-                          <input type="number" min={0} step="any" data-col={k} aria-label={`${l}, ${r.employee_name}`} disabled={locked} value={r[k] ?? ''}
+                          <input type="number" min={0} step="any" data-col={k} aria-label={`${l}, ${r.employee_name}`} disabled={locked || !canEdit} value={r[k] ?? ''}
                             onChange={(e) => edit(r.id, { [k]: e.target.value })} onBlur={() => save(r)} />
                           {k === 'unpaid_leave' && Number(r.unpaid_days) > 0 && <small>{Number(r.unpaid_days)} day(s)</small>}
                           {k === 'other_deduction' && Number(r.other_deduction) > 0 && (
-                            <input type="text" placeholder="What for?" aria-label={`Deduction note, ${r.employee_name}`} disabled={locked} value={r.deduction_note ?? ''}
+                            <input type="text" placeholder="What for?" aria-label={`Deduction note, ${r.employee_name}`} disabled={locked || !canEdit} value={r.deduction_note ?? ''}
                               onChange={(e) => edit(r.id, { deduction_note: e.target.value })} onBlur={() => save(r)} />
                           )}
                         </td>
@@ -402,8 +430,8 @@ function Month() {
                       <td className="num" data-label="CPF employee / employer">
                         {r.pass_type === 'PR12' || Number(r.cpf_manual) ? (
                           <span className="cpf-manual">
-                            <input type="number" min={0} step="any" aria-label={`CPF employee, ${r.employee_name}`} disabled={locked} value={r.cpf_employee ?? ''} onChange={(e) => edit(r.id, { cpf_employee: e.target.value, cpf_manual: 1 })} onBlur={() => save(r)} />
-                            <input type="number" min={0} step="any" aria-label={`CPF employer, ${r.employee_name}`} disabled={locked} value={r.cpf_employer ?? ''} onChange={(e) => edit(r.id, { cpf_employer: e.target.value, cpf_manual: 1 })} onBlur={() => save(r)} />
+                            <input type="number" min={0} step="any" aria-label={`CPF employee, ${r.employee_name}`} disabled={locked || !canEdit} value={r.cpf_employee ?? ''} onChange={(e) => edit(r.id, { cpf_employee: e.target.value, cpf_manual: 1 })} onBlur={() => save(r)} />
+                            <input type="number" min={0} step="any" aria-label={`CPF employer, ${r.employee_name}`} disabled={locked || !canEdit} value={r.cpf_employer ?? ''} onChange={(e) => edit(r.id, { cpf_employer: e.target.value, cpf_manual: 1 })} onBlur={() => save(r)} />
                           </span>
                         ) : ['WP', 'SPASS', 'EP'].includes(r.pass_type) ? <small>No CPF</small> : <>${$(r.cpf_employee)}<small>employer ${$(r.cpf_employer)}</small></>}
                       </td>
@@ -412,10 +440,10 @@ function Month() {
                       <td className="pay-actions full">
                         <button type="button" className="btn ghost" onClick={() => payslip(r, company, slip, period)} title="Open the payslip">Payslip</button>
                         {locked
-                          ? <button type="button" className="btn ghost" onClick={() => setPaid(r, false)} title="Mark unpaid">Unpaid</button>
+                          ? canPaid && <button type="button" className="btn ghost" onClick={() => setPaid(r, false)} title="Mark unpaid">Unpaid</button>
                           : <>
-                            <button type="button" className="btn" onClick={() => setPaid(r, true)} title="Mark paid">Paid</button>
-                            <button type="button" className="btn ghost pay-x" onClick={() => remove(r)} aria-label={`Remove ${r.employee_name} from this month`} title="Remove from this month">✕<span className="m-only"> Remove</span></button>
+                            {canPaid && <button type="button" className="btn" onClick={() => setPaid(r, true)} title="Mark paid">Paid</button>}
+                            {canEdit && <button type="button" className="btn ghost pay-x" onClick={() => remove(r)} aria-label={`Remove ${r.employee_name} from this month`} title="Remove from this month">✕<span className="m-only"> Remove</span></button>}
                           </>}
                       </td>
                     </tr>
@@ -436,7 +464,7 @@ function Month() {
               </tfoot>
             </table>
           </div>
-          <SlipHeader company={company} slip={slip} setSlip={setSlip} />
+          {canConfig && <SlipHeader company={company} slip={slip} setSlip={setSlip} />}
           <p className="pay-hint">Daily-rated workers: basic = days x daily rate, Sunday / public holiday worked = 2 x daily rate, OT = daily rate / normal hours x 1.5 (all filled from Attendance). CPF uses the CPF Board rates from 1 January 2026 for Singapore Citizens and PRs from the 3rd year (Ordinary Wage ceiling $8,000). For PRs in their 1st or 2nd year, enter the CPF from the CPF contribution calculator. Check bonuses (Additional Wages) with the CPF calculator before paying. SDL and levy are paid by the company and are not deducted from salary.</p>
         </>
       )}

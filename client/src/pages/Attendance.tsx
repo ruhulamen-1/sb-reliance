@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { useRemembered } from '../remember';
+import { useCan } from '../perm';
 
 // Admin > Payroll > Attendance: daily entry (status, in/out, OT) and a month sheet.
 // "Take from attendance" in Monthly payroll turns it into OT hours and unpaid leave.
@@ -50,6 +51,7 @@ export default function Attendance() {
 }
 
 function Day({ date, setDate }: { date: string; setDate: (d: string) => void }) {
+  const canEdit = useCan()('pay.att.edit');
   const [emps, setEmps] = useState<Row[]>([]);
   const [recs, setRecs] = useState<Record<number, Row>>({});
   const [locked, setLocked] = useState<number[]>([]);
@@ -100,9 +102,11 @@ function Day({ date, setDate }: { date: string; setDate: (d: string) => void }) 
         <label>Date<input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} /></label>
         <button type="button" className="btn ghost" onClick={() => setDate(shift(date, -1))} aria-label="Previous day">‹ Prev</button>
         <button type="button" className="btn ghost" onClick={() => setDate(shift(date, 1))} aria-label="Next day">Next ›</button>
-        <button type="button" className="btn" onClick={() => fill('P')} disabled={!missing}>Mark the rest Present</button>
-        <button type="button" className="btn ghost" onClick={() => fill('PH')} disabled={!missing}>Public holiday for all</button>
-        <button type="button" className="btn ghost" onClick={() => fill('OFF')} disabled={!missing}>Rest day for all</button>
+        {canEdit && <>
+          <button type="button" className="btn" onClick={() => fill('P')} disabled={!missing}>Mark the rest Present</button>
+          <button type="button" className="btn ghost" onClick={() => fill('PH')} disabled={!missing}>Public holiday for all</button>
+          <button type="button" className="btn ghost" onClick={() => fill('OFF')} disabled={!missing}>Rest day for all</button>
+        </>}
       </div>
       <p className="att-day"><strong>{dayName(date)}</strong> · Present {count('P')} · Absent / unpaid {count('A') + count('UL') + count('HL')} · Leave {count('AL') + count('MC')}{missing ? ` · ${missing} not entered` : ''}</p>
       {msg && <p className="ok" role="status">{msg}</p>}
@@ -114,11 +118,11 @@ function Day({ date, setDate }: { date: string; setDate: (d: string) => void }) 
             <tbody>
               {emps.map((e) => {
                 const r = recs[e.id] || {};
-                const off = locked.includes(e.id);
+                const off = locked.includes(e.id) || !canEdit;
                 const who = e.name;
                 return (
-                  <tr key={e.id} className={off ? 'paid' : !r.status ? 'att-empty' : ''}>
-                    <td className="full mhead"><strong>{e.name}</strong><small>{e.designation || ''}{off ? ' · salary paid, locked' : ''}</small></td>
+                  <tr key={e.id} className={locked.includes(e.id) ? 'paid' : !r.status ? 'att-empty' : ''}>
+                    <td className="full mhead"><strong>{e.name}</strong><small>{e.designation || ''}{locked.includes(e.id) ? ' · salary paid, locked' : ''}</small></td>
                     <td className="full" data-label="Status">
                       <select aria-label={`Status, ${who}`} disabled={off} value={r.status || ''} className={`att-s att-${r.status || 'none'}`}
                         onChange={(ev) => { const status = ev.target.value; edit(e.id, { status }); save(e.id, { status, ot_hours: WORK.includes(status) ? r.ot_hours ?? '' : 0 }); }}>
@@ -165,9 +169,11 @@ function previewOt(d: Row, cfg: Row) {
 
 // One employee, every day of the month on one page, saved together with "Save month"
 function Person({ period, setPeriod, person, setPerson }: { period: string; setPeriod: (p: string) => void; person: number; setPerson: (id: number) => void }) {
+  const canEdit = useCan()('pay.att.edit');
   const [emps, setEmps] = useState<Row[]>([]);
   const [days, setDays] = useState<Row[]>([]);
-  const [locked, setLocked] = useState(false);
+  const [paidLock, setLocked] = useState(false);
+  const locked = paidLock || !canEdit; // inputs off: salary paid, or this account may only look
   const [cfg, setCfg] = useState<Row>({ week: '6', day_hours: 8, break_hours: 1 });
   const [dirty, setDirty] = useState(false);
   const [msg, setMsg] = useState('');
@@ -231,7 +237,7 @@ function Person({ period, setPeriod, person, setPerson }: { period: string; setP
     tot.unpaid += UNPAID[d.status] || 0;
     tot.ot += ot(d) || 0;
   }
-  const saveBtn = <button type="button" className="btn" onClick={saveMonth} disabled={locked || !dirty}>{dirty ? 'Save month' : 'Saved'}</button>;
+  const saveBtn = canEdit && <button type="button" className="btn" onClick={saveMonth} disabled={locked || !dirty}>{dirty ? 'Save month' : 'Saved'}</button>;
 
   return (
     <>
@@ -244,7 +250,7 @@ function Person({ period, setPeriod, person, setPerson }: { period: string; setP
         <label>Month<input type="month" value={period} onChange={(e) => e.target.value && (!dirty || confirm('Leave without saving?')) && setPeriod(e.target.value)} /></label>
         {saveBtn}
       </div>
-      {locked && <p className="err">The salary for {monthName(period)} is marked paid, so this month is locked. Mark it unpaid in Monthly payroll to change it.</p>}
+      {paidLock && <p className="err">The salary for {monthName(period)} is marked paid, so this month is locked. Mark it unpaid in Monthly payroll to change it.</p>}
       {!locked && (
         <div className="card pay-bar att-quick">
           <button type="button" className="btn ghost" onClick={fillEmpty} disabled={!tot.empty}>Fill empty days: Present, Sundays rest day</button>
@@ -285,7 +291,7 @@ function Person({ period, setPeriod, person, setPerson }: { period: string; setP
         </table>
       </div>
       <p className="row gap att-save">{saveBtn}</p>
-      <p className="pay-hint">Fill the month in a few clicks: "Fill empty days" marks working days Present and Sundays as rest days, then change the days the employee was absent or on leave. Give the usual times once and press "Use these times on all Present days" to work out OT from them, or type the OT hours on the days with overtime. Nothing is saved until you press "Save month".</p>
+      {canEdit && <p className="pay-hint">Fill the month in a few clicks: "Fill empty days" marks working days Present and Sundays as rest days, then change the days the employee was absent or on leave. Give the usual times once and press "Use these times on all Present days" to work out OT from them, or type the OT hours on the days with overtime. Nothing is saved until you press "Save month".</p>}
     </>
   );
 }
@@ -353,7 +359,8 @@ function MonthSheet({ period, setPeriod, openDay, openPerson }: { period: string
   );
 }
 
-function Rules() {
+export function Rules() {
+  const canConfig = useCan()('pay.config');
   const [cfg, setCfg] = useState<Row | null>(null);
   const [msg, setMsg] = useState('');
   useEffect(() => { api<Row>('/admin/payroll-config', { auth: true }).then(setCfg).catch(() => undefined); }, []);
@@ -366,15 +373,15 @@ function Rules() {
       <summary>Attendance rules</summary>
       <div className="pay-bar">
         <label>Work week
-          <select value={cfg.week} onChange={(e) => setCfg({ ...cfg, week: e.target.value })}>
+          <select disabled={!canConfig} value={cfg.week} onChange={(e) => setCfg({ ...cfg, week: e.target.value })}>
             <option value="6">6 days (Mon–Sat)</option>
             <option value="5.5">5½ days (Mon–Fri + half Sat)</option>
             <option value="5">5 days (Mon–Fri)</option>
           </select>
         </label>
-        <label>Normal hours a day<input type="number" min={1} max={12} step="0.5" value={cfg.day_hours} onChange={(e) => setCfg({ ...cfg, day_hours: e.target.value })} /></label>
-        <label>Unpaid break (hours)<input type="number" min={0} max={4} step="0.25" value={cfg.break_hours} onChange={(e) => setCfg({ ...cfg, break_hours: e.target.value })} /></label>
-        <button type="button" className="btn" onClick={save}>Save rules</button>
+        <label>Normal hours a day<input disabled={!canConfig} type="number" min={1} max={12} step="0.5" value={cfg.day_hours} onChange={(e) => setCfg({ ...cfg, day_hours: e.target.value })} /></label>
+        <label>Unpaid break (hours)<input disabled={!canConfig} type="number" min={0} max={4} step="0.25" value={cfg.break_hours} onChange={(e) => setCfg({ ...cfg, break_hours: e.target.value })} /></label>
+        {canConfig && <button type="button" className="btn" onClick={save}>Save rules</button>}
         {msg && <span role="status">{msg}</span>}
       </div>
       <p className="pay-hint">Unpaid day deduction (MOM rule for days not worked) = (basic + fixed allowance) ÷ working days in the month × unpaid days. Working days count Monday–Saturday for a 6-day week (Saturday as half for 5½ days); Sundays are rest days. Absent and Unpaid leave count 1 day, Half day unpaid 0.5. Paid leave, MC and public holidays are not deducted.</p>

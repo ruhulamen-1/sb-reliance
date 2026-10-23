@@ -1414,3 +1414,5 @@ table.sheet{border-collapse:separate;border-spacing:0;width:max-content;min-widt
 .acc-row .tag{margin-left:8px;font-size:.75rem}
 .acc-row.off{opacity:.6}
 @media (max-width:700px){.admin-who{display:none}}
+.acc-pay{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.acc-pay-head{grid-column:1/-1;align-items:center;flex-wrap:wrap}.acc-pay-head small{flex:1;min-width:180px}

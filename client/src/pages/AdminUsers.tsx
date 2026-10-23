@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api } from '../api';
+import type { Me } from '../perm';
 
-export type Me = { id: number; email: string; name: string; role: 'owner' | 'staff'; modules: string[] };
+export type { Me };
 type Account = { id: number; email: string; name: string; role: 'owner' | 'staff'; modules: string[]; active: boolean };
 
 /** The sections an account can be given, with the Admin tab each one opens. */
@@ -13,11 +14,31 @@ export const MODULES: [string, string, string][] = [
   ['gallery', 'Gallery', 'Projects and photos'],
   ['team', 'Team', 'People on the About page'],
   ['testimonials', 'Testimonials', 'Reviews'],
-  ['payroll', 'Payroll', 'Employees, attendance, salaries and payslips (personal data)'],
+  ['payroll', 'Payroll', 'Choose each payroll job below'],
   ['redirects', 'Redirects', 'Old page addresses'],
   ['qr', 'QR page', 'The business card page'],
   ['settings', 'Settings', 'Company details, Google, Telegram alerts (private keys)'],
 ];
+
+/** Payroll, one job at a time. Ticking a "change" job also gives its "see" job. */
+export const PAY_OPS: [string, string, string][] = [
+  ['pay.staff.view', 'Employees: see the list', 'Names, NRIC / FIN, pass, salary and bank details'],
+  ['pay.staff.edit', 'Employees: add, change, import, delete', ''],
+  ['pay.att.view', 'Attendance: see', 'Daily entry, one employee and month sheet'],
+  ['pay.att.edit', 'Attendance: mark and change', 'Status, times, OT, "Mark the rest Present"'],
+  ['pay.month.view', 'Monthly payroll: see salaries and payslips', 'Every salary of the month, open and print payslips'],
+  ['pay.month.edit', 'Monthly payroll: prepare the month', 'Add employees to the month, take from attendance, change days, OT, allowances, deductions, remove'],
+  ['pay.paid', 'Mark salaries Paid / Unpaid', 'A paid month is locked'],
+  ['pay.export', 'Download Excel (CSV)', 'The whole month as a file'],
+  ['pay.config', 'Payroll rules and payslip header', 'Work week, normal hours, break; address on the payslip'],
+];
+const PAY_KEYS = PAY_OPS.map(([k]) => k);
+const NEEDS: Record<string, string> = {
+  'pay.staff.edit': 'pay.staff.view', 'pay.att.edit': 'pay.att.view',
+  'pay.month.edit': 'pay.month.view', 'pay.paid': 'pay.month.view', 'pay.export': 'pay.month.view',
+};
+// an account saved with the old single "Payroll" box has every payroll job
+const expand = (mods: string[]) => (mods.includes('payroll') ? [...mods.filter((m) => m !== 'payroll' && !PAY_KEYS.includes(m)), ...PAY_KEYS] : mods);
 
 const EMPTY = { email: '', name: '', password: '', role: 'staff' as 'owner' | 'staff', modules: [] as string[], active: true };
 
@@ -45,9 +66,16 @@ function MyPassword() {
 }
 
 function AccountForm({ start, me, onDone, onCancel }: { start: Account | null; me: Me; onDone: () => void; onCancel: () => void }) {
-  const [f, setF] = useState(start ? { ...start, password: '' } : EMPTY);
+  const [f, setF] = useState(start ? { ...start, modules: expand(start.modules), password: '' } : EMPTY);
   const [err, setErr] = useState('');
-  const toggle = (m: string) => setF({ ...f, modules: f.modules.includes(m) ? f.modules.filter((x) => x !== m) : [...f.modules, m] });
+  const toggle = (m: string) => {
+    const on = !f.modules.includes(m);
+    let next = on ? [...f.modules, m] : f.modules.filter((x) => x !== m);
+    // a job that works on a list needs that list: ticking it ticks the "see" job, untick "see" and it goes too
+    if (on && NEEDS[m]) next = [...new Set([...next, NEEDS[m]])];
+    if (!on) next = next.filter((x) => NEEDS[x] !== m);
+    setF({ ...f, modules: next });
+  };
   async function submit(e: FormEvent) {
     e.preventDefault();
     setErr('');
@@ -75,15 +103,28 @@ function AccountForm({ start, me, onDone, onCancel }: { start: Account | null; m
         <fieldset className="full acc-mods">
           <legend>Sections this account can open</legend>
           <div className="row gap">
-            <button type="button" className="btn ghost" onClick={() => setF({ ...f, modules: MODULES.map(([k]) => k) })}>Tick all</button>
+            <button type="button" className="btn ghost" onClick={() => setF({ ...f, modules: [...MODULES.map(([k]) => k).filter((k) => k !== 'payroll'), ...PAY_KEYS] })}>Tick all</button>
             <button type="button" className="btn ghost" onClick={() => setF({ ...f, modules: [] })}>Clear</button>
           </div>
-          {MODULES.map(([k, label, hint]) => (
+          {MODULES.filter(([k]) => k !== 'payroll').map(([k, label, hint]) => (
             <label key={k} className="acc-check">
               <input type="checkbox" checked={f.modules.includes(k)} onChange={() => toggle(k)} />
               <span><b>{label}</b><small>{hint}</small></span>
             </label>
           ))}
+          <div className="acc-pay">
+            <div className="row gap acc-pay-head">
+              <b>Payroll</b><small>Personal data and salaries: give only what the person needs.</small>
+              <button type="button" className="btn ghost" onClick={() => setF({ ...f, modules: [...new Set([...f.modules, ...PAY_KEYS])] })}>All payroll</button>
+              <button type="button" className="btn ghost" onClick={() => setF({ ...f, modules: f.modules.filter((m) => !PAY_KEYS.includes(m)) })}>No payroll</button>
+            </div>
+            {PAY_OPS.map(([k, label, hint]) => (
+              <label key={k} className="acc-check">
+                <input type="checkbox" checked={f.modules.includes(k)} onChange={() => toggle(k)} />
+                <span><b>{label}</b>{hint && <small>{hint}</small>}</span>
+              </label>
+            ))}
+          </div>
         </fieldset>
       )}
       {!self && (
@@ -112,12 +153,18 @@ export default function AdminUsers({ me }: { me: Me }) {
     if (!confirm(`Delete the account ${a.email}? This person can no longer sign in.`)) return;
     try { await api(`/admin/users/${a.id}`, { method: 'DELETE', auth: true }); load(); } catch (x) { setMsg((x as Error).message); }
   }
-  const label = (m: string) => MODULES.find(([k]) => k === m)?.[1] ?? m;
+  // "Blog · QR page · Payroll: Employees: see the list, …"
+  const summary = (mods: string[]) => {
+    const all = expand(mods);
+    const pay = PAY_OPS.filter(([k]) => all.includes(k)).map(([, l]) => l);
+    const rest = MODULES.filter(([k]) => k !== 'payroll' && all.includes(k)).map(([, l]) => l);
+    return [...rest, ...(pay.length === PAY_OPS.length ? ['Payroll (all)'] : pay.length ? [`Payroll (${pay.join('; ')})`] : [])].join(' · ');
+  };
   return (
     <>
       <div className="card acc-me">
         <strong>Signed in as {me.name || me.email}</strong>
-        <p>{me.role === 'owner' ? 'Owner: you can open every section and manage accounts.' : `You can open: ${me.modules.map(label).join(', ') || 'no sections yet. Ask the owner.'}`}</p>
+        <p>{me.role === 'owner' ? 'Owner: you can open every section and manage accounts.' : `You can open: ${summary(me.modules) || 'no sections yet. Ask the owner.'}`}</p>
       </div>
       <MyPassword />
       {me.role === 'owner' && (
@@ -135,7 +182,7 @@ export default function AdminUsers({ me }: { me: Me }) {
                   <div>
                     <span><strong>{a.name || a.email}</strong>{a.id === me.id && <span className="tag">You</span>}{!a.active && <span className="tag">Switched off</span>}</span>
                     <small>{a.email}</small>
-                    <small>{a.role === 'owner' ? 'Owner: all sections' : a.modules.length ? a.modules.map(label).join(' · ') : 'No sections yet'}</small>
+                    <small>{a.role === 'owner' ? 'Owner: all sections' : summary(a.modules) || 'No sections yet'}</small>
                   </div>
                   <div className="row gap">
                     <button className="btn ghost" onClick={() => { setEdit(a); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button>

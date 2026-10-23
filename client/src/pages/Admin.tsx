@@ -1,7 +1,8 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import Payroll from './Payroll';
-import AdminUsers, { Me, MODULES } from './AdminUsers';
+import AdminUsers, { MODULES } from './AdminUsers';
+import { has, Me, MeContext } from '../perm';
 import { CountUp } from '../components/Trust';
 import useReveal from '../components/useReveal';
 import useSmoothScroll from '../components/useSmoothScroll';
@@ -592,7 +593,7 @@ const INTRO: Record<(typeof TABS)[number], string> = {
 };
 // the section (server module) behind each tab; Accounts is open to everyone (own password)
 const tabModule = (t: (typeof TABS)[number]) => MODULES.find(([, label]) => label === t)?.[0];
-const allowed = (me: Me, t: (typeof TABS)[number]) => { const m = tabModule(t); return !m || me.role === 'owner' || me.modules.includes(m); };
+const allowed = (me: Me, t: (typeof TABS)[number]) => { const m = tabModule(t); return !m || has(me, m === 'payroll' ? 'pay.any' : m); };
 
 function tabFromHash() {
   const h = decodeURIComponent(location.hash.slice(1)).toLowerCase();
@@ -623,6 +624,7 @@ export default function Admin() {
   // a tab this account cannot open (an old link, or access taken away) shows its first allowed tab
   if (!tabs.includes(tab)) { setTimeout(() => setTab(tabs[0]), 0); return null; }
   return (
+    <MeContext.Provider value={me}>
     <div className={tab === 'Payroll' ? 'admin wide' : 'admin'}>
       <header className="admin-bar">
         <div className="admin-inner">
@@ -693,5 +695,6 @@ export default function Admin() {
       </div>
       </main>
     </div>
+    </MeContext.Provider>
   );
 }
