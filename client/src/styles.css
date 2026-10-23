@@ -1398,3 +1398,19 @@ table.sheet{border-collapse:separate;border-spacing:0;width:max-content;min-widt
 .admin .pay-table.pay-month td.stick,.admin.wide .pay-table.pay-month td.stick{width:140px;min-width:140px}
 @media (max-width:700px){.admin .pay-table.pay-month td.cell input{padding:8px 10px!important;font-size:16px!important}}
 .admin .pay-table.pay-month .paid-tag{white-space:normal;display:inline-block}.admin .pay-table.pay-month .paid-tag small{display:block;font-weight:400}
+
+/* Admin > Accounts */
+.admin-who{font-size:.85rem;color:var(--muted,#667);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-me p{margin:4px 0 0}
+.acc-head{align-items:center;justify-content:space-between;margin:22px 0 10px}.acc-head h2{margin:0}
+.acc-mods{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.acc-mods legend{font-weight:600;padding:0 6px}.acc-mods>.row{grid-column:1/-1}
+.form .acc-check{display:flex;flex-direction:row;align-items:flex-start;gap:10px;cursor:pointer}
+.acc-check input{width:18px;height:18px;margin-top:2px;flex:none}
+.acc-check span{display:flex;flex-direction:column}.acc-check small{font-weight:400}
+.acc-list{display:grid;gap:10px}
+.acc-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.acc-row>div:first-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.acc-row .tag{margin-left:8px;font-size:.75rem}
+.acc-row.off{opacity:.6}
+@media (max-width:700px){.admin-who{display:none}}

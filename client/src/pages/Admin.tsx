@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import Payroll from './Payroll';
+import AdminUsers, { Me, MODULES } from './AdminUsers';
 import { CountUp } from '../components/Trust';
 import useReveal from '../components/useReveal';
 import useSmoothScroll from '../components/useSmoothScroll';
@@ -574,7 +575,7 @@ function StandardServices({ onDone }: { onDone: () => void }) {
   );
 }
 
-const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Payroll', 'Redirects', 'QR page', 'Settings'] as const;
+const TABS = ['Overview', 'Quotes', 'Services', 'Blog', 'Gallery', 'Team', 'Testimonials', 'Payroll', 'Redirects', 'QR page', 'Settings', 'Accounts'] as const;
 const INTRO: Record<(typeof TABS)[number], string> = {
   Overview: 'Quote requests by status and revenue from completed jobs.',
   Quotes: 'Requests sent from the website. Update the status, amount and notes as the job moves on.',
@@ -587,7 +588,11 @@ const INTRO: Record<(typeof TABS)[number], string> = {
   Payroll: 'Employees, daily attendance and the monthly salary run with payslips.',
   'QR page': 'The page the QR code on the business cards opens. Update it any time.',
   Settings: 'Company details, contact, Google and trust information used across the site.',
+  Accounts: 'Your password, and the people who can sign in here with the sections each one can open.',
 };
+// the section (server module) behind each tab; Accounts is open to everyone (own password)
+const tabModule = (t: (typeof TABS)[number]) => MODULES.find(([, label]) => label === t)?.[0];
+const allowed = (me: Me, t: (typeof TABS)[number]) => { const m = tabModule(t); return !m || me.role === 'owner' || me.modules.includes(m); };
 
 function tabFromHash() {
   const h = decodeURIComponent(location.hash.slice(1)).toLowerCase();
@@ -605,9 +610,18 @@ export default function Admin() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   const [stdKey, setStdKey] = useState(0);
+  const [me, setMe] = useState<Me | null>(null);
+  useEffect(() => {
+    if (!authed) return setMe(null);
+    api<Me>('/admin/me', { auth: true }).then(setMe).catch(() => undefined);
+  }, [authed]);
   useReveal();
   useSmoothScroll(authed);
   if (!authed) return <div className="wrap narrow"><Login onDone={() => setAuthed(true)} /></div>;
+  if (!me) return <div className="wrap narrow"><p>Loading…</p></div>;
+  const tabs = TABS.filter((t) => allowed(me, t));
+  // a tab this account cannot open (an old link, or access taken away) shows its first allowed tab
+  if (!tabs.includes(tab)) { setTimeout(() => setTab(tabs[0]), 0); return null; }
   return (
     <div className={tab === 'Payroll' ? 'admin wide' : 'admin'}>
       <header className="admin-bar">
@@ -615,12 +629,13 @@ export default function Admin() {
           <div className="admin-top">
             <strong className="admin-brand">Management</strong>
             <div className="admin-links">
+              <span className="admin-who">{me.name || me.email}</span>
               <a href="/">View site</a>
               <button className="btn ghost" onClick={() => { localStorage.removeItem('token'); setAuthed(false); }}>Sign out</button>
             </div>
           </div>
           <nav className="tabs admin-tabs" aria-label="Management sections">
-            {TABS.map((t) => <button key={t} className={t === tab ? 'on' : ''} aria-current={t === tab ? 'page' : undefined} onClick={() => { setTab(t); window.scrollTo({ top: 0, behavior: 'instant' }); }}>{t}</button>)}
+            {tabs.map((t) => <button key={t} className={t === tab ? 'on' : ''} aria-current={t === tab ? 'page' : undefined} onClick={() => { setTab(t); window.scrollTo({ top: 0, behavior: 'instant' }); }}>{t}</button>)}
           </nav>
         </div>
       </header>
@@ -664,6 +679,7 @@ export default function Admin() {
       {tab === 'Redirects' && <Redirects />}
       {tab === 'QR page' && <CardSettings />}
       {tab === 'Settings' && <Settings />}
+      {tab === 'Accounts' && <AdminUsers me={me} />}
       {tab === 'Testimonials' && <ReviewLink />}
       {tab === 'Testimonials' && <Crud table="testimonials" fields={[
         { key: 'name', label: 'Name' },

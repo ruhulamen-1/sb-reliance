@@ -189,14 +189,38 @@ const wrap =
   (req: Request, res: Response, next: NextFunction) =>
     fn(req, res).catch(next);
 
+// Admin sections a staff account can be given. The owner always has all of them, and alone manages accounts.
+const MODULES = ['overview', 'quotes', 'services', 'blog', 'gallery', 'team', 'testimonials', 'payroll', 'redirects', 'qr', 'settings'];
+// first part of /api/admin/<part>/... → the section it belongs to (upload, settings and me are checked in their routes)
+const MODULE_OF: Record<string, string> = {
+  stats: 'overview', quotes: 'quotes', services: 'services', posts: 'blog', gallery: 'gallery', team: 'team',
+  testimonials: 'testimonials', employees: 'payroll', payroll: 'payroll', 'payroll-config': 'payroll', attendance: 'payroll',
+  redirects: 'redirects', telegram: 'settings', users: 'owner',
+};
+type AdminUser = { id: number; email: string; name: string; role: 'owner' | 'staff'; modules: string[] };
+const parseModules = (v: unknown) => { try { const a = JSON.parse(String(v || '[]')); return Array.isArray(a) ? a.filter((m) => MODULES.includes(m)) : []; } catch { return []; } };
+const can = (u: AdminUser, m: string) => u.role === 'owner' || (m !== 'owner' && u.modules.includes(m));
+
+// Signed in, account still active, and allowed into the section the address belongs to.
+// The account is read on every request, so a change or a switched-off account applies at once.
 function auth(req: Request, res: Response, next: NextFunction) {
+  let id: number;
   try {
-    jwt.verify((req.headers.authorization || '').replace('Bearer ', ''), JWT_SECRET);
-    next();
+    id = (jwt.verify((req.headers.authorization || '').replace('Bearer ', ''), JWT_SECRET) as { id: number }).id;
   } catch {
-    res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
+  pool.query<RowDataPacket[]>('SELECT id, email, name, role, modules, active FROM users WHERE id = ?', [id]).then(([r]) => {
+    if (!r[0] || !r[0].active) return res.status(401).json({ error: 'This account is switched off' });
+    const u: AdminUser = { id: r[0].id, email: r[0].email, name: r[0].name || '', role: r[0].role === 'owner' ? 'owner' : 'staff', modules: parseModules(r[0].modules) };
+    const part = (req.path.split('/')[3] || '').replace(/-deleted$/, '');
+    const m = MODULE_OF[part];
+    if (m && !can(u, m)) return res.status(403).json({ error: 'Your account does not have access to this section' });
+    res.locals.user = u;
+    next();
+  }).catch(next);
 }
+const userOf = (res: Response) => res.locals.user as AdminUser;
 
 // Adds a column to an existing table if it is missing (so older databases keep working)
 async function ensureColumn(table: string, column: string, ddl: string) {
@@ -281,13 +305,21 @@ async function initDb() {
     ['advance', 'advance DECIMAL(10,2) NOT NULL DEFAULT 0'],
   ]) await ensureColumn('payroll_items', col, ddl);
 
-  const [u] = await pool.query<RowDataPacket[]>('SELECT id FROM users LIMIT 1');
+  // admin accounts: the first one is the owner; more can be added with access to some sections only
+  await ensureColumn('users', 'name', "name VARCHAR(100) NOT NULL DEFAULT ''");
+  await ensureColumn('users', 'role', "role VARCHAR(10) NOT NULL DEFAULT 'staff'");
+  await ensureColumn('users', 'modules', 'modules TEXT NULL');
+  await ensureColumn('users', 'active', 'active TINYINT NOT NULL DEFAULT 1');
+  const [u] = await pool.query<RowDataPacket[]>('SELECT id FROM users ORDER BY id LIMIT 1');
   if (!u.length) {
     const hash = await bcrypt.hash(env.ADMIN_PASSWORD || 'Admin@12345', 10);
-    await pool.query('INSERT INTO users (email, password_hash) VALUES (?, ?)', [
+    await pool.query("INSERT INTO users (email, password_hash, role) VALUES (?, ?, 'owner')", [
       env.ADMIN_EMAIL || 'admin@sbreliance.local',
       hash,
     ]);
+  } else {
+    const [o] = await pool.query<RowDataPacket[]>("SELECT id FROM users WHERE role = 'owner' LIMIT 1");
+    if (!o.length) await pool.query("UPDATE users SET role = 'owner', active = 1 WHERE id = ?", [u[0].id]);
   }
   const [s] = await pool.query<RowDataPacket[]>('SELECT id FROM services LIMIT 1');
   if (!s.length) {
@@ -510,6 +542,7 @@ app.post('/api/auth/login', wrap(async (req, res) => {
   const user = rows[0];
   if (!user || !(await bcrypt.compare(password || '', user.password_hash)))
     return res.status(401).json({ error: 'Invalid email or password' });
+  if (!user.active) return res.status(403).json({ error: 'This account is switched off. Ask the owner to turn it on.' });
   res.json({ token: jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '12h' }) });
 }));
 
@@ -657,6 +690,71 @@ app.post('/api/reviews', wrap(async (req, res) => {
   notifyReview(name, rating, reviewText).catch((e) => console.error('Review email failed:', (e as Error).message));
 }));
 
+// ---------- Admin accounts ----------
+app.get('/api/admin/me', auth, (_req, res) => {
+  const u = userOf(res);
+  res.json({ ...u, modules: u.role === 'owner' ? MODULES : u.modules });
+});
+
+app.put('/api/admin/me/password', auth, wrap(async (req, res) => {
+  const { current, password } = req.body as { current?: string; password?: string };
+  if (String(password || '').length < 8) return res.status(400).json({ error: 'The new password needs at least 8 characters' });
+  const [r] = await pool.query<RowDataPacket[]>('SELECT password_hash FROM users WHERE id = ?', [userOf(res).id]);
+  if (!(await bcrypt.compare(current || '', r[0].password_hash))) return res.status(400).json({ error: 'The current password is not right' });
+  await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [await bcrypt.hash(String(password), 10), userOf(res).id]);
+  res.json({ ok: true });
+}));
+
+app.get('/api/admin/users', auth, wrap(async (_req, res) => {
+  const [rows] = await pool.query<RowDataPacket[]>('SELECT id, email, name, role, modules, active FROM users ORDER BY id');
+  res.json(rows.map((r) => ({ ...r, active: !!r.active, modules: parseModules(r.modules) })));
+}));
+
+// checks a new or changed account; returns an error message, or the values to save
+async function userInput(b: Record<string, unknown>, id?: number) {
+  const email = String(b.email || '').trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(email)) return 'Enter a valid email address';
+  const [dup] = await pool.query<RowDataPacket[]>('SELECT id FROM users WHERE email = ? AND id <> ?', [email, id || 0]);
+  if (dup.length) return 'Another account already uses this email';
+  const password = String(b.password || '');
+  if ((!id || password) && password.length < 8) return 'The password needs at least 8 characters';
+  const role = b.role === 'owner' ? 'owner' : 'staff';
+  const active = b.active === false ? 0 : 1;
+  if (id && (role !== 'owner' || !active)) {
+    // never leave the site without an active owner
+    const [o] = await pool.query<RowDataPacket[]>("SELECT id FROM users WHERE role = 'owner' AND active = 1 AND id <> ?", [id]);
+    if (!o.length) return 'Keep at least one active owner account';
+  }
+  const modules = JSON.stringify(Array.isArray(b.modules) ? b.modules.filter((m) => MODULES.includes(String(m))) : []);
+  return { email, name: String(b.name || '').trim().slice(0, 100), password, role, active, modules };
+}
+
+app.post('/api/admin/users', auth, wrap(async (req, res) => {
+  const v = await userInput(req.body);
+  if (typeof v === 'string') return res.status(400).json({ error: v });
+  const [r] = await pool.query<ResultSetHeader>('INSERT INTO users (email, name, password_hash, role, active, modules) VALUES (?, ?, ?, ?, ?, ?)',
+    [v.email, v.name, await bcrypt.hash(v.password, 10), v.role, v.active, v.modules]);
+  res.status(201).json({ id: r.insertId });
+}));
+
+app.put('/api/admin/users/:id', auth, wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  const v = await userInput(req.body, id);
+  if (typeof v === 'string') return res.status(400).json({ error: v });
+  await pool.query('UPDATE users SET email = ?, name = ?, role = ?, active = ?, modules = ? WHERE id = ?', [v.email, v.name, v.role, v.active, v.modules, id]);
+  if (v.password) await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [await bcrypt.hash(v.password, 10), id]);
+  res.json({ ok: true });
+}));
+
+app.delete('/api/admin/users/:id', auth, wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  if (id === userOf(res).id) return res.status(400).json({ error: 'You cannot delete your own account' });
+  const [o] = await pool.query<RowDataPacket[]>("SELECT id FROM users WHERE role = 'owner' AND active = 1 AND id <> ?", [id]);
+  if (!o.length) return res.status(400).json({ error: 'Keep at least one active owner account' });
+  await pool.query('DELETE FROM users WHERE id = ?', [id]);
+  res.json({ ok: true });
+}));
+
 // ---------- Admin ----------
 // images up to 5 MB; short MP4 / WebM videos (for the home page hero) up to 20 MB
 app.post('/api/admin/upload', express.json({ limit: '28mb' }), auth, wrap(async (req, res) => {
@@ -672,14 +770,19 @@ app.post('/api/admin/upload', express.json({ limit: '28mb' }), auth, wrap(async 
   res.status(201).json({ url: `/uploads/${name}` });
 }));
 
+// without the Settings section an account sees only what the website shows anyway (no Telegram token etc.)
 app.get('/api/admin/settings', auth, wrap(async (_req, res) => {
-  res.json(await getSettings());
+  res.json(can(userOf(res), 'settings') ? await getSettings() : await getPublicSettings());
 }));
 
 app.put('/api/admin/settings', auth, wrap(async (req, res) => {
+  const u = userOf(res);
+  const full = can(u, 'settings');
+  if (!full && !can(u, 'qr')) return res.status(403).json({ error: 'Your account does not have access to this section' });
   const b = req.body as Record<string, unknown>;
-  const next: Record<string, string> = {};
-  for (const k of Object.keys(DEFAULTS)) if (typeof b[k] === 'string') next[k] = b[k] as string;
+  // QR page only: change the card_* keys and keep every other saved setting as it is
+  const next: Record<string, string> = full ? {} : await getSettings();
+  for (const k of Object.keys(DEFAULTS)) if (typeof b[k] === 'string' && (full || k.startsWith('card_'))) next[k] = b[k] as string;
   const [oldS] = await pool.query<RowDataPacket[]>('SELECT data FROM settings WHERE id = 1');
   if (oldS[0]) await saveVersion('settings', 1, typeof oldS[0].data === 'string' ? JSON.parse(oldS[0].data) : oldS[0].data);
   await pool.query(
@@ -1197,11 +1300,13 @@ app.delete('/api/admin/redirects/:id', auth, wrap(async (req, res) => {
 
 // settings history
 app.get('/api/admin/settings/versions', auth, wrap(async (_req, res) => {
+  if (!can(userOf(res), 'settings')) return res.status(403).json({ error: 'Your account does not have access to this section' });
   const [rows] = await pool.query<RowDataPacket[]>("SELECT id, data, created_at FROM content_versions WHERE tbl = 'settings' ORDER BY id DESC");
   const cur = await getSettings();
   res.json(rows.map((v) => { const d = JSON.parse(v.data); return { id: v.id, created_at: v.created_at, label: 'Settings', changed: changedFields(d, cur) }; }));
 }));
 app.post('/api/admin/settings/versions/:vid/restore', auth, wrap(async (req, res) => {
+  if (!can(userOf(res), 'settings')) return res.status(403).json({ error: 'Your account does not have access to this section' });
   const [v] = await pool.query<RowDataPacket[]>("SELECT data FROM content_versions WHERE id = ? AND tbl = 'settings'", [req.params.vid]);
   if (!v[0]) return res.status(404).json({ error: 'Version not found' });
   const [cur] = await pool.query<RowDataPacket[]>('SELECT data FROM settings WHERE id = 1');
