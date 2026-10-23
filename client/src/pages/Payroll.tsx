@@ -408,7 +408,7 @@ function Month() {
                         ) : ['WP', 'SPASS', 'EP'].includes(r.pass_type) ? <small>No CPF</small> : <>${$(r.cpf_employee)}<small>employer ${$(r.cpf_employer)}</small></>}
                       </td>
                       <td className="num m-net" data-label="Net pay"><strong>${$(r.net_pay)}</strong></td>
-                      <td data-label="Status">{locked ? <span className="paid-tag">Paid {r.paid_on}</span> : <span className="draft-tag">Draft</span>}</td>
+                      <td data-label="Status">{locked ? <span className="paid-tag">Paid<small>{r.paid_on}</small></span> : <span className="draft-tag">Draft</span>}</td>
                       <td className="pay-actions full">
                         <button type="button" className="btn ghost" onClick={() => payslip(r, company, slip, period)} title="Open the payslip">Payslip</button>
                         {locked

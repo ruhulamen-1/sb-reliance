@@ -1392,3 +1392,9 @@ table.sheet{border-collapse:separate;border-spacing:0;width:max-content;min-widt
 .admin .pay-table.pay-month td.num:nth-last-child(4){width:92px}
 @media (min-width:701px){.admin .pay-table.pay-month td.pay-actions{display:table-cell;vertical-align:middle}}
 @media (max-width:700px){.admin .pay-table.pay-month td.cell,.admin.wide .pay-table.pay-month td.cell,.admin .pay-table.pay-month td.stick,.admin.wide .pay-table.pay-month td.stick,.admin .pay-table.pay-month td:nth-child(3),.admin .pay-table.pay-month td.num:nth-last-child(4),.admin .pay-table.pay-month .pay-actions{width:auto;min-width:0;max-width:none}.admin .pay-table.pay-month .pay-actions .btn{margin:0;padding:8px 12px!important;font-size:15px!important}}
+/* cells wide enough for 1234.00 without clipping */
+.admin .pay-table.pay-month td.cell,.admin.wide .pay-table.pay-month td.cell{width:64px;min-width:62px}
+.admin .pay-table.pay-month td.cell input{padding:3px 4px;font-size:12.5px;letter-spacing:-.1px}
+.admin .pay-table.pay-month td.stick,.admin.wide .pay-table.pay-month td.stick{width:140px;min-width:140px}
+@media (max-width:700px){.admin .pay-table.pay-month td.cell input{padding:8px 10px!important;font-size:16px!important}}
+.admin .pay-table.pay-month .paid-tag{white-space:normal;display:inline-block}.admin .pay-table.pay-month .paid-tag small{display:block;font-weight:400}
