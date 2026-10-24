@@ -15,6 +15,7 @@ import { SERVICE_DEFAULTS, defaultsFor, slugify } from './serviceDefaults.js';
 import { PASS_TYPES, computePay, OW_CEILING } from './payroll.js';
 import { resizedUploads } from './images.js';
 import { ATT_STATUS, autoOt, tally, workingDays, PayrollConfig, readConfig } from './attendance.js';
+import { NEW_POSTS } from './newPosts.js';
 
 const env = process.env;
 const JWT_SECRET = env.JWT_SECRET || 'change-this-secret';
@@ -343,6 +344,16 @@ async function initDb() {
   } else {
     const [o] = await pool.query<RowDataPacket[]>("SELECT id FROM users WHERE role = 'owner' LIMIT 1");
     if (!o.length) await pool.query("UPDATE users SET role = 'owner', active = 1 WHERE id = ?", [u[0].id]);
+  }
+  // one-time content (see newPosts.ts): remembered by name, so it is never added twice
+  await pool.query('CREATE TABLE IF NOT EXISTS seeded_content (name VARCHAR(190) PRIMARY KEY, added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
+  for (const p of NEW_POSTS) {
+    const name = `post:${p.slug}`;
+    const [done] = await pool.query<RowDataPacket[]>('SELECT 1 FROM seeded_content WHERE name = ?', [name]);
+    if (done.length) continue;
+    const [taken] = await pool.query<RowDataPacket[]>('SELECT 1 FROM posts WHERE slug = ?', [p.slug]);
+    if (!taken.length) await pool.query("INSERT INTO posts (title, slug, excerpt, content, status) VALUES (?, ?, ?, ?, 'published')", [p.title, p.slug, p.excerpt, p.content]);
+    await pool.query('INSERT INTO seeded_content (name) VALUES (?)', [name]);
   }
   const [s] = await pool.query<RowDataPacket[]>('SELECT id FROM services LIMIT 1');
   if (!s.length) {
