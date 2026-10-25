@@ -42,11 +42,14 @@ export interface SeoProject {
   image_url?: string | null;
   before_image_url?: string | null;
 }
-export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null; posts?: SeoPost[]; projects?: SeoProject[] }
+export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null; posts?: SeoPost[]; projects?: SeoProject[]; related?: SeoPost[] }
 
 const lines = (v?: string | null) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
+// [link text](/services/aircon-ducting-singapore) in admin-written text; the text alone where only plain text fits
+const LINK = /\[([^\]\n]+)\]\(((?:\/|https?:\/\/)[^)\s]*)\)/g;
+export const plainText = (v: string) => v.replace(LINK, '$1');
 const clip = (v: string, max = 160) => {
-  const t = v.replace(/\s+/g, ' ').trim();
+  const t = plainText(v).replace(/\s+/g, ' ').trim();
   return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
 };
 const esc = (v: string) =>
@@ -392,8 +395,16 @@ export function gaTag(S: Settings, path: string): string {
 }
 
 /** Page text with "# " heading lines -> HTML paragraphs and headings. */
+const inlineHtml = (l: string) => {
+  let out = '', at = 0;
+  for (const m of l.matchAll(LINK)) {
+    out += esc(l.slice(at, m.index)) + `<a href="${esc(m[2])}">${esc(m[1])}</a>`;
+    at = m.index! + m[0].length;
+  }
+  return out + esc(l.slice(at));
+};
 const textHtml = (v?: string | null) =>
-  lines(v).map((l) => (l.startsWith('# ') ? `<h2>${esc(l.slice(2))}</h2>` : `<p>${esc(l)}</p>`)).join('');
+  lines(v).map((l) => (l.startsWith('# ') ? `<h2>${esc(plainText(l.slice(2)))}</h2>` : `<p>${inlineHtml(l)}</p>`)).join('');
 
 const serviceLinks = (services: SeoService[]) =>
   services.filter((s) => s.slug).map((s) => `<li><a href="/services/${esc(encodeURIComponent(s.slug!))}">${esc(serviceHeading(s))}</a></li>`).join('');
@@ -417,6 +428,7 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
     const others = serviceLinks(data.services.filter((x) => x !== s));
     main = `<h1>${esc(serviceHeading(s))}</h1><p>${esc(s.description || '')}</p>${textHtml(s.content)}`
       + (pairs.length ? `<h2>Frequently asked questions</h2>${pairs.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')}` : '')
+      + ((data.related || []).length ? `<h2>Related guides</h2><ul>${data.related!.map((p) => `<li><a href="/blog/${esc(encodeURIComponent(p.slug))}">${esc(p.title)}</a></li>`).join('')}</ul>` : '')
       + contact
       + (others ? `<h2>Other services</h2><ul>${others}</ul>` : '');
   } else if (projectPath(path) && data.project) {

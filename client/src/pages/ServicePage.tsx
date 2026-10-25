@@ -6,7 +6,8 @@ import QuoteSection from '../components/QuoteSection';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
 import { Guarantee, TrustBar } from '../components/Trust';
-import { faqPairs, lines, serviceHeading, TextBlocks, Service } from '../components/content';
+import { faqPairs, lines, plainText, serviceHeading, TextBlocks, Service } from '../components/content';
+import { PostSummary, Tags } from '../components/BlogTags';
 import { HIGH, photo, SIZES } from '../img';
 import GoogleReviews, { Review } from '../components/GoogleReviews';
 import { PriceTable, priceRows } from '../components/PriceGuide';
@@ -20,6 +21,7 @@ export default function ServicePage() {
   const [services, setServices] = useState<Service[]>(() => initialHome()?.services ?? []);
   const [service, setService] = useState<Service | null>(() => services.find((x) => x.slug === slug) ?? null);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [related, setRelated] = useState<PostSummary[]>([]);
   const [reviews, setReviews] = useState<Review[]>(() => initialHome()?.testimonials ?? []);
   const [state, setState] = useState<'loading' | 'ok' | 'missing' | 'err'>('loading');
   const [err, setErr] = useState('');
@@ -31,8 +33,8 @@ export default function ServicePage() {
 
   useEffect(() => {
     setState('loading');
-    api<{ service: Service; services: Service[]; gallery: GalleryItem[]; settings: Settings }>(`/public/services/${encodeURIComponent(slug)}`)
-      .then((d) => { setService(d.service); setServices(d.services ?? []); setGallery(d.gallery ?? []); setS(d.settings ?? {}); setState('ok'); })
+    api<{ service: Service; services: Service[]; gallery: GalleryItem[]; related?: PostSummary[]; settings: Settings }>(`/public/services/${encodeURIComponent(slug)}`)
+      .then((d) => { setService(d.service); setServices(d.services ?? []); setGallery(d.gallery ?? []); setRelated(d.related ?? []); setS(d.settings ?? {}); setState('ok'); })
       .catch((e: Error) => { setErr(e.message); setState(/not found/i.test(e.message) ? 'missing' : 'err'); });
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [slug]);
@@ -65,7 +67,7 @@ export default function ServicePage() {
                 </nav>
                 <h1 className="h1m">{serviceHeading(service)}</h1>
                 <p className="lead">{service.description}</p>
-                {intro && <p className="svc-intro">{intro}</p>}
+                {intro && <p className="svc-intro">{plainText(intro)}</p>}
                 {rows.length > 0 && (
                   <ul className="ticks svc-prices" aria-label="Typical starting prices">
                     {rows.map((r) => <li key={r.item}><span>{r.item}</span> <strong>{r.price}</strong></li>)}
@@ -126,6 +128,27 @@ export default function ServicePage() {
                 ))}
               </div>
               <p><Link className="btn ghost" to="/portfolio">View all projects</Link></p>
+            </section>
+          )}
+
+          {related.length > 0 && (
+            <section className="wrap block">
+              <h2>Related guides</h2>
+              <div className="bl-grid">
+                {related.map((p) => (
+                  <article key={p.id} className="bl-card">
+                    <Link className="bl-img" to={`/blog/${p.slug}`} tabIndex={-1} aria-hidden="true">
+                      {p.image_url ? <img {...photo(p.image_url, SIZES.card)} alt="" loading="lazy" /> : <span className="bl-noimg" />}
+                    </Link>
+                    <div className="bl-body">
+                      <Tags p={p} />
+                      <h3><Link to={`/blog/${p.slug}`}>{p.title}</Link></h3>
+                      <p>{p.excerpt}</p>
+                      <Link className="bl-more" to={`/blog/${p.slug}`}>Read guide <span aria-hidden="true">↗</span></Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </section>
           )}
 

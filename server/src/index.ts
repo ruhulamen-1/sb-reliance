@@ -10,7 +10,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
-import { projectService, renderHtml, robotsTxt, sitemapXml, SeoPost, SeoProject, SeoService } from './seo.js';
+import { plainText, projectService, renderHtml, robotsTxt, sitemapXml, SeoPost, SeoProject, SeoService } from './seo.js';
 import { SERVICE_DEFAULTS, defaultsFor, slugify } from './serviceDefaults.js';
 import { PASS_TYPES, computePay, OW_CEILING } from './payroll.js';
 import { resizedUploads } from './images.js';
@@ -355,6 +355,14 @@ async function initDb() {
     if (!taken.length) await pool.query("INSERT INTO posts (title, slug, excerpt, content, status) VALUES (?, ?, ?, ?, 'published')", [p.title, p.slug, p.excerpt, p.content]);
     await pool.query('INSERT INTO seeded_content (name) VALUES (?)', [name]);
   }
+  // the same posts with links to the service pages: only where the text is still exactly as first added
+  for (const p of NEW_POSTS) {
+    const name = `post-links:${p.slug}`;
+    const [done] = await pool.query<RowDataPacket[]>('SELECT 1 FROM seeded_content WHERE name = ?', [name]);
+    if (done.length) continue;
+    await pool.query('UPDATE posts SET content = ? WHERE slug = ? AND content = ?', [p.content, p.slug, plainText(p.content)]);
+    await pool.query('INSERT INTO seeded_content (name) VALUES (?)', [name]);
+  }
   const [s] = await pool.query<RowDataPacket[]>('SELECT id FROM services LIMIT 1');
   if (!s.length) {
     const seed: [string, string][] = [
@@ -623,6 +631,20 @@ app.get('/api/public/projects/:slug', wrap(async (req, res) => {
   res.json(d);
 }));
 
+// blog posts for a service page: posts that link to it first, then posts whose title shares its main words
+const PLAIN_WORDS = new Set(['singapore', 'installation', 'install', 'service', 'services', 'and', 'the', 'in', 'for', 'of', 'works', 'work', 'contractor', 'contractors', 'system', 'systems', 'general', 'repair']);
+async function relatedPosts(service: { slug?: string | null; title: string }) {
+  const [posts] = await pool.query<RowDataPacket[]>("SELECT id, title, slug, excerpt, content, image_url, created_at FROM posts WHERE status = 'published' ORDER BY id DESC LIMIT 200");
+  const words = service.title.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !PLAIN_WORDS.has(w));
+  const score = (p: RowDataPacket) => {
+    const links = service.slug && String(p.content || '').includes(`(/services/${service.slug})`) ? 10 : 0;
+    const title = String(p.title).toLowerCase();
+    return links + words.filter((w) => new RegExp(`\\b${w}`).test(title)).length;
+  };
+  return posts.map((p) => ({ p, n: score(p) })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n || b.p.id - a.p.id)
+    .slice(0, 4).map(({ p }) => ({ id: p.id, title: p.title, slug: p.slug, excerpt: p.excerpt, image_url: p.image_url, created_at: p.created_at }));
+}
+
 app.get('/api/public/services/:slug', wrap(async (req, res) => {
   const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM services ORDER BY sort_order, id');
   const service = rows.find((r) => r.slug === req.params.slug);
@@ -631,7 +653,7 @@ app.get('/api/public/services/:slug', wrap(async (req, res) => {
   const [all] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, category, image_url FROM gallery ORDER BY id DESC LIMIT 100');
   const mine = all.filter((g) => projectService(g, rows as SeoService[])?.id === service.id);
   const gallery = [...mine, ...all.filter((g) => !mine.includes(g))].slice(0, 8);
-  res.json({ service, services: rows, gallery, settings: await getPublicSettings() });
+  res.json({ service, services: rows, gallery, related: await relatedPosts(service as { slug: string; title: string }), settings: await getPublicSettings() });
 }));
 
 // every post, newest first (the home page only shows the latest five)
@@ -1532,7 +1554,12 @@ if (existsSync(clientDist)) {
       if (/^\/(portfolio|our-work)\/?$/.test(req.path)) {
         [projects] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, category, location, description, image_url FROM gallery ORDER BY id DESC LIMIT 200');
       }
-      const data = { services: services as SeoService[], post, project: (project?.project as SeoProject) || null, posts: allPosts as SeoPost[] | undefined, projects: projects as SeoProject[] | undefined };
+      // a service page lists its related blog posts in the first response too
+      const svcSlug = /^\/services\/([^/]+)\/?$/.exec(req.path)?.[1];
+      let svc: { slug: string; title: string } | undefined;
+      if (svcSlug) { try { svc = (services as { slug: string; title: string }[]).find((x) => x.slug === decodeURIComponent(svcSlug)); } catch { /* bad address */ } }
+      const related = svc ? await relatedPosts(svc) as SeoPost[] : undefined;
+      const data = { related, services: services as SeoService[], post, project: (project?.project as SeoProject) || null, posts: allPosts as SeoPost[] | undefined, projects: projects as SeoProject[] | undefined };
       // a project page gets its own data too, so it shows without a second request
       const { html, status } = renderHtml(template, req.path, S, data, baseUrl(req, S), project ? { ...home, project } : allPosts ? { ...home, allPosts } : home);
       res.status(status).type('html').setHeader('Cache-Control', 'no-cache').send(html);
