@@ -45,6 +45,9 @@ const STEP_ICONS: [RegExp, string][] = [
 ];
 const stepIcon = (t: string) => STEP_ICONS.find(([re]) => re.test(t))?.[1] || 'M20 6 9 17l-5-5';
 
+// "ACMV System Installation" -> "ACMV system installation": lower case, but short all-capital words (ACMV, CCTV, HDB) stay as written
+const lowerWords = (t: string) => t.split(' ').map((w) => (/^[A-Z0-9&]{2,}$/.test(w) ? w : w.toLowerCase())).join(' ');
+
 export default function Home() {
   const full = (d: Partial<HomeData>): HomeData => ({ services: d.services ?? [], testimonials: d.testimonials ?? [], posts: d.posts ?? [], gallery: d.gallery ?? [], settings: d.settings ?? {} });
   // first render uses the data already in the page, so the hero and its photo show at once
@@ -121,7 +124,7 @@ export default function Home() {
               {s.image_url && <img className="cardimg" {...photo(s.image_url, SIZES.card)} alt={serviceHeading(s)} loading="lazy" />}
               <h3>{s.slug ? <Link to={`/services/${s.slug}`}>{s.title}</Link> : s.title}</h3>
               <p>{s.description}</p>
-              {s.slug && <Link className="more" to={`/services/${s.slug}`}>More about {s.title.toLowerCase()} <span aria-hidden="true">→</span></Link>}
+              {s.slug && <Link className="more" to={`/services/${s.slug}`}>More about {lowerWords(s.title)} <span aria-hidden="true">→</span></Link>}
             </article>
           ))}
         </div>
