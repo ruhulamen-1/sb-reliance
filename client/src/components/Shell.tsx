@@ -5,6 +5,7 @@ import useReveal from './useReveal';
 import useSmoothScroll from './useSmoothScroll';
 import { serviceHeading } from './content';
 import { homeData, initialHome } from '../api';
+import { hoursLine } from '../contactText';
 
 export type Settings = Record<string, string>;
 // the default settings ship with a placeholder email; never show it
@@ -200,7 +201,7 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
                   {S.whatsapp && <li><Icon d={ICONS.chat} /><a href={wa}>WhatsApp us</a></li>}
                   {email && <li><Icon d={ICONS.mail} /><a href={`mailto:${email}`}>{email}</a></li>}
                   {S.address && <li><Icon d={ICONS.pin} /><span>{S.address}</span></li>}
-                  {lines(S.open_hours).length > 0 && <li><Icon d={ICONS.clock} /><span>{lines(S.open_hours).map((h) => <span key={h} className="hours-line">{h}</span>)}</span></li>}
+                  {lines(S.open_hours).length > 0 && <li><Icon d={ICONS.clock} /><span>{lines(S.open_hours).map((h) => <span key={h} className="hours-line">{hoursLine(h)}</span>)}</span></li>}
                 </ul>
                 {(S.uen || lines(S.licenses).length > 0) && (
                   <div className="foot-trust">

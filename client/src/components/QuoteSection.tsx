@@ -1,6 +1,7 @@
 import QuoteForm from './QuoteForm';
 import { realEmail, Settings } from './Shell';
 import { InsuranceCard } from './Trust';
+import { hoursCard } from '../contactText';
 
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
@@ -11,19 +12,6 @@ const ICON = {
   mail: 'M3 6h18v12H3zM3 7l9 6 9-6',
   pin: 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
 };
-
-const DAY: Record<string, string> = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
-const clock = (t: string) => {
-  const [h, m] = t.split(':').map(Number);
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
-};
-/** "Mon-Fri 09:00-18:00" → ["Monday – Friday", "9:00 AM – 6:00 PM"]; any other line is shown as written. */
-function hoursCard(line: string): [string, string] {
-  const m = line.match(/^(.+?)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
-  if (!m) return [line, ''];
-  const days = m[1].split('-').map((d) => DAY[d.trim().slice(0, 3).toLowerCase()] || d.trim()).join(' – ');
-  return [days, m[2] === '00:00' && m[3] === '23:59' ? 'Open 24 hours' : `${clock(m[2])} – ${clock(m[3])}`];
-}
 
 /** The quote request block: a heading and ways to reach us on the left, the form in a card on the right. */
 export default function QuoteSection({ S, serviceNames, title, defaultService = '', contact = true, compact = false, source }:
@@ -68,7 +56,7 @@ export default function QuoteSection({ S, serviceNames, title, defaultService = 
             <>
               <h3>Working hours</h3>
               <ul className="qx-hours">
-                {hours.map(([d, t]) => <li key={d + t}><strong>{d}</strong>{t && <span>{t}</span>}</li>)}
+                {hours.map(([d, t]) => <li key={d + t}><strong>{d || t}</strong>{d && t && <span>{t}</span>}</li>)}
               </ul>
             </>
           )}

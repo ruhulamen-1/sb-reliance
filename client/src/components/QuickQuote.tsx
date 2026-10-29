@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { api } from '../api';
 import type { Settings } from './Shell';
 import { track } from '../analytics';
+import { sendError, waProblem } from '../contactText';
 
 // One-row quote form under the home page hero: only name and WhatsApp are needed.
 const EMPTY = { name: '', whatsapp: '', email: '', address: '' };
@@ -13,6 +14,8 @@ export default function QuickQuote({ S }: { S: Settings }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    const bad = waProblem(form.whatsapp);
+    if (bad) return setState({ kind: 'err', msg: bad });
     setState({ kind: 'sending' });
     try {
       await api('/quotes', { method: 'POST', body: { ...form, quick: true } });
@@ -20,7 +23,7 @@ export default function QuickQuote({ S }: { S: Settings }) {
       setState({ kind: 'ok' });
       setForm(EMPTY);
     } catch (err) {
-      setState({ kind: 'err', msg: (err as Error).message });
+      setState({ kind: 'err', msg: sendError(err, S.phone) });
     }
   }
 

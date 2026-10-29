@@ -46,7 +46,7 @@ export default function ServicePage() {
   });
 
   if (state === 'missing') return <NotFound />;
-  const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
+  const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}${service ? `?text=${encodeURIComponent(`Hi SB Reliance, I'd like a quote for ${service.title.toLowerCase()}.`)}` : ''}`;
   const faq = faqPairs(service?.faq);
   const intro = lines(service?.content).find((l) => !l.startsWith('# '));
   const rows = priceRows(service?.prices).slice(0, 4);

@@ -675,6 +675,11 @@ app.post('/api/quotes', wrap(async (req, res) => {
   const quick = b.quick === true;
   const need = quick ? ['name', 'whatsapp'] : ['name', 'whatsapp', 'address', 'house_type', 'service_type'];
   if (need.some((k) => !String(b[k] ?? '').trim())) return res.status(400).json({ error: 'Please fill all required fields' });
+  // a number we can reply to on WhatsApp: Singapore (8 digits from 3, 6, 8 or 9, +65 optional) or +country code (8-15 digits)
+  const waRaw = String(b.whatsapp ?? '').trim(); const waDigits = waRaw.replace(/\D/g, '');
+  const sgNo = (n: string) => /^[3689]\d{7}$/.test(n);
+  if (!(sgNo(waDigits) || (waDigits.startsWith('65') && sgNo(waDigits.slice(2))) || (waRaw.startsWith('+') && waDigits.length >= 8 && waDigits.length <= 15)))
+    return res.status(400).json({ error: 'Please check your WhatsApp number, e.g. 9123 4567 (or with country code, e.g. +60 12 345 6789).' });
   const email = String(b.email ?? '').trim().slice(0, 150);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Please check the email address' });
   if (quick) Object.assign(b, { address: String(b.address ?? '').trim() || '-', house_type: '-', service_type: 'Quick enquiry', addons: [] });

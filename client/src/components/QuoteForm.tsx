@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { api } from '../api';
 import type { Settings } from './Shell';
 import { track } from '../analytics';
+import { sendError, waProblem } from '../contactText';
 
 const EMPTY_FORM = { name: '', whatsapp: '', address: '', house_type: '', service_type: '', preferred_date: '', message: '' };
 const lines = (v?: string) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
@@ -17,6 +18,8 @@ export default function QuoteForm({ S, serviceNames, defaultService = '', compac
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    const bad = waProblem(form.whatsapp);
+    if (bad) return setState({ kind: 'err', msg: bad });
     setState({ kind: 'sending' });
     try {
       await api('/quotes', { method: 'POST', body: { ...form, addons, ...(source ? { source } : {}) } });
@@ -27,7 +30,7 @@ export default function QuoteForm({ S, serviceNames, defaultService = '', compac
       setForm({ ...EMPTY_FORM, service_type: defaultService });
       setAddons([]);
     } catch (err) {
-      setState({ kind: 'err', msg: (err as Error).message });
+      setState({ kind: 'err', msg: sendError(err, S.phone) });
     }
   }
 
