@@ -1416,3 +1416,13 @@ table.sheet{border-collapse:separate;border-spacing:0;width:max-content;min-widt
 @media (max-width:700px){.admin-who{display:none}}
 .acc-pay{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
 .acc-pay-head{grid-column:1/-1;align-items:center;flex-wrap:wrap}.acc-pay-head small{flex:1;min-width:180px}
+
+/* footer licence badges: white cards like the certificates themselves */
+.foot-badges{list-style:none;margin:22px 0 0;padding:18px 0 0;border-top:1px solid rgba(255,255,255,.12);display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.foot-badges li{display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 14px;background:#fff;border-radius:8px;color:#10343a;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+.foot-badges img{display:block;max-height:42px;max-width:120px;width:auto;height:auto;object-fit:contain}
+.foot-badges span{display:flex;flex-direction:column;line-height:1.25}
+.foot-badges strong{font-size:.9rem;font-weight:700}
+.foot-badges small{font-size:.78rem;color:#4b6266;margin-top:2px}
+.foot-badges li:not(.has-logo){border:2px solid #b0272d}
+@media (max-width:600px){.foot-badges{gap:8px}.foot-badges li{flex:1 1 calc(50% - 8px);min-height:52px;padding:6px 10px}.foot-badges img{max-height:34px;max-width:96px}}

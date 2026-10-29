@@ -111,6 +111,11 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
 
   const wa = `https://wa.me/${(S.whatsapp || '').replace(/\D/g, '')}`;
   const tel = (S.phone || '').replace(/[^\d+]/g, '');
+  // footer licence badges (Admin > Settings > Footer badge 1-4): an official logo and/or "Title | detail"
+  const badges = [1, 2, 3, 4].map((i) => {
+    const [title = '', detail = ''] = String(S[`badge_${i}_text`] || '').split('|').map((x) => x.trim());
+    return { logo: String(S[`badge_${i}_logo`] || '').trim(), title, detail };
+  }).filter((b) => b.logo || b.title);
   const email = realEmail(S.email);
   const svcLinks = services.filter((s) => s.slug);
   const socials = lines(S.social_links).filter((u) => /^https?:\/\//i.test(u));
@@ -211,6 +216,17 @@ export default function Shell({ S, services = [], children }: { S: Settings; ser
                 )}
               </div>
             </div>
+
+            {badges.length > 0 && (
+              <ul className="foot-badges" aria-label="Licences and registrations">
+                {badges.map((b) => (
+                  <li key={b.title + b.logo} className={b.logo ? 'has-logo' : ''}>
+                    {b.logo && <img src={b.logo} alt={b.logo && !b.title ? 'Licence' : ''} loading="lazy" />}
+                    {b.title && <span><strong>{b.title}</strong>{b.detail && <small>{b.detail}</small>}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <div className="foot-bottom">
               <span>© {new Date().getFullYear()} {S.company_name}. All rights reserved.</span>
