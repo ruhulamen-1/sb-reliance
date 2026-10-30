@@ -409,6 +409,17 @@ const textHtml = (v?: string | null) =>
 const serviceLinks = (services: SeoService[]) =>
   services.filter((s) => s.slug).map((s) => `<li><a href="/services/${esc(encodeURIComponent(s.slug!))}">${esc(serviceHeading(s))}</a></li>`).join('');
 
+/** "Mon-Fri 09:00-18:00" -> "Monday – Friday: 9:00 AM – 6:00 PM"; "00:00-23:59" -> "Open 24 hours" (same as the app's footer) */
+function hoursText(line: string): string {
+  const m = line.match(/^(?:(.+?)\s+)?(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+  if (!m) return line;
+  const DAY: Record<string, string> = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
+  const clock = (t: string) => { const [h, mm] = t.split(':').map(Number); return `${h % 12 || 12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
+  const days = (m[1] || '').split('-').filter(Boolean).map((d) => DAY[d.trim().slice(0, 3).toLowerCase()] || d.trim()).join(' – ');
+  const time = m[2] === '00:00' && m[3] === '23:59' ? 'Open 24 hours' : `${clock(m[2])} – ${clock(m[3])}`;
+  return days ? `${days}: ${time}` : time;
+}
+
 /**
  * The page's main text as plain HTML, put inside <div id="root"> so search engines (and visitors without
  * JavaScript) get the content in the first response. React replaces it as soon as the app starts.
@@ -457,7 +468,24 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
   } else if (path === '/about') {
     main = `<h1>About ${esc(S.brand || co)}</h1>${lines(S.about_intro).map((p) => `<p>${esc(p)}</p>`).join('')}${svcList ? `<ul>${svcList}</ul>` : ''}`;
   } else if (path === '/contact') {
-    main = `<h1>Contact ${esc(co)}</h1>${contact}${S.address ? `<p>${esc(S.address)}</p>` : ''}`;
+    // the contact page in the first response: every way to reach us, hours, area and what we do
+    const tel = (S.phone || '').trim();
+    const mail = realEmail(S.email);
+    const map = S.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(S.address)}` : '';
+    const hours = lines(S.open_hours).map(hoursText);
+    const area = lines(S.service_area);
+    main = `<h1>Contact ${esc(co)}</h1>`
+      + `<p>${esc(co)} works on homes, offices and commercial units across Singapore. Tell us about your job and we will arrange a site visit and send you a written quotation.</p>`
+      + `<h2>How to reach us</h2><ul>`
+      + (tel ? `<li>Phone and WhatsApp: <a href="tel:${esc(tel.replace(/[^\d+]/g, ''))}">${esc(tel)}</a></li>` : '')
+      + (mail ? `<li>Email: <a href="mailto:${esc(mail)}">${esc(mail)}</a></li>` : '')
+      + (S.address ? `<li>Office: ${esc(S.address)}${map ? ` (<a href="${esc(map)}">open in Google Maps</a>)` : ''}</li>` : '')
+      + `</ul>`
+      + (hours.length ? `<h2>Working hours</h2><ul>${hours.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>` : '')
+      + `<h2>Areas we serve</h2><p>${esc(area.length ? area.join(', ') : 'All of Singapore')}: HDB flats, condos, landed homes, offices, shops and commercial units.</p>`
+      + (svcList ? `<h2>Services</h2><ul>${svcList}</ul>` : '')
+      + `<h2>What happens after you contact us</h2><p>We reply on WhatsApp, agree a time for a site visit, check the work and the building rules with you, and send a written quotation with every item listed before any work starts.</p>`
+      + (S.uen ? `<p>UEN: ${esc(S.uen)}</p>` : '');
   } else {
     return '';
   }
