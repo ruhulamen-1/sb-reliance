@@ -5,7 +5,7 @@ import Shell, { Settings } from '../components/Shell';
 import QuoteSection from '../components/QuoteSection';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
-import { serviceHeading, Service } from '../components/content';
+import { pageTitle, serviceHeading, Service } from '../components/content';
 import { HIGH, photo, SIZES } from '../img';
 
 export interface Project {
@@ -42,7 +42,7 @@ export default function ProjectPage() {
   }, [slug]);
 
   const p = data?.project;
-  useSeo({ title: p && S.company_name ? `${projectHeading(p)} – ${S.company_name}` : '', description: p?.description || undefined, canonical: `/portfolio/${slug}` });
+  useSeo({ title: p && S.company_name ? pageTitle(projectHeading(p), S.brand || 'SB Reliance') : '', description: p?.description || undefined, canonical: `/portfolio/${slug}` });
 
   if (state === 'missing') return <NotFound />;
   const extra = p ? [p.photo_2, p.photo_3, p.photo_4].filter((x): x is string => !!x) : [];

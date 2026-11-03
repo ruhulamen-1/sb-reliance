@@ -4,7 +4,7 @@ import { api } from '../api';
 import Shell, { Settings } from '../components/Shell';
 import useSeo from '../components/useSeo';
 import NotFound from './NotFound';
-import { TextBlocks, Service } from '../components/content';
+import { pageTitle, TextBlocks, Service } from '../components/content';
 import { PostSummary, Tags } from '../components/BlogTags';
 import { HIGH, photo, SIZES } from '../img';
 
@@ -29,7 +29,7 @@ export default function PostPage() {
   // other articles under the post; the page works without them
   useEffect(() => { api<PostSummary[]>('/public/posts').then(setOthers).catch(() => setOthers([])); }, []);
 
-  useSeo({ title: post && S.company_name ? `${post.title} – ${S.company_name}` : '', description: post?.excerpt, canonical: `/blog/${slug}` });
+  useSeo({ title: post && S.company_name ? pageTitle(post.title, S.brand || 'SB Reliance') : '', description: post?.excerpt, canonical: `/blog/${slug}` });
 
   if (state === 'missing') return <NotFound />;
   const wa = (S.whatsapp || '').replace(/\D/g, '');

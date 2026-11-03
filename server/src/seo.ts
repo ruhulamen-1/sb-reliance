@@ -44,6 +44,9 @@ export interface SeoProject {
 }
 export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null; posts?: SeoPost[]; projects?: SeoProject[]; related?: SeoPost[] }
 
+/** Google shows about 60 characters of a title: add the short brand only when it still fits, so the words people search for are never cut off */
+export const pageTitle = (name: string, brand: string) => (`${name} | ${brand}`.length <= 62 ? `${name} | ${brand}` : name);
+
 const lines = (v?: string | null) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 // [link text](/services/aircon-ducting-singapore) in admin-written text; the text alone where only plain text fits
 const LINK = /\[([^\]\n]+)\]\(((?:\/|https?:\/\/)[^)\s]*)\)/g;
@@ -158,7 +161,7 @@ export function pageMeta(path: string, S: Settings, data: SeoData = { services: 
     if (!p) return notFound;
     const facts = [p.category, p.duration && `done in ${p.duration}`].filter(Boolean).join(', ');
     return {
-      title: `${projectHeading(p)} – ${co}`,
+      title: pageTitle(projectHeading(p), S.brand || 'SB Reliance'),
       description: clip(p.description || `${projectHeading(p)} by ${co}${facts ? ` (${facts})` : ''}. See photos of the finished work.`),
       canonical: path,
       noindex: !projectIndexable(p),
@@ -170,7 +173,7 @@ export function pageMeta(path: string, S: Settings, data: SeoData = { services: 
   if (postSlug) {
     const p = data.post && data.post.slug === safeDecode(postSlug) ? data.post : null;
     if (!p) return notFound;
-    return { title: `${p.title} – ${co}`, description: clip(p.excerpt || p.content || ''), canonical: path, status: 200, image: p.image_url || undefined };
+    return { title: pageTitle(p.title, S.brand || 'SB Reliance'), description: clip(p.excerpt || p.content || ''), canonical: path, status: 200, image: p.image_url || undefined };
   }
   switch (path) {
     case '/':

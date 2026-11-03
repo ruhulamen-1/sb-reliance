@@ -16,6 +16,9 @@ export interface Service {
   image_url?: string | null;
 }
 
+/** Google shows about 60 characters of a title: add the short brand only when it still fits, so the words people search for are never cut off */
+export const pageTitle = (name: string, brand: string) => (`${name} | ${brand}`.length <= 62 ? `${name} | ${brand}` : name);
+
 export const lines = (v?: string | null) => (v || '').split('\n').map((x) => x.trim()).filter(Boolean);
 
 export const serviceHeading = (s: { title: string }) => (/singapore/i.test(s.title) ? s.title : `${s.title} in Singapore`);
