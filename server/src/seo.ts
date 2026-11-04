@@ -210,6 +210,9 @@ const DAY: Record<string, string> = { mon: 'Mo', tue: 'Tu', wed: 'We', thu: 'Th'
 function openingHours(v?: string): string[] {
   const out: string[] = [];
   for (const l of lines(v)) {
+    // a time with no days ("00:00-23:59") means every day
+    const every = l.match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
+    if (every) { out.push(`Mo-Su ${every[1].padStart(2, '0')}:${every[2]}-${every[3].padStart(2, '0')}:${every[4]}`); continue; }
     const m = l.match(/^([A-Za-z]{3})[a-z]*(?:\s*-\s*([A-Za-z]{3})[a-z]*)?\s+(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
     if (!m) continue;
     const a = DAY[m[1].toLowerCase()];
@@ -220,7 +223,11 @@ function openingHours(v?: string): string[] {
   return out;
 }
 
-const areaServed = (S: Settings) => (lines(S.service_area).length ? lines(S.service_area) : ['Singapore']);
+// one area per line or comma separated ("Singapore, Jurong, Tampines.") -> ["Singapore", "Jurong", "Tampines"]
+const areaServed = (S: Settings) => {
+  const list = [...new Set(lines(S.service_area).flatMap((l) => l.split(',')).map((a) => a.trim().replace(/[.;]+$/, '')).filter(Boolean))];
+  return list.length ? list : ['Singapore'];
+};
 
 /** "236A Serangoon Road Singapore 218084" -> street "236A Serangoon Road" + postal code "218084". */
 export function postalAddress(addr: string): Record<string, string> {
@@ -257,7 +264,8 @@ export function businessJsonLd(S: Settings, services: SeoService[], base: string
   if (img) data.image = abs(base, img);
   data.logo = abs(base, S.logo || '/icon-512.png');
   if (S.uen) data.identifier = { '@type': 'PropertyValue', propertyID: 'UEN', value: S.uen };
-  const same = lines(S.social_links).filter(isHttpUrl);
+  // the Google Business Profile too, so Google ties the website to the map listing
+  const same = [...new Set([...lines(S.social_links), (S.google_reviews_url || '').trim()].filter(isHttpUrl))];
   if (same.length) data.sameAs = same;
   const hours = openingHours(S.open_hours);
   if (hours.length) data.openingHours = hours;
