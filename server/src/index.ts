@@ -10,7 +10,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import compression from 'compression';
-import { plainText, projectService, renderHtml, robotsTxt, sitemapXml, SeoPost, SeoProject, SeoService } from './seo.js';
+import { plainText, projectService, renderHtml, robotsTxt, sitemapXml, SeoData, SeoPost, SeoProject, SeoService } from './seo.js';
 import { SERVICE_DEFAULTS, defaultsFor, slugify } from './serviceDefaults.js';
 import { PASS_TYPES, computePay, OW_CEILING } from './payroll.js';
 import { resizedUploads } from './images.js';
@@ -1564,12 +1564,14 @@ if (existsSync(clientDist)) {
       if (/^\/(portfolio|our-work)\/?$/.test(req.path)) {
         [projects] = await pool.query<RowDataPacket[]>('SELECT id, title, slug, category, location, description, image_url FROM gallery ORDER BY id DESC LIMIT 200');
       }
+      let team: RowDataPacket[] | undefined;
+      if (/^\/team\/?$/.test(req.path)) [team] = await pool.query<RowDataPacket[]>('SELECT name, role, bio FROM team ORDER BY sort_order, id');
       // a service page lists its related blog posts in the first response too
       const svcSlug = /^\/services\/([^/]+)\/?$/.exec(req.path)?.[1];
       let svc: { slug: string; title: string } | undefined;
       if (svcSlug) { try { svc = (services as { slug: string; title: string }[]).find((x) => x.slug === decodeURIComponent(svcSlug)); } catch { /* bad address */ } }
       const related = svc ? await relatedPosts(svc) as SeoPost[] : undefined;
-      const data = { related, services: services as SeoService[], post, project: (project?.project as SeoProject) || null, posts: allPosts as SeoPost[] | undefined, projects: projects as SeoProject[] | undefined };
+      const data = { team: team as SeoData['team'], related, services: services as SeoService[], post, project: (project?.project as SeoProject) || null, posts: allPosts as SeoPost[] | undefined, projects: projects as SeoProject[] | undefined };
       // a project page gets its own data too, so it shows without a second request
       const { html, status } = renderHtml(template, req.path, S, data, baseUrl(req, S), project ? { ...home, project } : allPosts ? { ...home, allPosts } : home);
       res.status(status).type('html').setHeader('Cache-Control', 'no-cache').send(html);

@@ -42,7 +42,7 @@ export interface SeoProject {
   image_url?: string | null;
   before_image_url?: string | null;
 }
-export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null; posts?: SeoPost[]; projects?: SeoProject[]; related?: SeoPost[] }
+export interface SeoData { services: SeoService[]; post?: SeoPost | null; project?: SeoProject | null; posts?: SeoPost[]; projects?: SeoProject[]; related?: SeoPost[]; team?: { name: string; role?: string | null; bio?: string | null }[] }
 
 /** Google shows about 60 characters of a title: add the short brand only when it still fits, so the words people search for are never cut off */
 export const pageTitle = (name: string, brand: string) => (`${name} | ${brand}`.length <= 62 ? `${name} | ${brand}` : name);
@@ -478,6 +478,12 @@ export function bodyHtml(path: string, S: Settings, data: SeoData): string {
     main = `<h1>Portfolio</h1><p>Completed projects by ${esc(co)}.</p>${list ? `<ul>${list}</ul>` : ''}`;
   } else if (path === '/about') {
     main = `<h1>About ${esc(S.brand || co)}</h1>${lines(S.about_intro).map((p) => `<p>${esc(p)}</p>`).join('')}${svcList ? `<ul>${svcList}</ul>` : ''}`;
+  } else if (path === '/team') {
+    const people = (data.team || []).map((t) => `<li><strong>${esc(t.name)}</strong>${t.role ? ` – ${esc(t.role)}` : ''}${t.bio ? `<br>${esc(t.bio)}` : ''}</li>`).join('');
+    main = `<h1>Our team</h1><p>The people at ${esc(co)} who plan, build and finish your project, from the site visit to handover.</p>${people ? `<ul>${people}</ul>` : ''}${contact}`;
+  } else if (path === '/privacy-policy') {
+    main = `<h1>Privacy policy</h1>${textHtml(S.privacy_text)}`
+      + (/^G-[A-Z0-9]{4,20}$/i.test((S.ga_measurement_id || '').trim()) ? '<h2>Website analytics</h2><p>We use Google Analytics to understand how visitors use this website, for example which pages are viewed and how visitors found us. It uses cookies and collects information such as your approximate location, device and browser, but not your name or contact details.</p>' : '');
   } else if (path === '/contact') {
     // the contact page in the first response: every way to reach us, hours, area and what we do
     const tel = (S.phone || '').trim();
